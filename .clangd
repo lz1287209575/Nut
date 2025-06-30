@@ -1,0 +1,40 @@
+CompileFlags:
+  Add: 
+    - -std=c++20
+    - -I./Include
+    - -I./MicroServices/*/Sources
+    - -I./MicroServices/*/Protos
+  Remove: []
+  
+Index:
+  Background: Build
+
+Diagnostics:
+  ClangTidy:
+    Add: 
+      - modernize-*
+      - performance-*
+      - cppcoreguidelines-*
+    Remove: 
+      - modernize-use-trailing-return-type
+      - cppcoreguidelines-avoid-magic-numbers
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  TemplateParameterTypes: Yes
+
+Completion:
+  EnableSnippets: Yes
+  EnableIndex: Yes
+
+Hover:
+  ShowAKA: Yes
+  ShowAKA: Yes
+
+References:
+  ShowAKA: Yes
+
+SymbolSearch:
+  Limit: 100 

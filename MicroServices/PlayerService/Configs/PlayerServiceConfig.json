@@ -1,0 +1,5 @@
+{
+    "service_name": "PlayerService",
+    "listen_port": 50051,
+    "log_level": "info"
+}
