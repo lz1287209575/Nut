@@ -86,7 +86,7 @@ python BuildSystem/BuildScripts/IntelliSenseRefresher.py
 ## IDE支持
 - **根目录 `.clangd`**：全局代码补全和语法检查配置
 - **每个服务的 `Meta/compile_commands.json`**：clangd编译命令数据库
-- **VSCode配置**：自动生成 `.vscode/c_cpp_properties.json` 和 `tasks.json`
+- **VSCode配置**：自动生成 `.vscode/c_cpp_properties.json` 和 `tasks.json`（仅Linux/macOS/g++/clang++）
 - **CLion配置**：自动生成 `.idea/misc.xml`
 - **全局 `compile_commands.json`**：项目级别的编译命令数据库
 

@@ -12,12 +12,6 @@ import platform
 from pathlib import Path
 from typing import Dict, List
 
-# 设置控制台输出编码
-if platform.system() == "Windows":
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
-
 class IntelliSenseRefresher:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent.parent
@@ -49,22 +43,17 @@ class IntelliSenseRefresher:
         
         compile_commands = []
         
-        # 获取编译器路径
-        compiler = self.GetCompilerPath()
+        # 统一使用g++
+        compiler = "g++"
         
-        # 为每个源文件生成编译命令
         for cpp_file in sources_dir.glob("*.cpp"):
-            # 构建包含目录
             include_dirs = [
                 str(sources_dir),
                 str(self.project_root / "Include")
             ]
-            
-            # 构建编译命令
             include_flags = []
             for include_dir in include_dirs:
                 include_flags.extend(["-I", include_dir])
-            
             command_parts = [
                 compiler,
                 "-std=c++20",
@@ -74,15 +63,12 @@ class IntelliSenseRefresher:
                 f"{cpp_file.stem}.o"
             ]
             command_parts.extend(include_flags)
-            
             command = {
                 "directory": str(self.project_root),
                 "command": " ".join(command_parts),
                 "file": str(cpp_file)
             }
             compile_commands.append(command)
-        
-        # 写入服务的compile_commands.json
         compile_commands_file = meta_dir / "compile_commands.json"
         compile_commands_file.write_text(json.dumps(compile_commands, indent=2, ensure_ascii=False), encoding='utf-8')
         print(f"  - 生成 {service_name}/Meta/compile_commands.json")
@@ -90,25 +76,19 @@ class IntelliSenseRefresher:
     def GenerateGlobalCompileCommands(self):
         """生成全局compile_commands.json"""
         compile_commands = []
-        
-        # 遍历所有服务
         for service_dir in self.services_dir.iterdir():
             if service_dir.is_dir():
                 sources_dir = service_dir / "Sources"
                 if sources_dir.exists():
                     for cpp_file in sources_dir.glob("*.cpp"):
-                        # 构建包含目录
                         include_dirs = [
                             str(sources_dir),
                             str(self.project_root / "Include")
                         ]
-                        
-                        # 构建编译命令
+                        compiler = "g++"
                         include_flags = []
                         for include_dir in include_dirs:
                             include_flags.extend(["-I", include_dir])
-                        
-                        compiler = self.GetCompilerPath()
                         command_parts = [
                             compiler,
                             "-std=c++20",
@@ -118,15 +98,12 @@ class IntelliSenseRefresher:
                             f"{cpp_file.stem}.o"
                         ]
                         command_parts.extend(include_flags)
-                        
                         command = {
                             "directory": str(self.project_root),
                             "command": " ".join(command_parts),
                             "file": str(cpp_file)
                         }
                         compile_commands.append(command)
-        
-        # 写入全局compile_commands.json
         global_compile_commands = self.project_root / "compile_commands.json"
         global_compile_commands.write_text(json.dumps(compile_commands, indent=2, ensure_ascii=False), encoding='utf-8')
         print("  - 生成全局 compile_commands.json")
