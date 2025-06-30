@@ -10,14 +10,8 @@ import sys
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 import platform
-
-# 设置控制台输出编码
-if platform.system() == "Windows":
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
 
 class ServiceGenerator:
     def __init__(self):
@@ -25,7 +19,7 @@ class ServiceGenerator:
         self.template_dir = self.project_root / "BuildSystem" / "Templates"
         self.services_dir = self.project_root / "MicroServices"
         
-    def GenerateService(self, service_name: str, port: int|None = None) -> bool:
+    def GenerateService(self, service_name: str, port: Optional[int] = None) -> bool:
         """生成新服务"""
         print(f"正在生成服务: {service_name}")
         
@@ -37,6 +31,8 @@ class ServiceGenerator:
         self.GenerateSourceFiles(service_dir, service_name)
         
         # 生成配置文件
+        if port is None:
+            port = self.GetNextAvailablePort()
         self.GenerateConfigFiles(service_dir, service_name, port)
         
         # 生成协议文件
@@ -47,7 +43,7 @@ class ServiceGenerator:
         
         print(f"服务 {service_name} 生成完成!")
         print(f"目录: {service_dir}")
-        print(f"端口: {port or self.GetNextAvailablePort()}")
+        print(f"端口: {port}")
         return True
     
     def CreateDirectoryStructure(self, service_dir: Path):
@@ -63,18 +59,13 @@ class ServiceGenerator:
     
     def GenerateConfigFiles(self, service_dir: Path, service_name: str, port: int):
         """生成配置文件"""
-        if port is None:
-            port = self.GetNextAvailablePort()
-        
         config_json = service_dir / "Configs" / f"{service_name}Config.json"
         config_content = self.GetConfigTemplate(service_name, port)
         config_json.write_text(config_content, encoding='utf-8')
     
     def GenerateProtoFiles(self, service_dir: Path, service_name: str):
-        """生成协议文件"""
-        proto_file = service_dir / "Protos" / f"{service_name.lower()}.proto"
-        proto_content = self.GetProtoTemplate(service_name)
-        proto_file.write_text(proto_content, encoding='utf-8')
+        """生成协议文件（已禁用，Protos 目录保持为空）"""
+        pass
     
     def GenerateMetaFiles(self, service_dir: Path, service_name: str, port: int):
         """生成Meta文件"""
