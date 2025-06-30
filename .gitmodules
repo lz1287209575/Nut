@@ -1,0 +1,6 @@
+[submodule "ThirdParty/tcmalloc"]
+	path = ThirdParty/tcmalloc
+	url = https://gitee.com/mirrors/tcmalloc.git
+[submodule "ThirdParty/spdlog"]
+	path = ThirdParty/spdlog
+	url = https://gitee.com/chooosky/spdlog.git
