@@ -151,3 +151,5 @@ Thumbs.db
 # 如果有特定的项目文件需要忽略，可以在这里添加 
 
 compile_commands.json
+
+Tools

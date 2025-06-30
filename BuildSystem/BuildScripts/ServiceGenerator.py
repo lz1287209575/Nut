@@ -25,7 +25,7 @@ class ServiceGenerator:
         self.template_dir = self.project_root / "BuildSystem" / "Templates"
         self.services_dir = self.project_root / "MicroServices"
         
-    def GenerateService(self, service_name: str, port: int = None) -> bool:
+    def GenerateService(self, service_name: str, port: int|None = None) -> bool:
         """生成新服务"""
         print(f"正在生成服务: {service_name}")
         
