@@ -61,7 +61,7 @@ else
 fi
 
 echo "[4/4] 安装Python protobuf包..."
-pip3 install protobuf
+python -m pipx install protobuf
 
 echo
 echo "初始化完成！"
