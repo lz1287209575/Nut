@@ -1,7 +1,10 @@
 ServiceMeta = {
     "name": "ServiceAllocate",
     "sources": [
-        "../Sources/ServiceAllocateMain.cpp"
+        "../Sources/ServiceAllocateMain.cpp",
+        "../Sources/ServiceAllocateManager.cpp",
+        "../Sources/ConfigManager.cpp",
+        "../Sources/Logger.cpp"
     ],
     "include_dirs": [
         "../Sources"
@@ -13,7 +16,8 @@ ServiceMeta = {
         "../Configs/ServiceAllocateConfig.json"
     ],
     "dependencies": [
-        "protobuf"
+        "protobuf",
+        "threads"
     ],
     "output": "ServiceAllocateMain"
 }

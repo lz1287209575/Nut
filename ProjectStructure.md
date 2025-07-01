@@ -11,54 +11,36 @@
 
 ```
 Nut/
-├── BuildSystem/                  # 工程化构建系统
-│   ├── BuildScripts/
-│   │   ├── BuildEngine.py        # 主构建引擎（工程化主干）
-│   │   ├── ServiceMetaLoader.py  # 服务Meta加载与校验
-│   │   ├── Compiler.py           # 编译/链接实现
-│   │   ├── DockerGenerator.py    # 生成Dockerfile/镜像
-│   │   ├── K8SGenerator.py       # 生成K8S YAML
-│   │   └── Utils.py              # 工具函数
-│   └── Requirements.txt
-├── Config/                       # 全局配置
-│   └── ...
-├── MicroServices/                # 微服务总目录
-│   ├── PlayerService/
-│   │   ├── Sources/
-│   │   ├── Configs/
-│   │   ├── Protos/
-│   │   └── Meta/
-│   │       ├── PlayerService.Build.py
-│   │       ├── PlayerService.Docker.py
-│   │       └── PlayerService.Kubernetes.py
-│   ├── WorldService/
-│   │   ├── Sources/
-│   │   ├── Configs/
-│   │   ├── Protos/
-│   │   └── Meta/
-│   │       ├── WorldService.Build.py
-│   │       ├── WorldService.Docker.py
-│   │       └── WorldService.Kubernetes.py
-│   └── ...
-├── Docker/                       # Dockerfile模板（可选）
-│   └── ...
-├── K8S/                          # Kubernetes部署模板（可选）
-│   └── ...
-├── Include/                      # 公共头文件
-│   └── ...
-├── Tools/                        # 工具脚本
-│   └── ...
-├── Tests/                        # 测试用例
-│   └── ...
-├── ThirdParty/                   # 第三方依赖
-│   └── ...
-└── ...
+├── Source/
+│   ├── Runtime/
+│   │   ├── LibNut/
+│   │   ├── MicroServices/
+│   │   └── ServiceAllocate/
+│   ├── Programs/
+│   │   ├── NutBuildTools/
+│   │   └── NutHeaderTools/
+│   └── Developer/
+├── Config/
+├── ThirdParty/
+├── Content/
+├── Build/
+├── Tools/
+├── Tests/
+├── Documentation/
+├── README.md
+└── ProjectStructure.md
 ```
 
 - MicroServices/为顶层目录，所有服务模块均在其下。
 - 每个服务目录下有Sources/、Configs/、Protos/、Meta/四大子目录。
 - Meta/目录下存放Build、Docker、K8S等元数据描述文件。
-- BuildSystem为工程化构建系统，支持自动发现和解析所有服务的Meta规则。
+- NutBuildTools为工程化构建系统，支持自动发现和解析所有服务的Meta规则。
+- NutHeaderTools为头文件处理工具集，提供头文件分析、依赖检测、优化等功能。
+- 所有代码均在 Source/ 下，Runtime 为核心服务和库，Programs 为独立工具，Developer 为开发辅助。
+- 每个服务目录下有 Sources/、Configs/、Protos/、Meta/ 四大子目录。
+- Meta/ 目录下存放 Build、Docker、K8S 等元数据描述文件。
+- NutBuildTools 为工程化构建系统，支持自动发现和解析所有服务的 Meta 规则。
+- NutHeaderTools 为头文件处理工具集，提供头文件分析、依赖检测、优化等功能。
 
 ## 命名规范
 

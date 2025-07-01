@@ -4,10 +4,28 @@ import subprocess
 from pathlib import Path
 import shutil
 
+def FindServiceDir(service_meta, project_root):
+    """
+    自动查找服务目录，支持MicroServices和根目录下的服务。
+    """
+    service_name = service_meta["name"]
+    # 先查MicroServices
+    ms_dir = project_root / "MicroServices" / service_name
+    if (ms_dir / "Meta" / f"{service_name}.Build.py").exists():
+        return ms_dir
+    # 再查根目录
+    root_dir = project_root / service_name
+    if (root_dir / "Meta" / f"{service_name}.Build.py").exists():
+        return root_dir
+    # 兜底：直接用根目录下同名目录
+    if (project_root / service_name).exists():
+        return project_root / service_name
+    raise Exception(f"未找到服务目录: {service_name}")
+
 def BuildService(service_meta, project_root):
     service_name = service_meta["name"]
     print(f"==== 编译服务: {service_name} ====")
-    service_dir = project_root / "MicroServices" / service_name
+    service_dir = FindServiceDir(service_meta, project_root)
     sources_dir = service_dir / "Sources"
     protos_dir = service_dir / "Protos"
     output_dir = service_dir / "Build"
@@ -95,7 +113,6 @@ def BuildService(service_meta, project_root):
         if src.exists():
             shutil.copy(src, output_dir)
             print(f"  [拷贝] 协议文件: {src.name}")
-
     print(f"==== 服务 {service_name} 编译完成 ====")
 
 def DetectCompiler():
@@ -158,7 +175,8 @@ def DetectCompiler():
 
 def CleanService(service_meta, project_root):
     service_name = service_meta["name"]
-    output_dir = project_root / "MicroServices" / service_name / "Build"
+    service_dir = FindServiceDir(service_meta, project_root)
+    output_dir = service_dir / "Build"
     if output_dir.exists():
         print(f"清理 {service_name} 的 Build 目录 ...")
         shutil.rmtree(output_dir)
@@ -167,12 +185,13 @@ def CleanService(service_meta, project_root):
 
 def PackageService(service_meta, project_root):
     service_name = service_meta["name"]
-    output_dir = project_root / "MicroServices" / service_name / "Build"
+    service_dir = FindServiceDir(service_meta, project_root)
+    output_dir = service_dir / "Build"
     if not output_dir.exists():
         print(f"{service_name} 未编译，无需打包。")
         return
     import tarfile
-    tar_path = project_root / "MicroServices" / service_name / f"{service_name}.tar.gz"
+    tar_path = service_dir / f"{service_name}.tar.gz"
     with tarfile.open(tar_path, "w:gz") as tar:
         for file in output_dir.iterdir():
             tar.add(file, arcname=file.name)

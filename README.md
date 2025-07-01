@@ -13,15 +13,31 @@
 - 每个服务通过 Meta/ServiceName.Build.py 描述构建规则
 - 支持自动发现、批量/单独构建、清理、打包、Docker/K8S生成等
 
+## 工具集
+
+### NutBuildTools (原 BuildSystem)
+构建和工程化工具集，包含：
+- 服务生成器
+- 项目文件生成器
+- 构建引擎
+- Docker/K8S生成器
+
+### NutHeaderTools
+头文件处理工具集，包含：
+- 头文件扫描和分析
+- 依赖关系分析
+- 头文件验证
+- 依赖图生成
+
 ## 服务生成器
 快速生成新服务的基础框架代码：
 
 ```bash
 # 使用服务生成器创建新服务
-python BuildSystem/BuildScripts/ServiceGenerator.py ChatService --port 50054
+python Source/Programs/NutBuildTools/BuildScripts/ServiceGenerator.py ChatService --port 50054
 
 # 或通过BuildEngine
-python BuildSystem/BuildScripts/BuildEngine.py
+python Source/Programs/NutBuildTools/BuildScripts/BuildEngine.py
 ```
 
 生成的服务包含：
@@ -54,16 +70,17 @@ RefreshIntelliSense.bat
 ### 手动执行
 ```bash
 # 生成项目文件
-python BuildSystem/BuildScripts/ProjectFileGenerator.py
+python Source/Programs/NutBuildTools/BuildScripts/ProjectFileGenerator.py
 
 # 刷新IntelliSense
-python BuildSystem/BuildScripts/IntelliSenseRefresher.py
+python Source/Programs/NutBuildTools/BuildScripts/IntelliSenseRefresher.py
 ```
 
 ## 快速开始
 1. 安装依赖
    ```bash
-   pip install -r BuildSystem/Requirements.txt
+   pip install -r NutBuildTools/Requirements.txt
+   pip install -r NutHeaderTools/Requirements.txt
    ```
 2. 生成项目文件
    ```bash
@@ -75,13 +92,17 @@ python BuildSystem/BuildScripts/IntelliSenseRefresher.py
    ```
 3. 查看所有服务
    ```bash
-   python BuildSystem/BuildScripts/BuildEngine.py
+   python Source/Programs/NutBuildTools/BuildScripts/BuildEngine.py
    ```
 4. 生成新服务
    ```bash
-   python BuildSystem/BuildScripts/ServiceGenerator.py MyService
+   python Source/Programs/NutBuildTools/BuildScripts/ServiceGenerator.py MyService
    ```
-5. 后续可扩展 build/clean/package/docker/k8s 等命令
+5. 分析头文件（可选）
+   ```bash
+   python Source/Programs/NutHeaderTools/HeaderTools.py analyze --project-root .
+   ```
+6. 后续可扩展 build/clean/package/docker/k8s 等命令
 
 ## IDE支持
 - **根目录 `.clangd`**：全局代码补全和语法检查配置

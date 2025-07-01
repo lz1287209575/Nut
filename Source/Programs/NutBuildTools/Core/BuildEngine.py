@@ -1,12 +1,29 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sys
+import os
 from pathlib import Path
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from BuildSystem.BuildScripts.ServiceMetaLoader import LoadAllServiceMeta
 from BuildSystem.BuildScripts.Compiler import BuildService, CleanService, PackageService
 
 class BuildEngine:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent.parent
-        self.services = LoadAllServiceMeta(self.project_root / "MicroServices")
+        self.services = {}
+        
+        # 加载Runtime目录下的服务
+        runtime_root = self.project_root / "Source" / "Runtime"
+        microservices = LoadAllServiceMeta(runtime_root / "MicroServices")
+        self.services.update(microservices)
+        # 加载ServiceAllocate
+        service_allocate = LoadAllServiceMeta(runtime_root / "ServiceAllocate")
+        self.services.update(service_allocate)
 
     def ListServices(self):
         print("可用服务：")
