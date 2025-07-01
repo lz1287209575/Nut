@@ -8,78 +8,78 @@
 #include <atomic>
 #include <mutex>
 
-class ConfigManager;
-class Logger;
+class FConfigManager;
+class FLogger;
 
 // 服务信息结构
-struct ServiceInfo {
-    std::string serviceName;
-    std::string serviceType;
-    std::string host;
-    int port;
-    int currentLoad;
-    int maxLoad;
-    bool isHealthy;
-    std::chrono::system_clock::time_point lastHeartbeat;
+struct FServiceInfo {
+    std::string ServiceName;
+    std::string ServiceType;
+    std::string Host;
+    int Port;
+    int CurrentLoad;
+    int MaxLoad;
+    bool bIsHealthy;
+    std::chrono::system_clock::time_point LastHeartbeat;
     
-    ServiceInfo() : port(0), currentLoad(0), maxLoad(100), isHealthy(true) {}
+    FServiceInfo() : Port(0), CurrentLoad(0), MaxLoad(100), bIsHealthy(true) {}
 };
 
 // 服务分配结果
-struct AllocationResult {
-    bool success;
-    std::string serviceName;
-    std::string host;
-    int port;
-    std::string errorMessage;
+struct FAllocationResult {
+    bool bSuccess;
+    std::string ServiceName;
+    std::string Host;
+    int Port;
+    std::string ErrorMessage;
     
-    AllocationResult() : success(false), port(0) {}
+    FAllocationResult() : bSuccess(false), Port(0) {}
 };
 
-class ServiceAllocateManager {
+class FServiceAllocateManager {
 public:
-    explicit ServiceAllocateManager(ConfigManager* configManager);
-    ~ServiceAllocateManager();
+    explicit FServiceAllocateManager(FConfigManager* InConfigManager);
+    ~FServiceAllocateManager();
     
     bool Initialize();
     void Start();
     void Stop();
     void Shutdown();
-    bool IsRunning() const;
+    [[nodiscard]] bool IsRunning() const;
     
     // 服务注册与发现
-    bool RegisterService(const ServiceInfo& serviceInfo);
-    bool UnregisterService(const std::string& serviceName);
-    std::vector<ServiceInfo> GetServicesByType(const std::string& serviceType);
+    bool RegisterService(const FServiceInfo& InServiceInfo);
+    bool UnregisterService(const std::string& InServiceName);
+    std::vector<FServiceInfo> GetServicesByType(const std::string& InServiceType);
     
     // 服务分配
-    AllocationResult AllocateService(const std::string& serviceType, const std::string& clientId = "");
+    FAllocationResult AllocateService(const std::string& InServiceType, const std::string& InClientId = "");
     
     // 健康检查
-    void UpdateServiceHealth(const std::string& serviceName, bool isHealthy);
-    void UpdateServiceLoad(const std::string& serviceName, int currentLoad);
+    void UpdateServiceHealth(const std::string& InServiceName, bool bInIsHealthy);
+    void UpdateServiceLoad(const std::string& InServiceName, int InCurrentLoad);
     
     // 心跳处理
-    void ProcessHeartbeat(const std::string& serviceName);
+    void ProcessHeartbeat(const std::string& InServiceName);
     
 private:
     void HealthCheckThread();
     void CleanupUnhealthyServices();
-    ServiceInfo* FindService(const std::string& serviceName);
-    ServiceInfo* SelectBestService(const std::string& serviceType);
+    FServiceInfo* FindService(const std::string& InServiceName);
+    FServiceInfo* SelectBestService(const std::string& InServiceType);
     
-    ConfigManager* m_configManager;
-    std::unique_ptr<Logger> m_logger;
+    FConfigManager* ConfigManager;
+    std::unique_ptr<FLogger> Logger;
     
-    std::map<std::string, ServiceInfo> m_services;
-    std::map<std::string, std::vector<std::string>> m_serviceTypeIndex;
+    std::map<std::string, FServiceInfo> Services;
+    std::map<std::string, std::vector<std::string>> ServiceTypeIndex;
     
-    std::atomic<bool> m_running;
-    std::thread m_healthCheckThread;
-    std::mutex m_servicesMutex;
+    std::atomic<bool> bRunning;
+    std::thread HealthCheckThreadHandle;
+    std::mutex ServicesMutex;
     
     // 配置参数
-    int m_healthCheckInterval;  // 健康检查间隔（秒）
-    int m_heartbeatTimeout;     // 心跳超时时间（秒）
-    int m_maxRetries;          // 最大重试次数
+    int HealthCheckInterval;  // 健康检查间隔（秒）
+    int HeartbeatTimeout;     // 心跳超时时间（秒）
+    int MaxRetries;           // 最大重试次数
 }; 

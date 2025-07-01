@@ -3,253 +3,252 @@
 #include "Logger.h"
 #include <algorithm>
 #include <chrono>
-#include <random>
 
-ServiceAllocateManager::ServiceAllocateManager(ConfigManager* configManager)
-    : m_configManager(configManager)
-    , m_logger(std::make_unique<Logger>())
-    , m_running(false)
-    , m_healthCheckInterval(30)
-    , m_heartbeatTimeout(60)
-    , m_maxRetries(3) {
+FServiceAllocateManager::FServiceAllocateManager(FConfigManager* InConfigManager)
+    : ConfigManager(InConfigManager)
+    , Logger(std::make_unique<FLogger>())
+    , bRunning(false)
+    , HealthCheckInterval(30)
+    , HeartbeatTimeout(60)
+    , MaxRetries(3) {
 }
 
-ServiceAllocateManager::~ServiceAllocateManager() {
+FServiceAllocateManager::~FServiceAllocateManager() {
     Shutdown();
 }
 
-bool ServiceAllocateManager::Initialize() {
-    m_logger->Info("初始化服务分配管理器...");
+bool FServiceAllocateManager::Initialize() {
+    Logger->Info("初始化服务分配管理器...");
     
     // 从配置加载参数
-    m_healthCheckInterval = m_configManager->GetInt("health_check_interval", 30);
-    m_heartbeatTimeout = m_configManager->GetInt("heartbeat_timeout", 60);
-    m_maxRetries = m_configManager->GetInt("max_retries", 3);
+    HealthCheckInterval = ConfigManager->GetInt("health_check_interval", 30);
+    HeartbeatTimeout = ConfigManager->GetInt("heartbeat_timeout", 60);
+    MaxRetries = ConfigManager->GetInt("max_retries", 3);
     
-    m_logger->Info("服务分配管理器初始化完成");
+    Logger->Info("服务分配管理器初始化完成");
     return true;
 }
 
-void ServiceAllocateManager::Start() {
-    if (m_running) {
-        m_logger->Warn("服务分配管理器已经在运行");
+void FServiceAllocateManager::Start() {
+    if (bRunning) {
+        Logger->Warn("服务分配管理器已经在运行");
         return;
     }
     
-    m_running = true;
-    m_healthCheckThread = std::thread(&ServiceAllocateManager::HealthCheckThread, this);
-    m_logger->Info("服务分配管理器启动成功");
+    bRunning = true;
+    HealthCheckThreadHandle = std::thread(&FServiceAllocateManager::HealthCheckThread, this);
+    Logger->Info("服务分配管理器启动成功");
 }
 
-void ServiceAllocateManager::Stop() {
-    if (!m_running) {
+void FServiceAllocateManager::Stop() {
+    if (!bRunning) {
         return;
     }
     
-    m_running = false;
-    if (m_healthCheckThread.joinable()) {
-        m_healthCheckThread.join();
+    bRunning = false;
+    if (HealthCheckThreadHandle.joinable()) {
+        HealthCheckThreadHandle.join();
     }
-    m_logger->Info("服务分配管理器已停止");
+    Logger->Info("服务分配管理器已停止");
 }
 
-void ServiceAllocateManager::Shutdown() {
+void FServiceAllocateManager::Shutdown() {
     Stop();
-    m_logger->Info("服务分配管理器已关闭");
+    Logger->Info("服务分配管理器已关闭");
 }
 
-bool ServiceAllocateManager::IsRunning() const {
-    return m_running;
+bool FServiceAllocateManager::IsRunning() const {
+    return bRunning;
 }
 
-bool ServiceAllocateManager::RegisterService(const ServiceInfo& serviceInfo) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+bool FServiceAllocateManager::RegisterService(const FServiceInfo& InServiceInfo) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
     // 检查服务是否已存在
-    if (m_services.find(serviceInfo.serviceName) != m_services.end()) {
-        m_logger->Warn("服务已存在: " + serviceInfo.serviceName);
+    if (Services.find(InServiceInfo.ServiceName) != Services.end()) {
+        Logger->Warn("服务已存在: " + InServiceInfo.ServiceName);
         return false;
     }
     
     // 注册服务
-    m_services[serviceInfo.serviceName] = serviceInfo;
+    Services[InServiceInfo.ServiceName] = InServiceInfo;
     
     // 更新类型索引
-    m_serviceTypeIndex[serviceInfo.serviceType].push_back(serviceInfo.serviceName);
+    ServiceTypeIndex[InServiceInfo.ServiceType].push_back(InServiceInfo.ServiceName);
     
-    m_logger->Info("注册服务成功: " + serviceInfo.serviceName + 
-                  " (" + serviceInfo.serviceType + ") " +
-                  serviceInfo.host + ":" + std::to_string(serviceInfo.port));
+    Logger->Info("注册服务成功: " + InServiceInfo.ServiceName + 
+                  " (" + InServiceInfo.ServiceType + ") " +
+                  InServiceInfo.Host + ":" + std::to_string(InServiceInfo.Port));
     
     return true;
 }
 
-bool ServiceAllocateManager::UnregisterService(const std::string& serviceName) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+bool FServiceAllocateManager::UnregisterService(const std::string& InServiceName) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    auto it = m_services.find(serviceName);
-    if (it == m_services.end()) {
-        m_logger->Warn("服务不存在: " + serviceName);
+    auto It = Services.find(InServiceName);
+    if (It == Services.end()) {
+        Logger->Warn("服务不存在: " + InServiceName);
         return false;
     }
     
     // 从类型索引中移除
-    std::string serviceType = it->second.serviceType;
-    auto& typeServices = m_serviceTypeIndex[serviceType];
-    typeServices.erase(std::remove(typeServices.begin(), typeServices.end(), serviceName), typeServices.end());
+    std::string ServiceType = It->second.ServiceType;
+    auto& TypeServices = ServiceTypeIndex[ServiceType];
+    TypeServices.erase(std::remove(TypeServices.begin(), TypeServices.end(), InServiceName), TypeServices.end());
     
     // 如果类型下没有服务了，删除类型索引
-    if (typeServices.empty()) {
-        m_serviceTypeIndex.erase(serviceType);
+    if (TypeServices.empty()) {
+        ServiceTypeIndex.erase(ServiceType);
     }
     
     // 从服务列表中移除
-    m_services.erase(it);
+    Services.erase(It);
     
-    m_logger->Info("注销服务成功: " + serviceName);
+    Logger->Info("注销服务成功: " + InServiceName);
     return true;
 }
 
-std::vector<ServiceInfo> ServiceAllocateManager::GetServicesByType(const std::string& serviceType) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+std::vector<FServiceInfo> FServiceAllocateManager::GetServicesByType(const std::string& InServiceType) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    std::vector<ServiceInfo> result;
-    auto it = m_serviceTypeIndex.find(serviceType);
-    if (it != m_serviceTypeIndex.end()) {
-        for (const auto& serviceName : it->second) {
-            auto serviceIt = m_services.find(serviceName);
-            if (serviceIt != m_services.end() && serviceIt->second.isHealthy) {
-                result.push_back(serviceIt->second);
+    std::vector<FServiceInfo> Result;
+    auto It = ServiceTypeIndex.find(InServiceType);
+    if (It != ServiceTypeIndex.end()) {
+        for (const auto& ServiceName : It->second) {
+            auto ServiceIt = Services.find(ServiceName);
+            if (ServiceIt != Services.end() && ServiceIt->second.bIsHealthy) {
+                Result.push_back(ServiceIt->second);
             }
         }
     }
     
-    return result;
+    return Result;
 }
 
-AllocationResult ServiceAllocateManager::AllocateService(const std::string& serviceType, const std::string& clientId) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+FAllocationResult FServiceAllocateManager::AllocateService(const std::string& InServiceType, const std::string& InClientId) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    AllocationResult result;
+    FAllocationResult Result;
     
-    ServiceInfo* bestService = SelectBestService(serviceType);
-    if (!bestService) {
-        result.errorMessage = "没有可用的服务: " + serviceType;
-        m_logger->Warn(result.errorMessage);
-        return result;
+    FServiceInfo* BestService = SelectBestService(InServiceType);
+    if (!BestService) {
+        Result.ErrorMessage = "没有可用的服务: " + InServiceType;
+        Logger->Warn(Result.ErrorMessage);
+        return Result;
     }
     
     // 检查负载
-    if (bestService->currentLoad >= bestService->maxLoad) {
-        result.errorMessage = "服务负载过高: " + bestService->serviceName;
-        m_logger->Warn(result.errorMessage);
-        return result;
+    if (BestService->CurrentLoad >= BestService->MaxLoad) {
+        Result.ErrorMessage = "服务负载过高: " + BestService->ServiceName;
+        Logger->Warn(Result.ErrorMessage);
+        return Result;
     }
     
     // 分配服务
-    result.success = true;
-    result.serviceName = bestService->serviceName;
-    result.host = bestService->host;
-    result.port = bestService->port;
+    Result.bSuccess = true;
+    Result.ServiceName = BestService->ServiceName;
+    Result.Host = BestService->Host;
+    Result.Port = BestService->Port;
     
     // 增加负载
-    bestService->currentLoad++;
+    BestService->CurrentLoad++;
     
-    m_logger->Info("分配服务成功: " + result.serviceName + 
-                  " 给客户端: " + (clientId.empty() ? "unknown" : clientId) +
-                  " (当前负载: " + std::to_string(bestService->currentLoad) + "/" + 
-                  std::to_string(bestService->maxLoad) + ")");
+    Logger->Info("分配服务成功: " + Result.ServiceName + 
+                  " 给客户端: " + (InClientId.empty() ? "unknown" : InClientId) +
+                  " (当前负载: " + std::to_string(BestService->CurrentLoad) + "/" + 
+                  std::to_string(BestService->MaxLoad) + ")");
     
-    return result;
+    return Result;
 }
 
-void ServiceAllocateManager::UpdateServiceHealth(const std::string& serviceName, bool isHealthy) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+void FServiceAllocateManager::UpdateServiceHealth(const std::string& InServiceName, bool bInIsHealthy) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    ServiceInfo* service = FindService(serviceName);
-    if (service) {
-        service->isHealthy = isHealthy;
-        m_logger->Info("更新服务健康状态: " + serviceName + " -> " + (isHealthy ? "健康" : "不健康"));
+    FServiceInfo* Service = FindService(InServiceName);
+    if (Service) {
+        Service->bIsHealthy = bInIsHealthy;
+        Logger->Info("更新服务健康状态: " + InServiceName + " -> " + (bInIsHealthy ? "健康" : "不健康"));
     }
 }
 
-void ServiceAllocateManager::UpdateServiceLoad(const std::string& serviceName, int currentLoad) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+void FServiceAllocateManager::UpdateServiceLoad(const std::string& InServiceName, int InCurrentLoad) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    ServiceInfo* service = FindService(serviceName);
-    if (service) {
-        service->currentLoad = currentLoad;
-        m_logger->Debug("更新服务负载: " + serviceName + " -> " + std::to_string(currentLoad));
+    FServiceInfo* Service = FindService(InServiceName);
+    if (Service) {
+        Service->CurrentLoad = InCurrentLoad;
+        Logger->Debug("更新服务负载: " + InServiceName + " -> " + std::to_string(InCurrentLoad));
     }
 }
 
-void ServiceAllocateManager::ProcessHeartbeat(const std::string& serviceName) {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+void FServiceAllocateManager::ProcessHeartbeat(const std::string& InServiceName) {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    ServiceInfo* service = FindService(serviceName);
-    if (service) {
-        service->lastHeartbeat = std::chrono::system_clock::now();
-        service->isHealthy = true;
-        m_logger->Debug("处理心跳: " + serviceName);
+    FServiceInfo* Service = FindService(InServiceName);
+    if (Service) {
+        Service->LastHeartbeat = std::chrono::system_clock::now();
+        Service->bIsHealthy = true;
+        Logger->Debug("处理心跳: " + InServiceName);
     }
 }
 
-void ServiceAllocateManager::HealthCheckThread() {
-    while (m_running) {
-        std::this_thread::sleep_for(std::chrono::seconds(m_healthCheckInterval));
+void FServiceAllocateManager::HealthCheckThread() {
+    while (bRunning) {
+        std::this_thread::sleep_for(std::chrono::seconds(HealthCheckInterval));
         CleanupUnhealthyServices();
     }
 }
 
-void ServiceAllocateManager::CleanupUnhealthyServices() {
-    std::lock_guard<std::mutex> lock(m_servicesMutex);
+void FServiceAllocateManager::CleanupUnhealthyServices() {
+    std::lock_guard<std::mutex> Lock(ServicesMutex);
     
-    auto now = std::chrono::system_clock::now();
+    auto Now = std::chrono::system_clock::now();
     std::vector<std::string> servicesToRemove;
     
-    for (auto& pair : m_services) {
-        ServiceInfo& service = pair.second;
-        auto timeSinceHeartbeat = std::chrono::duration_cast<std::chrono::seconds>(
-            now - service.lastHeartbeat).count();
+    for (auto& Pair : Services) {
+        FServiceInfo& Service = Pair.second;
+        auto TimeSinceHeartbeat = std::chrono::duration_cast<std::chrono::seconds>(
+            Now - Service.LastHeartbeat).count();
         
-        if (timeSinceHeartbeat > m_heartbeatTimeout) {
-            service.isHealthy = false;
-            m_logger->Warn("服务心跳超时: " + service.serviceName + 
-                          " (超时: " + std::to_string(timeSinceHeartbeat) + "s)");
+        if (TimeSinceHeartbeat > HeartbeatTimeout) {
+            Service.bIsHealthy = false;
+            Logger->Warn("服务心跳超时: " + Service.ServiceName + 
+                          " (超时: " + std::to_string(TimeSinceHeartbeat) + "s)");
         }
     }
 }
 
-ServiceInfo* ServiceAllocateManager::FindService(const std::string& serviceName) {
-    auto it = m_services.find(serviceName);
-    return (it != m_services.end()) ? &it->second : nullptr;
+FServiceInfo* FServiceAllocateManager::FindService(const std::string& InServiceName) {
+    auto It = Services.find(InServiceName);
+    return (It != Services.end()) ? &It->second : nullptr;
 }
 
-ServiceInfo* ServiceAllocateManager::SelectBestService(const std::string& serviceType) {
-    auto it = m_serviceTypeIndex.find(serviceType);
-    if (it == m_serviceTypeIndex.end()) {
+FServiceInfo* FServiceAllocateManager::SelectBestService(const std::string& InServiceType) {
+    auto It = ServiceTypeIndex.find(InServiceType);
+    if (It == ServiceTypeIndex.end()) {
         return nullptr;
     }
     
-    std::vector<ServiceInfo*> availableServices;
+    std::vector<FServiceInfo*> AvailableServices;
     
     // 收集健康的服务
-    for (const auto& serviceName : it->second) {
-        ServiceInfo* service = FindService(serviceName);
-        if (service && service->isHealthy && service->currentLoad < service->maxLoad) {
-            availableServices.push_back(service);
+    for (const auto& ServiceName : It->second) {
+        FServiceInfo* Service = FindService(ServiceName);
+        if (Service && Service->bIsHealthy && Service->CurrentLoad < Service->MaxLoad) {
+            AvailableServices.push_back(Service);
         }
     }
     
-    if (availableServices.empty()) {
+    if (AvailableServices.empty()) {
         return nullptr;
     }
     
     // 简单的负载均衡策略：选择负载最低的服务
-    auto bestService = std::min_element(availableServices.begin(), availableServices.end(),
-        [](const ServiceInfo* a, const ServiceInfo* b) {
-            return a->currentLoad < b->currentLoad;
+    auto BestService = std::min_element(AvailableServices.begin(), AvailableServices.end(),
+        [](const FServiceInfo* A, const FServiceInfo* B) {
+            return A->CurrentLoad < B->CurrentLoad;
         });
     
-    return *bestService;
+    return *BestService;
 } 

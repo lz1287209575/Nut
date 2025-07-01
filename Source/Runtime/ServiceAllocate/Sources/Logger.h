@@ -3,28 +3,28 @@
 #include <string>
 #include <memory>
 
-enum class LogLevel {
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR
+enum class ELogLevel {
+    Debug,
+    Info,
+    Warn,
+    Error
 };
 
-class Logger {
+class FLogger {
 public:
-    Logger();
-    ~Logger();
+    FLogger();
+    ~FLogger();
     
-    void SetLogLevel(LogLevel level);
-    void Debug(const std::string& message);
-    void Info(const std::string& message);
-    void Warn(const std::string& message);
-    void Error(const std::string& message);
+    void SetLogLevel(ELogLevel InLevel);
+    void Debug(const std::string& Message);
+    void Info(const std::string& Message);
+    void Warn(const std::string& Message);
+    void Error(const std::string& Message);
     
 private:
-    void Log(LogLevel level, const std::string& message);
+    void Log(ELogLevel Level, const std::string& Message);
     std::string GetCurrentTime();
-    std::string LevelToString(LogLevel level);
+    std::string LevelToString(ELogLevel Level);
     
-    LogLevel m_logLevel;
+    ELogLevel LogLevel;
 }; 

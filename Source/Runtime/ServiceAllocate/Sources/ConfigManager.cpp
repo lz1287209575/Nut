@@ -4,92 +4,84 @@
 #include <iostream>
 #include <algorithm>
 
-ConfigManager::ConfigManager() : m_listenPort(50052) {
+FConfigManager::FConfigManager() : ListenPort(50052) {
 }
 
-ConfigManager::~ConfigManager() {
+FConfigManager::~FConfigManager() {
 }
 
-bool ConfigManager::LoadConfig(const std::string& configPath) {
-    std::ifstream file(configPath);
-    if (!file.is_open()) {
-        std::cerr << "无法打开配置文件: " << configPath << std::endl;
+bool FConfigManager::LoadConfig(const std::string& ConfigPath) {
+    std::ifstream File(ConfigPath);
+    if (!File.is_open()) {
+        std::cerr << "无法打开配置文件: " << ConfigPath << std::endl;
         return false;
     }
-    
-    std::string line;
-    while (std::getline(file, line)) {
-        // 简单的键值对解析，实际项目中可以使用JSON库
-        size_t pos = line.find(':');
-        if (pos != std::string::npos) {
-            std::string key = line.substr(0, pos);
-            std::string value = line.substr(pos + 1);
-            
-            // 去除空格和引号
-            key.erase(0, key.find_first_not_of(" \t\""));
-            key.erase(key.find_last_not_of(" \t\",") + 1);
-            value.erase(0, value.find_first_not_of(" \t\""));
-            value.erase(value.find_last_not_of(" \t\",") + 1);
-            
-            m_config[key] = value;
+    std::string Line;
+    while (std::getline(File, Line)) {
+        size_t Pos = Line.find(':');
+        if (Pos != std::string::npos) {
+            std::string Key = Line.substr(0, Pos);
+            std::string Value = Line.substr(Pos + 1);
+            Key.erase(0, Key.find_first_not_of(" \t\""));
+            Key.erase(Key.find_last_not_of(" \t\",") + 1);
+            Value.erase(0, Value.find_first_not_of(" \t\""));
+            Value.erase(Value.find_last_not_of(" \t\",") + 1);
+            Config[Key] = Value;
         }
     }
-    
-    // 解析服务配置
-    m_serviceName = GetString("service_name", "ServiceAllocate");
-    m_listenPort = GetInt("listen_port", 50052);
-    m_logLevel = GetString("log_level", "info");
-    
+    ServiceName = GetString("service_name", "ServiceAllocate");
+    ListenPort = GetInt("listen_port", 50052);
+    LogLevel = GetString("log_level", "info");
     return true;
 }
 
-std::string ConfigManager::GetString(const std::string& key, const std::string& defaultValue) {
-    auto it = m_config.find(key);
-    return (it != m_config.end()) ? it->second : defaultValue;
+std::string FConfigManager::GetString(const std::string& Key, const std::string& DefaultValue) {
+    auto It = Config.find(Key);
+    return (It != Config.end()) ? It->second : DefaultValue;
 }
 
-int ConfigManager::GetInt(const std::string& key, int defaultValue) {
-    auto it = m_config.find(key);
-    if (it != m_config.end()) {
+int FConfigManager::GetInt(const std::string& Key, int DefaultValue) {
+    auto It = Config.find(Key);
+    if (It != Config.end()) {
         try {
-            return std::stoi(it->second);
+            return std::stoi(It->second);
         } catch (...) {
-            return defaultValue;
+            return DefaultValue;
         }
     }
-    return defaultValue;
+    return DefaultValue;
 }
 
-bool ConfigManager::GetBool(const std::string& key, bool defaultValue) {
-    auto it = m_config.find(key);
-    if (it != m_config.end()) {
-        std::string value = it->second;
-        std::transform(value.begin(), value.end(), value.begin(), ::tolower);
-        return (value == "true" || value == "1" || value == "yes");
+bool FConfigManager::GetBool(const std::string& Key, bool DefaultValue) {
+    auto It = Config.find(Key);
+    if (It != Config.end()) {
+        std::string Value = It->second;
+        std::transform(Value.begin(), Value.end(), Value.begin(), ::tolower);
+        return (Value == "true" || Value == "1" || Value == "yes");
     }
-    return defaultValue;
+    return DefaultValue;
 }
 
-double ConfigManager::GetDouble(const std::string& key, double defaultValue) {
-    auto it = m_config.find(key);
-    if (it != m_config.end()) {
+double FConfigManager::GetDouble(const std::string& Key, double DefaultValue) {
+    auto It = Config.find(Key);
+    if (It != Config.end()) {
         try {
-            return std::stod(it->second);
+            return std::stod(It->second);
         } catch (...) {
-            return defaultValue;
+            return DefaultValue;
         }
     }
-    return defaultValue;
+    return DefaultValue;
 }
 
-std::string ConfigManager::GetServiceName() const {
-    return m_serviceName;
+std::string FConfigManager::GetServiceName() const {
+    return ServiceName;
 }
 
-int ConfigManager::GetListenPort() const {
-    return m_listenPort;
+int FConfigManager::GetListenPort() const {
+    return ListenPort;
 }
 
-std::string ConfigManager::GetLogLevel() const {
-    return m_logLevel;
+std::string FConfigManager::GetLogLevel() const {
+    return LogLevel;
 } 
