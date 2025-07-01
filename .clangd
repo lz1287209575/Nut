@@ -20,21 +20,20 @@ Diagnostics:
       - cppcoreguidelines-avoid-magic-numbers
 
 InlayHints:
-  Enabled: Yes
-  ParameterNames: Yes
-  DeducedTypes: Yes
-  TemplateParameterTypes: Yes
+  Enabled: True
+  ParameterNames: True
+  DeducedTypes: True
+  TemplateParameterTypes: True
 
 Completion:
-  EnableSnippets: Yes
-  EnableIndex: Yes
+  EnableSnippets: True
+  EnableIndex: True
 
 Hover:
-  ShowAKA: Yes
-  ShowAKA: Yes
+  ShowAKA: True
 
 References:
-  ShowAKA: Yes
+  ShowAKA: True
 
 SymbolSearch:
   Limit: 100 

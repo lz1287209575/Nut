@@ -84,9 +84,6 @@ python Source/Programs/NutBuildTools/BuildScripts/IntelliSenseRefresher.py
    ```
 2. 生成项目文件
    ```bash
-   # Windows
-   GenerateProjectFiles.bat
-   
    # *nix
    ./GenerateProjectFiles.sh
    ```

@@ -83,7 +83,7 @@ class ServiceGenerator:
         k8s_py = service_dir / "Meta" / f"{service_name}.Kubernetes.py"
         k8s_content = self.GetK8STemplate(service_name, port)
         k8s_py.write_text(k8s_content, encoding='utf-8')
-    
+
     def GetNextAvailablePort(self) -> int:
         """获取下一个可用端口"""
         base_port = 50051
@@ -124,49 +124,26 @@ int main() {{
 }}
 '''
     
-    def GetProtoTemplate(self, service_name: str) -> str:
-        service_lower = service_name.lower()
-        return f'''syntax = "proto3";
-
-package {service_lower};
-
-message {service_name}InitRequest {{
-    string service_name = 1;
-}}
-
-message {service_name}InitResponse {{
-    bool success = 1;
-    string message = 2;
-}}
-'''
-    
     def GetBuildTemplate(self, service_name: str) -> str:
-        return f'''ServiceMeta = {{
-    "name": "{service_name}",
-    "sources": [
-        "../Sources/{service_name}Main.cpp"
-    ],
-    "include_dirs": [
-        "../Sources"
-    ],
-    "proto_files": [
-        "../Protos/{service_name.lower()}.proto"
-    ],
-    "config_files": [
-        "../Configs/{service_name}Config.json"
-    ],
-    "dependencies": [
-        "protobuf"
-    ],
-    "output": "{service_name}Main"
-}}
+        return f'''
+# -*- coding: utf-8 -*-
+from NutBuildTools.Core.TargetRules import ServiceMetaRules, TargetType
+
+class {service_name}Meta(ServiceMetaRules):
+
+    def __init__(self):
+        self.name = "{service_name}"
+        self.target_type = TargetType.SERVICE
+        self.extra_modules = []
+
+        ServiceMetaRules.__init__(self)
 '''
     
     def GetDockerTemplate(self, service_name: str, port: int) -> str:
         return f'''DockerMeta = {{
     "base_image": "ubuntu:22.04",
     "copy_files": [
-        "../Sources/{service_name}Main",
+        "../Build/{service_name}Main",
         "../Configs/{service_name}Config.json"
     ],
     "expose_ports": [{port}],
