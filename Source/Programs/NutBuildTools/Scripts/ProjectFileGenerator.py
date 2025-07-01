@@ -20,7 +20,7 @@ if platform.system() == "Windows":
 
 class ProjectFileGenerator:
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent.parent
+        self.project_root = Path(os.curdir)
         self.services_dir = self.project_root / "MicroServices"
         self.build_dir = self.project_root / "Build"
         
@@ -102,7 +102,7 @@ class ProjectFileGenerator:
                     "label": "Build All",
                     "type": "shell",
                     "command": "python",
-                    "args": ["Source/Programs/NutBuildTools/Scripts/BuildEngine.py", "build"],
+                    "args": ["Source/Programs/NutBuildTools/BuildTool.py", "build"],
                     "group": "build",
                     "presentation": {
                         "echo": True,
@@ -115,7 +115,7 @@ class ProjectFileGenerator:
                     "label": "Clean All",
                     "type": "shell",
                     "command": "python",
-                    "args": ["Source/Programs/NutBuildTools/Scripts/BuildEngine.py", "clean"],
+                    "args": ["Source/Programs/NutBuildTools/BuildTool.py", "clean"],
                     "group": "build",
                     "presentation": {
                         "echo": True,

@@ -127,16 +127,15 @@ int main() {{
     def GetBuildTemplate(self, service_name: str) -> str:
         return f'''
 # -*- coding: utf-8 -*-
-from NutBuildTools.Core.TargetRules import ServiceMetaRules, TargetType
+from pathlib import Path
 
-class {service_name}Meta(ServiceMetaRules):
+from Core.MetaLoader import BuildMeta
 
-    def __init__(self):
-        self.name = "{service_name}"
-        self.target_type = TargetType.SERVICE
-        self.extra_modules = []
 
-        ServiceMetaRules.__init__(self)
+class ServiceAllocateMeta(BuildMeta):
+    
+    def __init__(self, name: str, meta_file: Path):
+        super().__init__(name, meta_file)
 '''
     
     def GetDockerTemplate(self, service_name: str, port: int) -> str:

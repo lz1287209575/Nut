@@ -1,46 +1,32 @@
+from curses import meta
+import glob
 import os
 import platform
 import subprocess
 from pathlib import Path
 import shutil
 
-def FindServiceDir(service_meta, project_root):
-    """
-    自动查找服务目录，支持MicroServices和根目录下的服务。
-    """
-    service_name = service_meta["name"]
-    # 先查MicroServices
-    ms_dir = project_root / "MicroServices" / service_name
-    if (ms_dir / "Meta" / f"{service_name}.Build.py").exists():
-        return ms_dir
-    # 再查根目录
-    root_dir = project_root / service_name
-    if (root_dir / "Meta" / f"{service_name}.Build.py").exists():
-        return root_dir
-    # 兜底：直接用根目录下同名目录
-    if (project_root / service_name).exists():
-        return project_root / service_name
-    raise Exception(f"未找到服务目录: {service_name}")
+from Core.MetaLoader import Meta, BuildMeta
 
-def BuildService(service_meta, project_root):
-    service_name = service_meta["name"]
+
+def BuildService(service_meta: Meta):
+    service_name = service_meta.name
     print(f"==== 编译服务: {service_name} ====")
-    service_dir = FindServiceDir(service_meta, project_root)
-    sources_dir = service_dir / "Sources"
-    protos_dir = service_dir / "Protos"
-    output_dir = service_dir / "Build"
-    output_dir.mkdir(exist_ok=True)
+    project_root = Path(os.curdir)
+    
+    if not isinstance(service_meta, BuildMeta):
+        raise ValueError(f"服务 {service_name} 不是 {BuildMeta.__name__} 类型")
 
     # 1. 生成Protobuf代码
-    if "proto_files" in service_meta and service_meta["proto_files"]:
-        for proto_rel in service_meta["proto_files"]:
-            proto_file = (protos_dir / Path(proto_rel).name).resolve()
+    if service_meta.protos_dir.exists():
+        for proto_rel in service_meta.protos_dir.glob("*.proto"):
+            proto_file = proto_rel.resolve()
             if proto_file.exists():
                 print(f"  [Proto] 生成 {proto_file.name} ...")
                 protoc_cmd = [
                     FindProtoc(project_root),
-                    f"--cpp_out={sources_dir}",
-                    f"--proto_path={protos_dir}",
+                    f"--cpp_out={service_meta.sources_dir}",
+                    f"--proto_path={service_meta.protos_dir}",
                     str(proto_file)
                 ]
                 try:
@@ -52,7 +38,7 @@ def BuildService(service_meta, project_root):
                 print(f"  [警告] 未找到proto文件: {proto_file}")
 
     # 2. 收集所有源文件
-    cpp_files = list(sources_dir.glob("*.cpp"))
+    cpp_files = list(service_meta.sources_dir.glob("*.cpp")) + list(service_meta.sources_dir.glob("*.c")) + list(service_meta.sources_dir.glob("*.cc"))
     if not cpp_files:
         print("  [错误] 未找到任何源文件！")
         return
@@ -66,11 +52,11 @@ def BuildService(service_meta, project_root):
     # 4. 编译所有源文件
     obj_files = []
     for cpp_file in cpp_files:
-        obj_file = output_dir / (cpp_file.stem + obj_ext)
+        obj_file = service_meta.intermediate_dir / (cpp_file.stem + obj_ext)
         compile_cmd = [
             "g++",
             "-std=c++20",
-            "-I", str(sources_dir),
+            "-I", str(service_meta.sources_dir),
             "-I", str(project_root / "Include"),
             "-c", str(cpp_file),
             "-o", str(obj_file)
@@ -88,8 +74,8 @@ def BuildService(service_meta, project_root):
         obj_files.append(str(obj_file))
 
     # 5. 链接为可执行文件
-    exe_name = service_meta.get("output", service_name)
-    exe_file = output_dir / exe_name
+    exe_name = service_meta.name
+    exe_file = service_meta.output_dir / exe_name
     linker_cmd = ["g++"] + [str(f) for f in obj_files] + ["-o", str(exe_file)]
     print(f"  [链接] {exe_file.name}")
     try:
@@ -102,17 +88,6 @@ def BuildService(service_meta, project_root):
         print(f"  [错误] 链接失败: {e.stderr}")
         return
 
-    # 6. 拷贝配置和协议文件
-    for config in service_meta.get("config_files", []):
-        src = service_dir / "Configs" / Path(config).name
-        if src.exists():
-            shutil.copy(src, output_dir)
-            print(f"  [拷贝] 配置文件: {src.name}")
-    for proto in service_meta.get("proto_files", []):
-        src = protos_dir / Path(proto).name
-        if src.exists():
-            shutil.copy(src, output_dir)
-            print(f"  [拷贝] 协议文件: {src.name}")
     print(f"==== 服务 {service_name} 编译完成 ====")
 
 def DetectCompiler():

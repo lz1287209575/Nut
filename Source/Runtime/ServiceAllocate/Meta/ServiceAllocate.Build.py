@@ -1,23 +1,12 @@
-ServiceMeta = {
-    "name": "ServiceAllocate",
-    "sources": [
-        "../Sources/ServiceAllocateMain.cpp",
-        "../Sources/ServiceAllocateManager.cpp",
-        "../Sources/ConfigManager.cpp",
-        "../Sources/Logger.cpp"
-    ],
-    "include_dirs": [
-        "../Sources"
-    ],
-    "proto_files": [
-        "../Protos/serviceallocate.proto"
-    ],
-    "config_files": [
-        "../Configs/ServiceAllocateConfig.json"
-    ],
-    "dependencies": [
-        "protobuf",
-        "threads"
-    ],
-    "output": "ServiceAllocateMain"
-}
+# -*- coding: utf-8 -*-
+
+
+from pathlib import Path
+
+from Core.MetaLoader import Meta
+
+
+class ServiceAllocateMeta(BuildMeta):
+    
+    def __init__(self, name: str, meta_file: Path):
+        super().__init__(name, meta_file)

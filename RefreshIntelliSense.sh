@@ -11,6 +11,6 @@ cd "$PROJECT_ROOT"
 echo "正在刷新IntelliSense..."
 
 # 调用Python脚本刷新IntelliSense
-python3 BuildSystem/BuildScripts/IntelliSenseRefresher.py
+python3 Source/Programs/NutBuildTools/Scripts/IntelliSenseRefresher.py
 
 echo "IntelliSense刷新完成！" 
