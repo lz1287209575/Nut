@@ -37,9 +37,6 @@ class ProjectFileGenerator:
         # 生成VSCode配置
         self.GenerateVSCodeConfig()
         
-        # 生成CLion配置
-        self.GenerateCLionConfig()
-        
         # 生成全局compile_commands.json
         self.GenerateGlobalCompileCommands()
         
@@ -139,24 +136,6 @@ include_directories(${{CMAKE_SOURCE_DIR}}/MicroServices/*/Sources)
         tasks_file = vscode_dir / "tasks.json"
         tasks_file.write_text(json.dumps(tasks, indent=2, ensure_ascii=False), encoding='utf-8')
         print("  - 生成 VSCode tasks.json")
-    
-    def GenerateCLionConfig(self):
-        """生成CLion配置"""
-        clion_dir = self.project_root / ".idea"
-        clion_dir.mkdir(exist_ok=True)
-        
-        # misc.xml
-        misc_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="17" project-jdk-type="JavaSDK">
-    <output url="file://$PROJECT_DIR$/out" />
-  </component>
-</project>'''
-        
-        misc_file = clion_dir / "misc.xml"
-        misc_file.write_text(misc_content, encoding='utf-8')
-        print("  - 生成 CLion misc.xml")
     
     def GenerateGlobalCompileCommands(self):
         """生成全局compile_commands.json"""
