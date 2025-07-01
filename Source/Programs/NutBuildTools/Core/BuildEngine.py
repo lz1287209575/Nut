@@ -44,13 +44,13 @@ class BuildEngine:
         if service_name:
             if service_name in self.services:
                 print(f"正在清理服务: {service_name}")
-                CleanService(self.services[service_name], self.project_root)
+                CleanService(self.services[service_name])
             else:
                 print(f"未找到服务: {service_name}")
         else:
             print("正在清理所有服务...")
             for svc in self.services.values():
-                CleanService(svc, self.project_root)
+                CleanService(svc)
 
     def Package(self, service_name: str|None = None):
         self.services = self.meta_loaders.LoadMetas()

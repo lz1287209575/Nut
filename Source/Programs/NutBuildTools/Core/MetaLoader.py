@@ -35,6 +35,7 @@ class BuildMeta(Meta):
         self.protos_dir = meta_file.parent.parent / "Protos"
         self.output_dir = meta_file.parent.parent / "Build"
         self.intermediate_dir = meta_file.parent.parent / "Intermediate"
+
         self.output_dir.mkdir(exist_ok=True)
         self.intermediate_dir.mkdir(exist_ok=True)
 

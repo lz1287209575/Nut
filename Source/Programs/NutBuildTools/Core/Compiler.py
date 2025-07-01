@@ -148,13 +148,16 @@ def DetectCompiler():
                 return compiler, compiler, ".o"
     return None, None, None
 
-def CleanService(service_meta, project_root):
-    service_name = service_meta["name"]
-    service_dir = FindServiceDir(service_meta, project_root)
-    output_dir = service_dir / "Build"
+def CleanService(service_meta: Meta):
+    service_name = service_meta.name
+    output_dir = service_meta.output_dir
+    intermediate_dir = service_meta.intermediate_dir
     if output_dir.exists():
         print(f"清理 {service_name} 的 Build 目录 ...")
         shutil.rmtree(output_dir)
+    if intermediate_dir.exists():
+        print(f"清理 {service_name} 的 Intermediate 目录 ...")
+        shutil.rmtree(intermediate_dir)
     else:
         print(f"{service_name} 无 Build 目录，无需清理。")
 
