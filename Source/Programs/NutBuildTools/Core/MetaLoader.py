@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+from enum import Enum
 import os
 from pathlib import Path
 from typing import Dict
@@ -18,14 +19,24 @@ class Meta:
 
     @staticmethod
     def LoadMeta(meta_file: Path):
-        if meta_file.name.endswith(".Build.py"):
-            return BuildMeta(meta_file.stem.removesuffix(".Build").removesuffix(".py"), meta_file)
-        elif meta_file.name.endswith(".Kubernetes.py"):
-            return KubenetesMeta(meta_file.stem.removesuffix(".Kubernetes").removesuffix(".py"), meta_file)
-        elif meta_file.name.endswith(".Docker.py"):
-            return DockerMeta(meta_file.stem.removesuffix(".Docker").removesuffix(".py"), meta_file)
-        else:
-            raise ValueError(f"未找到 {meta_file.name} 对应的 Meta 类")
+        import importlib
+        import importlib.util
+        import inspect
+        print("================", meta_file.absolute().as_posix())
+        spec = importlib.util.find_spec(meta_file.absolute().as_posix())
+        if not spec:
+            print(f"未找到 {meta_file.name} 对应的模块 Module: {meta_file.absolute().as_posix()}")
+            return None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        meta_classes = inspect.getmembers(module, inspect.isclass)
+
+        for meta_class in meta_classes:
+            if issubclass(meta_class[1], Meta):
+                return meta_class[1](meta_class[1].__name__.replace("Meta", ""), meta_file)
+
+        raise ValueError(f"未找到 {meta_file.name} 对应的 Meta 类")
+
 
 class BuildMeta(Meta):
 
@@ -36,11 +47,22 @@ class BuildMeta(Meta):
         self.output_dir = meta_file.parent.parent / "Build"
         self.intermediate_dir = meta_file.parent.parent / "Intermediate"
 
+        self.extra_include_dirs = []
+        self.extra_link_dirs = []
+        self.extra_link_libs = []
+        self.build_type = BuildType.STATIC_LIB
+
         self.output_dir.mkdir(exist_ok=True)
         self.intermediate_dir.mkdir(exist_ok=True)
 
     def Load(self):
         pass
+
+
+class BuildType(Enum):
+    STATIC_LIB = ".a"
+    SHARED_LIB = ".so"
+    EXECUTABLE = "" if os.name != "nt" else ".exe"
 
 
 class KubenetesMeta(Meta):
@@ -64,7 +86,11 @@ class MetaLoader:
         metas = {}
 
         for meta_file in self.working_dir.glob("**/*.Build.py"):
-            metas[os.path.basename(meta_file)] = Meta.LoadMeta(meta_file)
+            meta = Meta.LoadMeta(meta_file)
+            if meta:
+                metas[os.path.basename(meta_file)] = meta
+        
+        print(metas)
 
         return metas
 
