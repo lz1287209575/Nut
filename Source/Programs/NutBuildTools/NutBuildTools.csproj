@@ -1,20 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <AssemblyName>NBT.CLI</AssemblyName>
-    <RootNamespace>NBT.CLI</RootNamespace>
+    <RootNamespace>NutBuildTools</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
-    <ProjectReference Include="../NBT.Core/NBT.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
   </ItemGroup>
-
 </Project> 
