@@ -1,8 +1,12 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Scripting;
 using NutBuildTools.Utils;
 
@@ -10,25 +14,40 @@ namespace NutBuildTools.BuildSystem
 {
     public class NutProjectParser
     {
-        public async Task<INutBuildTarget> Parse(string target)
+        public async Task<INutBuildTarget> ParseAsync(string target)
         {
             if (!File.Exists($"{target}.Build.cs"))
             {
                 Logger.Log("找不到Build文件");              
             }
 
-            string buildCode = await File.ReadAllTextAsync($"{target}.Build.cs");
+            string code = await File.ReadAllTextAsync($"{target}.Build.cs");
 
-            Script sc = CSharpScript.Create<INutBuildTarget>(buildCode);
-            ScriptOptions options = ScriptOptions.Default
-                .AddReferences(Assembly.GetExecutingAssembly())
-                .AddImports("NutBuildTools.BuildSystem", "System.Collections.Generic");
-            sc.WithOptions(options);
+            SyntaxTree st = CSharpSyntaxTree.ParseText(code);
+            CSharpCompilation compilation = CSharpCompilation.Create(
+                $"Nut{target}Build",
+                [st],
+                [MetadataReference.CreateFromFile(Assembly.GetExecutingAssembly().Location)]
+            );
 
-            var result = await sc.RunAsync();
-            var compilation = result.Script.GetCompilation();
-
-            return await Task.FromResult<INutBuildTarget>(null);
+            using var ms = new MemoryStream();
+            EmitResult result = compilation.Emit(ms);
+            if (!result.Success)
+            {
+                // 处理编译错误
+                foreach (var diagnostic in result.Diagnostics)
+                {
+                    Console.WriteLine(diagnostic);
+                }
+                return null;
+            }
+            ms.Seek(0, SeekOrigin.Begin);
+            Assembly assembly = Assembly.Load(ms.ToArray());
+            var targetClass = assembly.GetTypes().Single(
+                t =>
+                    typeof(INutBuildTarget).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface
+            );
+            return Activator.CreateInstance(targetClass) as INutBuildTarget;
         }
     }
 } 
