@@ -8,8 +8,14 @@ echo "========================================="
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
-echo "[1/4] 安装Python依赖..."
-pip3 install -r BuildSystem/Requirements.txt
+echo "[1/4] 检查.NET环境..."
+if command -v dotnet >/dev/null 2>&1; then
+    echo "检测到 .NET SDK"
+    dotnet --version
+else
+    echo "错误: 未找到 .NET SDK，请先安装 .NET 8.0+"
+    exit 1
+fi
 
 echo "[2/4] 检查C++编译器..."
 if command -v g++ >/dev/null 2>&1; then
@@ -60,8 +66,22 @@ else
     fi
 fi
 
-echo "[4/4] 安装Python protobuf包..."
-python -m pipx install protobuf
+echo "[4/4] 创建基础IDE项目文件..."
+echo "正在创建基础项目文件..."
+chmod +x Tools/ProjectFileGenerator.sh
+Tools/ProjectFileGenerator.sh setup
 
 echo
+echo "========================================="
 echo "初始化完成！"
+echo "========================================="
+echo ""
+echo "创建的基础项目文件："
+echo "  📁 Nut.sln - Visual Studio 解决方案"
+echo "  📁 Nut.xcodeproj - Xcode 项目"
+echo ""
+echo "使用方法："
+echo "  🚀 运行项目: ./Setup.sh"
+echo "  🔄 重新生成项目文件: ./GenerateProjectFiles.sh"
+echo "  🧹 清理构建: ./RefreshIntelliSense.sh"
+echo ""

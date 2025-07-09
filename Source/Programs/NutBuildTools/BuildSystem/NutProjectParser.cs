@@ -5,9 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Emit;
-using Microsoft.CodeAnalysis.Scripting;
 using NutBuildTools.Utils;
 
 namespace NutBuildTools.BuildSystem
@@ -18,7 +16,8 @@ namespace NutBuildTools.BuildSystem
         {
             if (!File.Exists($"{target}.Build.cs"))
             {
-                Logger.Log("找不到Build文件");              
+                Logger.Error("找不到Build文件");
+                return null;
             }
 
             string code = await File.ReadAllTextAsync($"{target}.Build.cs");
@@ -37,7 +36,7 @@ namespace NutBuildTools.BuildSystem
                 // 处理编译错误
                 foreach (var diagnostic in result.Diagnostics)
                 {
-                    Console.WriteLine(diagnostic);
+                    Logger.Error(diagnostic.GetMessage());
                 }
                 return null;
             }
@@ -50,4 +49,4 @@ namespace NutBuildTools.BuildSystem
             return Activator.CreateInstance(targetClass) as INutBuildTarget;
         }
     }
-} 
+}
