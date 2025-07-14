@@ -14,7 +14,7 @@ PROJECT_NAME=$(basename "$PROJECT_ROOT")
 echo "当前项目名称: $PROJECT_NAME"
 
 # UUID 生成函数
-GenerateRandomUUID() {
+generate_random_uuid() {
     if command -v uuidgen >/dev/null 2>&1; then
         uuidgen | tr -d '-' | cut -c1-24
     elif command -v openssl >/dev/null 2>&1; then
@@ -26,29 +26,30 @@ GenerateRandomUUID() {
 }
 
 # 生成 UUID
-PROJECT_UUID=$(GenerateRandomUUID)
-TARGET_UUID=$(GenerateRandomUUID)
-GROUP_UUID=$(GenerateRandomUUID)
-PROJECT_DEBUG_UUID=$(GenerateRandomUUID)
-PROJECT_RELEASE_UUID=$(GenerateRandomUUID)
-TARGET_DEBUG_UUID=$(GenerateRandomUUID)
-TARGET_RELEASE_UUID=$(GenerateRandomUUID)
-CONFIG_LIST_PROJECT_UUID=$(GenerateRandomUUID)
-CONFIG_LIST_TARGET_UUID=$(GenerateRandomUUID)
-BUILD_PHASE_UUID=$(GenerateRandomUUID)
-PRODUCT_REF_UUID=$(GenerateRandomUUID)
+PROJECT_UUID=$(generate_random_uuid)
+TARGET_UUID=$(generate_random_uuid)
+GROUP_UUID=$(generate_random_uuid)
+PROJECT_DEBUG_UUID=$(generate_random_uuid)
+PROJECT_RELEASE_UUID=$(generate_random_uuid)
+TARGET_DEBUG_UUID=$(generate_random_uuid)
+TARGET_RELEASE_UUID=$(generate_random_uuid)
+CONFIG_LIST_PROJECT_UUID=$(generate_random_uuid)
+CONFIG_LIST_TARGET_UUID=$(generate_random_uuid)
+BUILD_PHASE_UUID=$(generate_random_uuid)
+PRODUCT_REF_UUID=$(generate_random_uuid)
 
 # 处理源文件
 IFS=',' read -ra FILES <<< "$SRC_FILES"
 FILE_REFS=()
 BUILD_FILES=()
 for f in "${FILES[@]}"; do
-    FILE_REFS+=("$(GenerateRandomUUID)")
-    BUILD_FILES+=("$(GenerateRandomUUID)")
+    FILE_REFS+=("$(generate_random_uuid)")
+    BUILD_FILES+=("$(generate_random_uuid)")
 done
 
-# 创建工程目录
-mkdir -p "$PROJECT_NAME.xcodeproj"
+# 1. 在脚本开头定义中间目录
+INTERMEDIATE_DIR="$PROJECT_ROOT/Intermediate"
+mkdir -p "$INTERMEDIATE_DIR"
 
 # 遍历Source路径下的所有文件夹，搜索Meta目录下面的*.Build.cs文件，用来在workspace下面创建project
 
@@ -124,29 +125,31 @@ generate_xcode_project() {
     
     echo "🔨 正在生成Xcode项目: $project_name"
     
-    # 创建项目目录 - 将xcodeproj放在项目目录下
-    local project_dir="$project_path/$project_name.xcodeproj"
+    # 创建中间目录
+    local intermediate_proj_dir="$INTERMEDIATE_DIR/$project_name"
+    mkdir -p "$intermediate_proj_dir"
+    local project_dir="$intermediate_proj_dir/$project_name.xcodeproj"
     mkdir -p "$project_dir"
     
     # 生成UUID
-    local project_uuid=$(GenerateRandomUUID)
-    local target_uuid=$(GenerateRandomUUID)
-    local group_uuid=$(GenerateRandomUUID)
-    local project_debug_uuid=$(GenerateRandomUUID)
-    local project_release_uuid=$(GenerateRandomUUID)
-    local target_debug_uuid=$(GenerateRandomUUID)
-    local target_release_uuid=$(GenerateRandomUUID)
-    local config_list_project_uuid=$(GenerateRandomUUID)
-    local config_list_target_uuid=$(GenerateRandomUUID)
-    local build_phase_uuid=$(GenerateRandomUUID)
-    local product_ref_uuid=$(GenerateRandomUUID)
+    local project_uuid=$(generate_random_uuid)
+    local target_uuid=$(generate_random_uuid)
+    local group_uuid=$(generate_random_uuid)
+    local project_debug_uuid=$(generate_random_uuid)
+    local project_release_uuid=$(generate_random_uuid)
+    local target_debug_uuid=$(generate_random_uuid)
+    local target_release_uuid=$(generate_random_uuid)
+    local config_list_project_uuid=$(generate_random_uuid)
+    local config_list_target_uuid=$(generate_random_uuid)
+    local build_phase_uuid=$(generate_random_uuid)
+    local product_ref_uuid=$(generate_random_uuid)
     
     # 处理源文件UUID
     local file_refs=()
     local build_files=()
     for f in "${source_files[@]}"; do
-        file_refs+=("$(GenerateRandomUUID)")
-        build_files+=("$(GenerateRandomUUID)")
+        file_refs+=("$(generate_random_uuid)")
+        build_files+=("$(generate_random_uuid)")
     done
     
     # 生成project.pbxproj文件
@@ -180,7 +183,7 @@ EOF
 
     # 添加文件引用
     for i in "${!source_files[@]}"; do
-        echo "				${file_refs[$i]} /* ${source_files[$i]} */," >> "$pbxproj"
+        echo "\t\t\t\t${file_refs[$i]} /* ${source_files[$i]} */," >> "$pbxproj"
     done
 
     cat >> "$pbxproj" << EOF
@@ -244,7 +247,7 @@ EOF
 EOF
 
     for i in "${!source_files[@]}"; do
-        echo "				${build_files[$i]} /* ${source_files[$i]} in Sources */," >> "$pbxproj"
+        echo "\t\t\t\t${build_files[$i]} /* ${source_files[$i]} in Sources */," >> "$pbxproj"
     done
 
     cat >> "$pbxproj" << EOF
@@ -379,24 +382,18 @@ create_workspace() {
     local workspace_data="$workspace_dir/contents.xcworkspacedata"
     mkdir -p "$workspace_dir"
 
-    # 收集 Programs 和 Runtime 下的所有 xcodeproj
+    # 收集 Intermediate 下的所有 xcodeproj
     local programs=()
     local runtimes=()
 
-    # Programs
-    if [[ -d "$PROJECT_ROOT/Source/Programs" ]]; then
+    if [[ -d "$INTERMEDIATE_DIR" ]]; then
         while IFS= read -r -d '' proj; do
-            rel_path="../${proj#$PROJECT_ROOT/}"
+            rel_path="${proj#$PROJECT_ROOT/}"
+            rel_path="${rel_path#./}"
+            rel_path="${rel_path%/}"
+            rel_path="${rel_path}" # Intermediate/项目名/项目名.xcodeproj
             programs+=("$rel_path")
-        done < <(find "$PROJECT_ROOT/Source/Programs" -name "*.xcodeproj" -type d -print0)
-    fi
-
-    # Runtime
-    if [[ -d "$PROJECT_ROOT/Source/Runtime" ]]; then
-        while IFS= read -r -d '' proj; do
-            rel_path="../${proj#$PROJECT_ROOT/}"
-            runtimes+=("$rel_path")
-        done < <(find "$PROJECT_ROOT/Source/Runtime" -name "*.xcodeproj" -type d -print0)
+        done < <(find "$INTERMEDIATE_DIR" -name "*.xcodeproj" -type d -print0)
     fi
 
     # 生成 XML
@@ -405,21 +402,21 @@ create_workspace() {
 <Workspace version = "1.0">
 EOF
     if [[ ${#programs[@]} -gt 0 ]]; then
-        echo "  <Group location = \"container:Source/Programs\" name = \"Programs\">" >> "$workspace_data"
+        echo "  <Group location = \"container:Programs\" name = \"Programs\">" >> "$workspace_data"
         for proj in "${programs[@]}"; do
             echo "    <FileRef location = \"group:${proj}\"/>" >> "$workspace_data"
         done
         echo "  </Group>" >> "$workspace_data"
     fi
     if [[ ${#runtimes[@]} -gt 0 ]]; then
-        echo "  <Group location = \"container:Source/Runtime\" name = \"Runtime\">" >> "$workspace_data"
+        echo "  <Group location = \"container:Runtime\" name = \"Runtime\">" >> "$workspace_data"
         for proj in "${runtimes[@]}"; do
             echo "    <FileRef location = \"group:${proj}\"/>" >> "$workspace_data"
         done
         echo "  </Group>" >> "$workspace_data"
     fi
     echo "</Workspace>" >> "$workspace_data"
-    echo "✅ Nut.xcworkspace 已生成，分组包含 Programs 和 Runtime 下的所有 xcodeproj"
+    echo "✅ Nut.xcworkspace 已生成于项目根目录，分组包含所有 xcodeproj"
 }
 
 # 在主流程最后调用
