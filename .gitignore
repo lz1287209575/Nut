@@ -151,7 +151,11 @@ Thumbs.db
 
 # 项目特定忽略
 # 如果有特定的项目文件需要忽略，可以在这里添加 
-
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserdata/
+*.xcuserdata/
+*.pbxproj
 compile_commands.json
 
 Tools/protoc/
