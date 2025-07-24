@@ -63,15 +63,31 @@ class MetadataParser:
         try:
             content = build_file.read_text(encoding='utf-8')
             
-            # 提取类名
-            class_match = re.search(r'class\s+(\w+)\s*:\s*NutTarget', content)
-            if class_match:
-                class_name = class_match.group(1)
-                return {
-                    'name': class_name.replace('Target', ''),
-                    'type': 'csharp_target',
-                    'class_name': class_name
-                }
+            # 提取类名和基类
+            class_patterns = [
+                r'class\s+(\w+)\s*:\s*NutServiceTarget',
+                r'class\s+(\w+)\s*:\s*NutDockerTarget', 
+                r'class\s+(\w+)\s*:\s*NutKubernetesTarget',
+                r'class\s+(\w+)\s*:\s*NutStaticLibraryTarget',
+                r'class\s+(\w+)\s*:\s*NutExecutableTarget',
+                r'class\s+(\w+)\s*:\s*NutTarget'  # 向后兼容
+            ]
+            
+            for pattern in class_patterns:
+                class_match = re.search(pattern, content)
+                if class_match:
+                    class_name = class_match.group(1)
+                    base_class = pattern.split(':')[1].split('\\')[0].strip().replace('s*', '')
+                    
+                    # 根据基类确定项目类型
+                    project_type = self._DetermineProjectTypeFromClass(base_class)
+                    
+                    return {
+                        'name': class_name.replace('Target', ''),
+                        'type': project_type,
+                        'class_name': class_name,
+                        'base_class': base_class
+                    }
                 
             logger.warning(f"未找到 NutTarget 派生类: {build_file}")
             return {}
@@ -114,3 +130,16 @@ class MetadataParser:
             return value_node.n
         else:
             return None
+    
+    def _DetermineProjectTypeFromClass(self, base_class: str) -> str:
+        """根据C#基类确定项目类型"""
+        class_type_mapping = {
+            'NutServiceTarget': 'service',
+            'NutDockerTarget': 'docker',
+            'NutKubernetesTarget': 'kubernetes',
+            'NutStaticLibraryTarget': 'static_library',
+            'NutExecutableTarget': 'executable',
+            'NutTarget': 'csharp_target'  # 默认类型
+        }
+        
+        return class_type_mapping.get(base_class, 'unknown')
