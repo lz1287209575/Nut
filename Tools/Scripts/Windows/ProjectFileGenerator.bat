@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 REM Nut 项目文件生成器 (Windows 版本)
 REM 用于在 Setup 时创建基础项目文件，在 GenerateProjectFiles 时更新项目列表
 
-set PROJECT_ROOT=%~dp0..
+set PROJECT_ROOT=%~dp0..\..
 cd /d "%PROJECT_ROOT%"
 
 REM 生成 MD5 哈希作为 GUID

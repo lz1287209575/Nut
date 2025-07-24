@@ -1,0 +1,264 @@
+"""
+Visual Studio 项目生成器
+
+生成 Visual Studio 项目文件 (.vcxproj)
+"""
+
+import logging
+from pathlib import Path
+from typing import List
+
+from Tools.ProjectGenerator.generators.base_generator import BaseGenerator
+from Tools.ProjectGenerator.core.project_info import ProjectInfo, FileGroup, ProjectType
+
+
+logger = logging.getLogger(__name__)
+
+
+class VcxprojGenerator(BaseGenerator):
+    """Visual Studio 项目生成器"""
+    
+    @property
+    def FileExtension(self) -> str:
+        return ".vcxproj"
+    
+    @property
+    def GeneratorName(self) -> str:
+        return "Visual Studio"
+    
+    def GenerateProject(self, project_info: ProjectInfo) -> Path:
+        """生成 Visual Studio 项目文件"""
+        if project_info.is_csharp:
+            logger.info(f"跳过 C# 项目（已有 .csproj）: {project_info.name}")
+            return None
+        
+        # 创建项目文件路径
+        projects_dir = self.project_root / "Projects" / project_info.group_name
+        project_file = projects_dir / f"{project_info.name}.vcxproj"
+        self._EnsureOutputDirectory(project_file)
+        
+        # 生成项目内容
+        content = self._GenerateVcxprojContent(project_info)
+        
+        # 写入文件
+        project_file.write_text(content, encoding='utf-8')
+        
+        logger.info(f"生成 Visual Studio 项目: {project_file}")
+        return project_file
+    
+    def _GenerateVcxprojContent(self, project_info: ProjectInfo) -> str:
+        """生成 vcxproj 文件内容"""
+        lines = []
+        
+        # XML 头和项目开始
+        lines.extend([
+            '<?xml version="1.0" encoding="utf-8"?>',
+            '<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'
+        ])
+        
+        # 项目配置
+        self._AddProjectConfigurations(lines)
+        
+        # 全局属性
+        self._AddGlobalProperties(lines, project_info)
+        
+        # 导入默认属性
+        lines.append('  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.Default.props" />')
+        
+        # 配置属性
+        self._AddConfigurationProperties(lines, project_info)
+        
+        # 导入 C++ 属性
+        lines.append('  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.props" />')
+        
+        # 扩展设置
+        lines.extend([
+            '  <ImportGroup Label="ExtensionSettings">',
+            '  </ImportGroup>',
+            '  <ImportGroup Label="Shared">',
+            '  </ImportGroup>'
+        ])
+        
+        # 属性表
+        self._AddPropertySheets(lines)
+        
+        # 用户宏
+        lines.append('  <PropertyGroup Label="UserMacros" />')
+        
+        # 属性
+        self._AddProperties(lines)
+        
+        # 项目定义组
+        self._AddItemDefinitionGroups(lines)
+        
+        # 文件项目组
+        self._AddFileItemGroups(lines, project_info)
+        
+        # 导入 C++ targets
+        lines.append('  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.targets" />')
+        
+        # 扩展 targets
+        lines.extend([
+            '  <ImportGroup Label="ExtensionTargets">',
+            '  </ImportGroup>'
+        ])
+        
+        # 项目结束
+        lines.append('</Project>')
+        
+        return '\n'.join(lines)
+    
+    def _AddProjectConfigurations(self, lines: List[str]):
+        """添加项目配置"""
+        lines.extend([
+            '  <ItemGroup Label="ProjectConfigurations">',
+            '    <ProjectConfiguration Include="Debug|x64">',
+            '      <Configuration>Debug</Configuration>',
+            '      <Platform>x64</Platform>',
+            '    </ProjectConfiguration>',
+            '    <ProjectConfiguration Include="Release|x64">',
+            '      <Configuration>Release</Configuration>',
+            '      <Platform>x64</Platform>',
+            '    </ProjectConfiguration>',
+            '  </ItemGroup>'
+        ])
+    
+    def _AddGlobalProperties(self, lines: List[str], project_info: ProjectInfo):
+        """添加全局属性"""
+        project_guid = self.uuid_generator.GenerateGuid(project_info.name)
+        
+        lines.extend([
+            '  <PropertyGroup Label="Globals">',
+            '    <VCProjectVersion>16.0</VCProjectVersion>',
+            '    <Keyword>Win32Proj</Keyword>',
+            f'    <ProjectGuid>{project_guid}</ProjectGuid>',
+            f'    <RootNamespace>{project_info.name}</RootNamespace>',
+            '    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>',
+            '  </PropertyGroup>'
+        ])
+    
+    def _AddConfigurationProperties(self, lines: List[str], project_info: ProjectInfo):
+        """添加配置属性"""
+        # 确定配置类型
+        if project_info.is_executable:
+            config_type = "Application"
+        else:
+            config_type = "StaticLibrary"
+        
+        # Debug 配置
+        lines.extend([
+            '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'" Label="Configuration">',
+            f'    <ConfigurationType>{config_type}</ConfigurationType>',
+            '    <UseDebugLibraries>true</UseDebugLibraries>',
+            '    <PlatformToolset>v143</PlatformToolset>',
+            '    <CharacterSet>Unicode</CharacterSet>',
+            '  </PropertyGroup>'
+        ])
+        
+        # Release 配置
+        lines.extend([
+            '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'" Label="Configuration">',
+            f'    <ConfigurationType>{config_type}</ConfigurationType>',
+            '    <UseDebugLibraries>false</UseDebugLibraries>',
+            '    <PlatformToolset>v143</PlatformToolset>',
+            '    <WholeProgramOptimization>true</WholeProgramOptimization>',
+            '    <CharacterSet>Unicode</CharacterSet>',
+            '  </PropertyGroup>'
+        ])
+    
+    def _AddPropertySheets(self, lines: List[str]):
+        """添加属性表"""
+        for config in ['Debug', 'Release']:
+            lines.extend([
+                f'  <ImportGroup Label="PropertySheets" Condition="\'$(Configuration)|$(Platform)\'==\'{config}|x64\'">',
+                '    <Import Project="$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props" Condition="exists(\'$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\')" Label="LocalAppDataPlatform" />',
+                '  </ImportGroup>'
+            ])
+    
+    def _AddProperties(self, lines: List[str]):
+        """添加属性"""
+        lines.extend([
+            '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
+            '    <LinkIncremental>true</LinkIncremental>',
+            '  </PropertyGroup>',
+            '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
+            '    <LinkIncremental>false</LinkIncremental>',
+            '  </PropertyGroup>'
+        ])
+    
+    def _AddItemDefinitionGroups(self, lines: List[str]):
+        """添加项目定义组"""
+        # Debug 配置
+        lines.extend([
+            '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
+            '    <ClCompile>',
+            '      <WarningLevel>Level3</WarningLevel>',
+            '      <SDLCheck>true</SDLCheck>',
+            '      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>',
+            '      <ConformanceMode>true</ConformanceMode>',
+            '      <LanguageStandard>stdcpp20</LanguageStandard>',
+            '      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Sources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>',
+            '    </ClCompile>',
+            '    <Link>',
+            '      <SubSystem>Console</SubSystem>',
+            '      <GenerateDebugInformation>true</GenerateDebugInformation>',
+            '    </Link>',
+            '  </ItemDefinitionGroup>'
+        ])
+        
+        # Release 配置
+        lines.extend([
+            '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
+            '    <ClCompile>',
+            '      <WarningLevel>Level3</WarningLevel>',
+            '      <FunctionLevelLinking>true</FunctionLevelLinking>',
+            '      <IntrinsicFunctions>true</IntrinsicFunctions>',
+            '      <SDLCheck>true</SDLCheck>',
+            '      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>',
+            '      <ConformanceMode>true</ConformanceMode>',
+            '      <LanguageStandard>stdcpp20</LanguageStandard>',
+            '      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Sources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>',
+            '    </ClCompile>',
+            '    <Link>',
+            '      <SubSystem>Console</SubSystem>',
+            '      <EnableCOMDATFolding>true</EnableCOMDATFolding>',
+            '      <OptimizeReferences>true</OptimizeReferences>',
+            '      <GenerateDebugInformation>true</GenerateDebugInformation>',
+            '    </Link>',
+            '  </ItemDefinitionGroup>'
+        ])
+    
+    def _AddFileItemGroups(self, lines: List[str], project_info: ProjectInfo):
+        """添加文件项目组"""
+        # 获取项目输出目录，用于计算相对路径
+        projects_dir = self.project_root / "Projects" / project_info.group_name
+        
+        # 添加源文件
+        source_files = project_info.GetSourceFiles()
+        if source_files:
+            lines.append('  <ItemGroup>')
+            for file_info in source_files:
+                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                lines.append(f'    <ClCompile Include="{relative_path}" />')
+            lines.append('  </ItemGroup>')
+        
+        # 添加头文件
+        header_files = project_info.GetHeaderFiles()
+        if header_files:
+            lines.append('  <ItemGroup>')
+            for file_info in header_files:
+                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                lines.append(f'    <ClInclude Include="{relative_path}" />')
+            lines.append('  </ItemGroup>')
+        
+        # 添加其他文件（Meta、Config 等）
+        other_files = []
+        for group in [FileGroup.META, FileGroup.CONFIGS, FileGroup.PROTOS]:
+            other_files.extend(project_info.files[group])
+        
+        if other_files:
+            lines.append('  <ItemGroup>')
+            for file_info in other_files:
+                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                lines.append(f'    <None Include="{relative_path}" />')
+            lines.append('  </ItemGroup>')

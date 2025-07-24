@@ -2,7 +2,7 @@
 
 set -e
 
-PROJECT_ROOT=$(cd "$(dirname "$0")/.."; pwd)
+PROJECT_ROOT=$(cd "$(dirname "$0")/../.."; pwd)
 echo "当前项目路径: $PROJECT_ROOT"
 
 PROJECT_NAME=$(basename "$PROJECT_ROOT")
