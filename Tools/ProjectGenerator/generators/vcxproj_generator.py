@@ -180,9 +180,11 @@ class VcxprojGenerator(BaseGenerator):
         lines.extend([
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
             '    <LinkIncremental>true</LinkIncremental>',
+            '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>',
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
             '    <LinkIncremental>false</LinkIncremental>',
+            '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>'
         ])
     
