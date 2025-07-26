@@ -91,9 +91,9 @@ class FileCollector:
             if file_path.name.startswith('.'):
                 continue
             
-            # 确定文件分组
+            # 确定文件分组（传递目录上下文）
             file_extension = file_path.suffix.lower()
-            file_group = self._DetermineFileGroup(file_extension)
+            file_group = self._DetermineFileGroup(file_extension, directory)
             
             # 检查是否允许此分组
             if file_group not in allowed_groups:
@@ -112,8 +112,25 @@ class FileCollector:
             if file_path.suffix.lower() in {'.csproj', '.vcxproj', '.pbxproj'}:
                 project_info.AddFile(file_path, FileGroup.META, project_root)
     
-    def _DetermineFileGroup(self, file_extension: str) -> FileGroup:
-        """根据文件扩展名确定文件分组"""
+    def _DetermineFileGroup(self, file_extension: str, directory: Path = None) -> FileGroup:
+        """根据文件扩展名和目录上下文确定文件分组"""
+        # 如果提供了目录上下文，优先考虑目录类型
+        if directory:
+            directory_name = directory.name.lower()
+            
+            # 对于Meta目录中的文件，如果扩展名在META_EXTENSIONS中，则归类为META
+            if directory_name == "meta" and file_extension in self.META_EXTENSIONS:
+                return FileGroup.META
+            
+            # 对于Configs目录中的文件，强制归类为CONFIGS
+            elif directory_name == "configs" and file_extension in self.CONFIG_EXTENSIONS:
+                return FileGroup.CONFIGS
+            
+            # 对于Protos目录中的文件，强制归类为META
+            elif directory_name == "protos":
+                return FileGroup.META
+        
+        # 默认基于扩展名的分类逻辑
         if file_extension in self.HEADER_EXTENSIONS:
             return FileGroup.HEADERS
         elif file_extension in self.SOURCE_EXTENSIONS:
