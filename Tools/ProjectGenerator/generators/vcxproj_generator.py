@@ -35,15 +35,19 @@ class VcxprojGenerator(BaseGenerator):
         # 创建项目文件路径
         projects_dir = self.project_root / "Projects" / project_info.group_name
         project_file = projects_dir / f"{project_info.name}.vcxproj"
+        filters_file = projects_dir / f"{project_info.name}.vcxproj.filters"
         self._EnsureOutputDirectory(project_file)
         
         # 生成项目内容
         content = self._GenerateVcxprojContent(project_info, project_file)
+        filters_content = self._GenerateFiltersContent(project_info, project_file)
         
         # 写入文件
         project_file.write_text(content, encoding='utf-8')
+        filters_file.write_text(filters_content, encoding='utf-8')
         
         logger.info(f"生成 Visual Studio 项目: {project_file}")
+        logger.info(f"生成 Visual Studio 过滤器: {filters_file}")
         return project_file
     
     def _GenerateVcxprojContent(self, project_info: ProjectInfo, project_file: Path) -> str:
@@ -192,7 +196,9 @@ class VcxprojGenerator(BaseGenerator):
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
             '    <PreBuildEvent>',
-            f'      <Command>{self._GenerateNutBuildCommand(project_info, "Debug")}</Command>',
+            '      <Command>',
+            f'<![CDATA[{self._GenerateNutBuildCommand(project_info, "Debug")}]]>',
+            '      </Command>',
             '      <Message>Running NutBuildTools...</Message>',
             '    </PreBuildEvent>',
             '    <ClCompile>',
@@ -214,7 +220,9 @@ class VcxprojGenerator(BaseGenerator):
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
             '    <PreBuildEvent>',
-            f'      <Command>{self._GenerateNutBuildCommand(project_info, "Release")}</Command>',
+            '      <Command>',
+            f'<![CDATA[{self._GenerateNutBuildCommand(project_info, "Release")}]]>',
+            '      </Command>',
             '      <Message>Running NutBuildTools...</Message>',
             '    </PreBuildEvent>',
             '    <ClCompile>',
@@ -241,16 +249,16 @@ class VcxprojGenerator(BaseGenerator):
         command_lines = [
             '@echo off',
             'echo === NutBuild Debug Info ===',
-            'echo Visual Studio MSBuildProjectDirectory: %MSBuildProjectDirectory%',
+            'echo Visual Studio MSBuildProjectDirectory: $(MSBuildProjectDirectory)',
             '',
-            ':: Find the real project root (should contain CLAUDE.md)',
-            'set PROJECT_ROOT=%MSBuildProjectDirectory%',
+            'rem Find the real project root (should contain CLAUDE.md)',
+            'set PROJECT_ROOT=$(MSBuildProjectDirectory)',
             ':FIND_ROOT',
             'if exist "%PROJECT_ROOT%\\CLAUDE.md" goto FOUND_ROOT',
             'for %%I in ("%PROJECT_ROOT%") do set PROJECT_ROOT=%%~dpI',
             'set PROJECT_ROOT=%PROJECT_ROOT:~0,-1%',
             'if "%PROJECT_ROOT%"=="%PROJECT_ROOT:~0,3%" (',
-            '    echo Error: Could not find project root ^(CLAUDE.md not found^)',
+            '    echo Error: Could not find project root (CLAUDE.md not found)',
             '    exit /b 1',
             ')',
             'goto FIND_ROOT',
@@ -258,21 +266,21 @@ class VcxprojGenerator(BaseGenerator):
             'echo Found project root: %PROJECT_ROOT%',
             'cd /d "%PROJECT_ROOT%"',
             '',
-            ':: NutBuildTools binary path',
+            'rem NutBuildTools binary path',
             'set NUTBUILD_BINARY=%PROJECT_ROOT%\\Binary\\NutBuildTools\\NutBuildTools.exe',
             'echo Looking for binary at: %NUTBUILD_BINARY%',
             '',
-            ':: Check if NutBuildTools binary exists',
+            'rem Check if NutBuildTools binary exists',
             'if exist "%NUTBUILD_BINARY%" (',
-            '    echo ✅ NutBuildTools binary found',
+            '    echo NutBuildTools binary found',
             '    goto RUN_NUTBUILD',
             ')',
             '',
             'echo NutBuildTools binary not found, building...',
             '',
-            ':: Find dotnet executable',
+            'rem Find dotnet executable',
             'set DOTNET_PATH=',
-            'where dotnet >nul 2>&1',
+            'where dotnet &gt;nul 2&gt;&amp;1',
             'if %ERRORLEVEL%==0 (',
             '    set DOTNET_PATH=dotnet',
             ') else (',
@@ -288,7 +296,7 @@ class VcxprojGenerator(BaseGenerator):
             '',
             'echo Using dotnet at: %DOTNET_PATH%',
             '',
-            ':: Build NutBuildTools',
+            'rem Build NutBuildTools',
             '"%DOTNET_PATH%" publish Source\\Programs\\NutBuildTools -c Release -o Binary\\NutBuildTools',
             '',
             'if not exist "%NUTBUILD_BINARY%" (',
@@ -298,11 +306,11 @@ class VcxprojGenerator(BaseGenerator):
             'echo NutBuildTools built successfully',
             '',
             ':RUN_NUTBUILD',
-            ':: Run NutBuildTools',
+            'rem Run NutBuildTools',
             f'echo Running NutBuildTools for target {project_info.name}...',
             f'"%NUTBUILD_BINARY%" --target {project_info.name} --platform Windows --configuration {configuration}',
         ]
-        return '\\n'.join(command_lines)
+        return '\n'.join(command_lines)
     
     def _GetRelativePath(self, target_path: Path, base_path: Path) -> str:
         """获取相对路径（Visual Studio 特定版本）"""
@@ -376,3 +384,84 @@ class VcxprojGenerator(BaseGenerator):
                 relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <None Include="{relative_path}" />')
             lines.append('  </ItemGroup>')
+    
+    def _GenerateFiltersContent(self, project_info: ProjectInfo, project_file: Path) -> str:
+        """生成 vcxproj.filters 文件内容"""
+        lines = []
+        
+        # XML 头和项目开始
+        lines.extend([
+            '<?xml version="1.0" encoding="utf-8"?>',
+            '<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'
+        ])
+        
+        # 定义过滤器（文件夹）
+        lines.extend([
+            '  <ItemGroup>',
+            '    <Filter Include="Headers">',
+            '      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>',
+            '      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>',
+            '    </Filter>',
+            '    <Filter Include="Sources">',
+            '      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>',
+            '      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>',
+            '    </Filter>',
+            '    <Filter Include="Configs">',
+            '      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>',
+            '      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>',
+            '    </Filter>',
+            '    <Filter Include="Meta">',
+            '      <UniqueIdentifier>{50E4BC84-97C0-4d2e-A7E7-F3D35DB497D0}</UniqueIdentifier>',
+            '    </Filter>',
+            '  </ItemGroup>'
+        ])
+        
+        # 添加源文件到过滤器
+        source_files = project_info.GetSourceFiles()
+        if source_files:
+            lines.append('  <ItemGroup>')
+            for file_info in source_files:
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
+                lines.append(f'    <ClCompile Include="{relative_path}">')
+                lines.append('      <Filter>Sources</Filter>')
+                lines.append('    </ClCompile>')
+            lines.append('  </ItemGroup>')
+        
+        # 添加头文件到过滤器
+        header_files = project_info.GetHeaderFiles()
+        if header_files:
+            lines.append('  <ItemGroup>')
+            for file_info in header_files:
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
+                lines.append(f'    <ClInclude Include="{relative_path}">')
+                lines.append('      <Filter>Headers</Filter>')
+                lines.append('    </ClInclude>')
+            lines.append('  </ItemGroup>')
+        
+        # 添加其他文件到过滤器
+        config_files = project_info.files[FileGroup.CONFIGS]
+        meta_files = project_info.files[FileGroup.META]
+        
+        if config_files or meta_files:
+            lines.append('  <ItemGroup>')
+            
+            # 配置文件
+            for file_info in config_files:
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
+                lines.append(f'    <None Include="{relative_path}">')
+                lines.append('      <Filter>Configs</Filter>')
+                lines.append('    </None>')
+            
+            # Meta 文件
+            for file_info in meta_files:
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
+                lines.append(f'    <None Include="{relative_path}">')
+                lines.append('      <Filter>Meta</Filter>')
+                lines.append('    </None>')
+            
+            lines.append('  </ItemGroup>')
+        
+        # 项目结束
+        lines.append('</Project>')
+        
+        return '\n'.join(lines)
