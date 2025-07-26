@@ -133,13 +133,29 @@ class WorkspaceGenerator(BaseGenerator):
                 lines.append(f'Project("{project_type_guid}") = "{project.name}", "{project_file}", "{guid}"')
                 lines.append("EndProject")
                 
-                # 添加项目配置
-                project_configs.extend([
-                    f"{guid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU",
-                    f"{guid}.Debug|Any CPU.Build.0 = Debug|Any CPU", 
-                    f"{guid}.Release|Any CPU.ActiveCfg = Release|Any CPU",
-                    f"{guid}.Release|Any CPU.Build.0 = Release|Any CPU"
-                ])
+                # 添加项目配置（根据项目类型选择平台）
+                if project.is_csharp:
+                    # C# 项目使用 Any CPU
+                    project_configs.extend([
+                        f"{guid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU",
+                        f"{guid}.Debug|Any CPU.Build.0 = Debug|Any CPU", 
+                        f"{guid}.Debug|x64.ActiveCfg = Debug|Any CPU",
+                        f"{guid}.Debug|x64.Build.0 = Debug|Any CPU",
+                        f"{guid}.Release|Any CPU.ActiveCfg = Release|Any CPU",
+                        f"{guid}.Release|Any CPU.Build.0 = Release|Any CPU",
+                        f"{guid}.Release|x64.ActiveCfg = Release|Any CPU",
+                        f"{guid}.Release|x64.Build.0 = Release|Any CPU"
+                    ])
+                else:
+                    # C++ 项目使用 x64
+                    project_configs.extend([
+                        f"{guid}.Debug|Any CPU.ActiveCfg = Debug|x64",
+                        f"{guid}.Debug|x64.ActiveCfg = Debug|x64",
+                        f"{guid}.Debug|x64.Build.0 = Debug|x64",
+                        f"{guid}.Release|Any CPU.ActiveCfg = Release|x64",
+                        f"{guid}.Release|x64.ActiveCfg = Release|x64",
+                        f"{guid}.Release|x64.Build.0 = Release|x64"
+                    ])
                 
                 # 添加嵌套项目
                 group_guid = self.uuid_generator.GenerateGuid(f"Folder_{group_name}")
@@ -157,7 +173,9 @@ class WorkspaceGenerator(BaseGenerator):
             "Global",
             "\tGlobalSection(SolutionConfigurationPlatforms) = preSolution",
             "\t\tDebug|Any CPU = Debug|Any CPU",
+            "\t\tDebug|x64 = Debug|x64",
             "\t\tRelease|Any CPU = Release|Any CPU", 
+            "\t\tRelease|x64 = Release|x64",
             "\tEndGlobalSection",
             "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution"
         ])
