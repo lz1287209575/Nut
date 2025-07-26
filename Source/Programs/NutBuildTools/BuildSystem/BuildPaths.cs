@@ -21,8 +21,8 @@ namespace NutBuildTools.BuildSystem
         {
             ProjectRoot = projectRoot;
             
-            // 构建目录结构: Build/Platform/Configuration/
-            BuildRoot = Path.Combine(projectRoot, "Build");
+            // 构建目录结构: Intermediate/Platform/Configuration/
+            BuildRoot = Path.Combine(projectRoot, "Intermediate");
             PlatformDir = Path.Combine(BuildRoot, platform);
             ConfigurationDir = Path.Combine(PlatformDir, configuration);
             
@@ -31,7 +31,7 @@ namespace NutBuildTools.BuildSystem
             ObjectDir = Path.Combine(IntermediateDir, "Objects");
             
             // 输出目录 (最终的可执行文件/库文件)
-            OutputDir = Path.Combine(ConfigurationDir, "Output");
+            OutputDir = Path.Combine(projectRoot, "Binary");
 
             Logger.Info($"构建路径配置:");
             Logger.Info($"  项目根目录: {ProjectRoot}");

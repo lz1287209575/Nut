@@ -34,7 +34,7 @@ class XCodeProjectGenerator(BaseGenerator):
             return None
         
         # 创建项目目录
-        projects_dir = self.project_root / "Projects" / project_info.group_name
+        projects_dir = self.project_root / "ProjectFiles" / project_info.group_name
         project_dir = projects_dir / f"{project_info.name}.xcodeproj"
         
         # 确保项目目录存在

@@ -33,7 +33,7 @@ class VcxprojGenerator(BaseGenerator):
             return None
         
         # 创建项目文件路径
-        projects_dir = self.project_root / "Projects" / project_info.group_name
+        projects_dir = self.project_root / "ProjectFiles" / project_info.group_name
         project_file = projects_dir / f"{project_info.name}.vcxproj"
         filters_file = projects_dir / f"{project_info.name}.vcxproj.filters"
         self._EnsureOutputDirectory(project_file)
@@ -180,14 +180,14 @@ class VcxprojGenerator(BaseGenerator):
         lines.extend([
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
             '    <LinkIncremental>true</LinkIncremental>',
-            '    <IntDir>$(Configuration)\\$(ProjectName)\\</IntDir>',
-            '    <OutDir>$(SolutionDir)Build\\$(Platform)\\$(Configuration)\\Output\\</OutDir>',
+            '    <IntDir>$(SolutionDir)Intermediate\\$(Configuration)\\$(ProjectName)\\</IntDir>',
+            '    <OutDir>$(SolutionDir)Binary\\</OutDir>',
             '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>',
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
             '    <LinkIncremental>false</LinkIncremental>',
-            '    <IntDir>$(Configuration)\\$(ProjectName)\\</IntDir>',
-            '    <OutDir>$(SolutionDir)Build\\$(Platform)\\$(Configuration)\\Output\\</OutDir>',
+            '    <IntDir>$(SolutionDir)Intermediate\\$(Configuration)\\$(ProjectName)\\</IntDir>',
+            '    <OutDir>$(SolutionDir)Binary\\</OutDir>',
             '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>'
         ])

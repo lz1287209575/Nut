@@ -81,7 +81,7 @@ class WorkspaceGenerator(BaseGenerator):
             
             for project in cpp_projects:
                 # 确保路径使用正确的相对路径格式
-                project_path = f"Projects/{group_name}/{project.name}.xcodeproj"
+                project_path = f"ProjectFiles/{group_name}/{project.name}.xcodeproj"
                 lines.append(f'      <FileRef')
                 lines.append(f'         location = "group:{project_path}">')
                 lines.append(f'      </FileRef>')
@@ -128,7 +128,7 @@ class WorkspaceGenerator(BaseGenerator):
                     project_file = f"Source/{project.path.relative_to(self.project_root / 'Source')}/{project.name}.csproj"
                 else:
                     project_type_guid = "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" 
-                    project_file = f"Projects/{group_name}/{project.name}.vcxproj"
+                    project_file = f"ProjectFiles/{group_name}/{project.name}.vcxproj"
                 
                 lines.append(f'Project("{project_type_guid}") = "{project.name}", "{project_file}", "{guid}"')
                 lines.append("EndProject")
