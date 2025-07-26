@@ -89,7 +89,7 @@ class VcxprojGenerator(BaseGenerator):
         self._AddProperties(lines)
         
         # 项目定义组
-        self._AddItemDefinitionGroups(lines)
+        self._AddItemDefinitionGroups(lines, project_info)
         
         # 文件项目组
         self._AddFileItemGroups(lines, project_info, project_file)
@@ -186,11 +186,15 @@ class VcxprojGenerator(BaseGenerator):
             '  </PropertyGroup>'
         ])
     
-    def _AddItemDefinitionGroups(self, lines: List[str]):
+    def _AddItemDefinitionGroups(self, lines: List[str], project_info: ProjectInfo):
         """添加项目定义组"""
         # Debug 配置
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
+            '    <PreBuildEvent>',
+            f'      <Command>{self._GenerateNutBuildCommand(project_info, "Debug")}</Command>',
+            '      <Message>Running NutBuildTools...</Message>',
+            '    </PreBuildEvent>',
             '    <ClCompile>',
             '      <WarningLevel>Level3</WarningLevel>',
             '      <SDLCheck>true</SDLCheck>',
@@ -209,6 +213,10 @@ class VcxprojGenerator(BaseGenerator):
         # Release 配置
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
+            '    <PreBuildEvent>',
+            f'      <Command>{self._GenerateNutBuildCommand(project_info, "Release")}</Command>',
+            '      <Message>Running NutBuildTools...</Message>',
+            '    </PreBuildEvent>',
             '    <ClCompile>',
             '      <WarningLevel>Level3</WarningLevel>',
             '      <FunctionLevelLinking>true</FunctionLevelLinking>',
@@ -227,6 +235,74 @@ class VcxprojGenerator(BaseGenerator):
             '    </Link>',
             '  </ItemDefinitionGroup>'
         ])
+    
+    def _GenerateNutBuildCommand(self, project_info: ProjectInfo, configuration: str) -> str:
+        """生成NutBuild命令（Windows批处理版本）"""
+        command_lines = [
+            '@echo off',
+            'echo === NutBuild Debug Info ===',
+            'echo Visual Studio MSBuildProjectDirectory: %MSBuildProjectDirectory%',
+            '',
+            ':: Find the real project root (should contain CLAUDE.md)',
+            'set PROJECT_ROOT=%MSBuildProjectDirectory%',
+            ':FIND_ROOT',
+            'if exist "%PROJECT_ROOT%\\CLAUDE.md" goto FOUND_ROOT',
+            'for %%I in ("%PROJECT_ROOT%") do set PROJECT_ROOT=%%~dpI',
+            'set PROJECT_ROOT=%PROJECT_ROOT:~0,-1%',
+            'if "%PROJECT_ROOT%"=="%PROJECT_ROOT:~0,3%" (',
+            '    echo Error: Could not find project root ^(CLAUDE.md not found^)',
+            '    exit /b 1',
+            ')',
+            'goto FIND_ROOT',
+            ':FOUND_ROOT',
+            'echo Found project root: %PROJECT_ROOT%',
+            'cd /d "%PROJECT_ROOT%"',
+            '',
+            ':: NutBuildTools binary path',
+            'set NUTBUILD_BINARY=%PROJECT_ROOT%\\Binary\\NutBuildTools\\NutBuildTools.exe',
+            'echo Looking for binary at: %NUTBUILD_BINARY%',
+            '',
+            ':: Check if NutBuildTools binary exists',
+            'if exist "%NUTBUILD_BINARY%" (',
+            '    echo ✅ NutBuildTools binary found',
+            '    goto RUN_NUTBUILD',
+            ')',
+            '',
+            'echo NutBuildTools binary not found, building...',
+            '',
+            ':: Find dotnet executable',
+            'set DOTNET_PATH=',
+            'where dotnet >nul 2>&1',
+            'if %ERRORLEVEL%==0 (',
+            '    set DOTNET_PATH=dotnet',
+            ') else (',
+            '    if exist "C:\\Program Files\\dotnet\\dotnet.exe" (',
+            '        set DOTNET_PATH=C:\\Program Files\\dotnet\\dotnet.exe',
+            '    ) else if exist "%ProgramFiles(x86)%\\dotnet\\dotnet.exe" (',
+            '        set DOTNET_PATH=%ProgramFiles(x86)%\\dotnet\\dotnet.exe',
+            '    ) else (',
+            '        echo Error: dotnet not found',
+            '        exit /b 1',
+            '    )',
+            ')',
+            '',
+            'echo Using dotnet at: %DOTNET_PATH%',
+            '',
+            ':: Build NutBuildTools',
+            '"%DOTNET_PATH%" publish Source\\Programs\\NutBuildTools -c Release -o Binary\\NutBuildTools',
+            '',
+            'if not exist "%NUTBUILD_BINARY%" (',
+            '    echo Error: Failed to build NutBuildTools',
+            '    exit /b 1',
+            ')',
+            'echo NutBuildTools built successfully',
+            '',
+            ':RUN_NUTBUILD',
+            ':: Run NutBuildTools',
+            f'echo Running NutBuildTools for target {project_info.name}...',
+            f'"%NUTBUILD_BINARY%" --target {project_info.name} --platform Windows --configuration {configuration}',
+        ]
+        return '\\n'.join(command_lines)
     
     def _GetRelativePath(self, target_path: Path, base_path: Path) -> str:
         """获取相对路径（Visual Studio 特定版本）"""

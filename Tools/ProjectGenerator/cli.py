@@ -93,13 +93,24 @@ def GenerateVsProjects(projects: List, project_root: Path):
 
 def GenerateAllProjects(projects: List, project_root: Path):
     """生成所有格式的项目文件"""
-    print("\n🚀 生成所有格式的项目文件...")
+    import platform
     
-    # 生成 XCode 项目（跨平台支持）
-    GenerateXcodeProjects(projects, project_root)
+    current_platform = platform.system().lower()
+    print(f"\n🚀 生成适合当前平台 ({current_platform}) 的项目文件...")
     
-    # 生成 Visual Studio 项目
-    GenerateVsProjects(projects, project_root)
+    if current_platform == "windows":
+        # Windows 平台只生成 Visual Studio 项目
+        print("🔵 Windows 平台：仅生成 Visual Studio 项目")
+        GenerateVsProjects(projects, project_root)
+    elif current_platform == "darwin":
+        # macOS 平台生成 XCode 和 Visual Studio 项目
+        print("🍎 macOS 平台：生成 XCode 和 Visual Studio 项目")
+        GenerateXcodeProjects(projects, project_root)
+        GenerateVsProjects(projects, project_root)
+    else:
+        # Linux 或其他平台只生成 Visual Studio 项目（可以用 VS Code 打开）
+        print("🐧 Linux/其他平台：仅生成 Visual Studio 项目")
+        GenerateVsProjects(projects, project_root)
 
 
 def main():
