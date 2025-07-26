@@ -2,16 +2,41 @@
 
 如果你在 Windows 上使用 NutBuildTools 时遇到编译失败，请按照以下步骤进行排查：
 
+## 快速修复测试
+
+如果遇到 UTF-8 编码错误，运行修复测试：
+```cmd
+test-utf8-fix.bat
+```
+
 ## 快速诊断
 
-运行诊断脚本：
+运行完整诊断脚本：
 ```cmd
 diagnose-windows.bat
 ```
 
 ## 常见问题及解决方案
 
-### 1. 编译器未找到
+### 1. UTF-8 编码错误 (已修复)
+
+**症状**: `"Unicode support requires compiling with /utf-8"`
+
+**解决方案**: 
+- 这个问题已在最新版本中修复
+- NutBuildTools 现在自动添加 `/utf-8` 编译标志
+- 运行 `test-utf8-fix.bat` 验证修复
+
+### 2. 中间目录冲突警告 (已修复)
+
+**症状**: `"MSB8028: The intermediate directory contains files shared from another project"`
+
+**解决方案**:
+- 这个问题已在最新版本中修复
+- 每个项目现在使用独立的中间目录
+- 重新生成项目文件即可
+
+### 3. 编译器未找到
 
 **症状**: `"未找到可用的 C++ 编译器"`
 
@@ -20,7 +45,7 @@ diagnose-windows.bat
 - 在安装时确保选择 "C++ build tools" 和 "Windows 10/11 SDK"
 - 或者安装 "Build Tools for Visual Studio" (轻量级选项)
 
-### 2. 环境变量问题
+### 4. 环境变量问题
 
 **症状**: `"找不到 cl.exe"` 或类似错误
 
@@ -31,7 +56,7 @@ diagnose-windows.bat
   "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
   ```
 
-### 3. 缺少 Windows SDK
+### 5. 缺少 Windows SDK
 
 **症状**: 编译时提示找不到 `windows.h` 或系统库
 
@@ -39,7 +64,7 @@ diagnose-windows.bat
 - 通过 Visual Studio Installer 安装 Windows 10/11 SDK
 - 确保 SDK 版本与 Visual Studio 兼容
 
-### 4. 权限问题
+### 6. 权限问题
 
 **症状**: 无法创建输出文件或目录
 
@@ -47,7 +72,7 @@ diagnose-windows.bat
 - 以管理员身份运行命令提示符
 - 检查项目目录是否有写权限
 
-### 5. 路径中包含空格
+### 7. 路径中包含空格
 
 **症状**: 编译命令失败，路径被截断
 

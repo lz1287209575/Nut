@@ -180,10 +180,14 @@ class VcxprojGenerator(BaseGenerator):
         lines.extend([
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
             '    <LinkIncremental>true</LinkIncremental>',
+            '    <IntDir>$(Configuration)\\$(ProjectName)\\</IntDir>',
+            '    <OutDir>$(SolutionDir)Build\\$(Platform)\\$(Configuration)\\Output\\</OutDir>',
             '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>',
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
             '    <LinkIncremental>false</LinkIncremental>',
+            '    <IntDir>$(Configuration)\\$(ProjectName)\\</IntDir>',
+            '    <OutDir>$(SolutionDir)Build\\$(Platform)\\$(Configuration)\\Output\\</OutDir>',
             '    <IncludePath>$(ProjectDir)../../ThirdParty/spdlog/include;$(ProjectDir)../../ThirdParty/tcmalloc/src;$(ProjectDir)../../Source;$(IncludePath)</IncludePath>',
             '  </PropertyGroup>'
         ])

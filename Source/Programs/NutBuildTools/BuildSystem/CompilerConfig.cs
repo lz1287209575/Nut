@@ -195,7 +195,7 @@ namespace NutBuildTools.BuildSystem
                                     ObjectExtension = ".obj",
                                     ExecutableExtension = ".exe",
                                     StaticLibExtension = ".lib",
-                                    DefaultFlags = new List<string> { "/std:c++20", "/EHsc", "/W3" },
+                                    DefaultFlags = new List<string> { "/std:c++20", "/EHsc", "/W3", "/utf-8" },
                                     DebugFlags = new List<string> { "/Od", "/Zi", "/MDd", "/DDEBUG" },
                                     ReleaseFlags = new List<string> { "/O2", "/MD", "/DNDEBUG" }
                                 };
