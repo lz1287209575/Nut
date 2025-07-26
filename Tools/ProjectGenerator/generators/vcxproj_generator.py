@@ -38,7 +38,7 @@ class VcxprojGenerator(BaseGenerator):
         self._EnsureOutputDirectory(project_file)
         
         # 生成项目内容
-        content = self._GenerateVcxprojContent(project_info)
+        content = self._GenerateVcxprojContent(project_info, project_file)
         
         # 写入文件
         project_file.write_text(content, encoding='utf-8')
@@ -46,7 +46,7 @@ class VcxprojGenerator(BaseGenerator):
         logger.info(f"生成 Visual Studio 项目: {project_file}")
         return project_file
     
-    def _GenerateVcxprojContent(self, project_info: ProjectInfo) -> str:
+    def _GenerateVcxprojContent(self, project_info: ProjectInfo, project_file: Path) -> str:
         """生成 vcxproj 文件内容"""
         lines = []
         
@@ -92,7 +92,7 @@ class VcxprojGenerator(BaseGenerator):
         self._AddItemDefinitionGroups(lines)
         
         # 文件项目组
-        self._AddFileItemGroups(lines, project_info)
+        self._AddFileItemGroups(lines, project_info, project_file)
         
         # 导入 C++ targets
         lines.append('  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.targets" />')
@@ -228,17 +228,55 @@ class VcxprojGenerator(BaseGenerator):
             '  </ItemDefinitionGroup>'
         ])
     
-    def _AddFileItemGroups(self, lines: List[str], project_info: ProjectInfo):
+    def _GetRelativePath(self, target_path: Path, base_path: Path) -> str:
+        """获取相对路径（Visual Studio 特定版本）"""
+        try:
+            # 确保都是绝对路径
+            target_path = target_path.resolve()
+            base_path = base_path.resolve()
+            
+            # 计算相对路径
+            relative_path = target_path.relative_to(base_path)
+            return str(relative_path).replace('/', '\\')
+        except ValueError:
+            # 如果无法计算直接相对路径，尝试通过公共祖先计算
+            try:
+                # 寻找公共祖先
+                common_parts = []
+                target_parts = target_path.parts
+                base_parts = base_path.parts
+                
+                for i, (t_part, b_part) in enumerate(zip(target_parts, base_parts)):
+                    if t_part == b_part:
+                        common_parts.append(t_part)
+                    else:
+                        break
+                
+                if common_parts:
+                    # 计算需要返回的层数
+                    back_count = len(base_parts) - len(common_parts)
+                    forward_parts = target_parts[len(common_parts):]
+                    
+                    # 构建相对路径
+                    relative_parts = ['..'] * back_count + list(forward_parts)
+                    return '\\'.join(relative_parts)
+                else:
+                    # 没有公共祖先，返回绝对路径
+                    return str(target_path)
+            except:
+                return str(target_path)
+
+    def _AddFileItemGroups(self, lines: List[str], project_info: ProjectInfo, project_file: Path):
         """添加文件项目组"""
-        # 获取项目输出目录，用于计算相对路径
-        projects_dir = self.project_root / "Projects" / project_info.group_name
+        # 使用项目文件的父目录计算相对路径
+        project_dir = project_file.parent
         
         # 添加源文件
         source_files = project_info.GetSourceFiles()
         if source_files:
             lines.append('  <ItemGroup>')
             for file_info in source_files:
-                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <ClCompile Include="{relative_path}" />')
             lines.append('  </ItemGroup>')
         
@@ -247,18 +285,18 @@ class VcxprojGenerator(BaseGenerator):
         if header_files:
             lines.append('  <ItemGroup>')
             for file_info in header_files:
-                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <ClInclude Include="{relative_path}" />')
             lines.append('  </ItemGroup>')
         
         # 添加其他文件（Meta、Config 等）
         other_files = []
-        for group in [FileGroup.META, FileGroup.CONFIGS, FileGroup.PROTOS]:
+        for group in [FileGroup.META, FileGroup.CONFIGS]:
             other_files.extend(project_info.files[group])
         
         if other_files:
             lines.append('  <ItemGroup>')
             for file_info in other_files:
-                relative_path = self._GetRelativePath(file_info.path, projects_dir)
+                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <None Include="{relative_path}" />')
             lines.append('  </ItemGroup>')

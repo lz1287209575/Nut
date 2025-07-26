@@ -58,12 +58,12 @@ class FileCollector:
                 {FileGroup.CONFIGS}
             )
         
-        # 收集 Protos 目录下的文件
+        # 收集 Protos 目录下的文件 (作为META文件处理)
         protos_dir = project_dir / "Protos"
         if protos_dir.exists():
             self._CollectDirectoryFiles(
                 protos_dir, project_info, project_root,
-                {FileGroup.PROTOS}
+                {FileGroup.META}
             )
         
         # 收集项目根目录下的项目文件
@@ -121,6 +121,6 @@ class FileCollector:
         elif file_extension in self.CONFIG_EXTENSIONS:
             return FileGroup.CONFIGS
         elif file_extension in self.PROTO_EXTENSIONS:
-            return FileGroup.PROTOS
+            return FileGroup.META
         else:
             return FileGroup.META
