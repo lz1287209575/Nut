@@ -156,6 +156,7 @@ Thumbs.db
 *.xcuserdata/
 *.xcuserdata/
 *.pbxproj
+Projects/
 compile_commands.json
 
 Tools/protoc/
