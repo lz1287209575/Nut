@@ -143,16 +143,12 @@ class VcxprojGenerator(BaseGenerator):
     
     def _AddConfigurationProperties(self, lines: List[str], project_info: ProjectInfo):
         """添加配置属性"""
-        # 确定配置类型
-        if project_info.is_executable:
-            config_type = "Application"
-        else:
-            config_type = "StaticLibrary"
+        # 使用 Utility 类型，这样只会执行构建事件，不会进行实际编译
         
         # Debug 配置
         lines.extend([
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'" Label="Configuration">',
-            f'    <ConfigurationType>{config_type}</ConfigurationType>',
+            '    <ConfigurationType>Utility</ConfigurationType>',
             '    <UseDebugLibraries>true</UseDebugLibraries>',
             '    <PlatformToolset>v143</PlatformToolset>',
             '    <CharacterSet>Unicode</CharacterSet>',
@@ -162,7 +158,7 @@ class VcxprojGenerator(BaseGenerator):
         # Release 配置
         lines.extend([
             '  <PropertyGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'" Label="Configuration">',
-            f'    <ConfigurationType>{config_type}</ConfigurationType>',
+            '    <ConfigurationType>Utility</ConfigurationType>',
             '    <UseDebugLibraries>false</UseDebugLibraries>',
             '    <PlatformToolset>v143</PlatformToolset>',
             '    <WholeProgramOptimization>true</WholeProgramOptimization>',
@@ -192,7 +188,7 @@ class VcxprojGenerator(BaseGenerator):
     
     def _AddItemDefinitionGroups(self, lines: List[str], project_info: ProjectInfo):
         """添加项目定义组"""
-        # Debug 配置
+        # Debug 配置 - 只包含构建事件，不包含编译设置
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Debug|x64\'">',
             '    <PreBuildEvent>',
@@ -201,22 +197,10 @@ class VcxprojGenerator(BaseGenerator):
             '      </Command>',
             '      <Message>Running NutBuildTools...</Message>',
             '    </PreBuildEvent>',
-            '    <ClCompile>',
-            '      <WarningLevel>Level3</WarningLevel>',
-            '      <SDLCheck>true</SDLCheck>',
-            '      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>',
-            '      <ConformanceMode>true</ConformanceMode>',
-            '      <LanguageStandard>stdcpp20</LanguageStandard>',
-            '      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Sources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>',
-            '    </ClCompile>',
-            '    <Link>',
-            '      <SubSystem>Console</SubSystem>',
-            '      <GenerateDebugInformation>true</GenerateDebugInformation>',
-            '    </Link>',
             '  </ItemDefinitionGroup>'
         ])
         
-        # Release 配置
+        # Release 配置 - 只包含构建事件，不包含编译设置
         lines.extend([
             '  <ItemDefinitionGroup Condition="\'$(Configuration)|$(Platform)\'==\'Release|x64\'">',
             '    <PreBuildEvent>',
@@ -225,22 +209,6 @@ class VcxprojGenerator(BaseGenerator):
             '      </Command>',
             '      <Message>Running NutBuildTools...</Message>',
             '    </PreBuildEvent>',
-            '    <ClCompile>',
-            '      <WarningLevel>Level3</WarningLevel>',
-            '      <FunctionLevelLinking>true</FunctionLevelLinking>',
-            '      <IntrinsicFunctions>true</IntrinsicFunctions>',
-            '      <SDLCheck>true</SDLCheck>',
-            '      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>',
-            '      <ConformanceMode>true</ConformanceMode>',
-            '      <LanguageStandard>stdcpp20</LanguageStandard>',
-            '      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Sources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>',
-            '    </ClCompile>',
-            '    <Link>',
-            '      <SubSystem>Console</SubSystem>',
-            '      <EnableCOMDATFolding>true</EnableCOMDATFolding>',
-            '      <OptimizeReferences>true</OptimizeReferences>',
-            '      <GenerateDebugInformation>true</GenerateDebugInformation>',
-            '    </Link>',
             '  </ItemDefinitionGroup>'
         ])
     
@@ -336,36 +304,29 @@ class VcxprojGenerator(BaseGenerator):
                 return str(target_path)
 
     def _AddFileItemGroups(self, lines: List[str], project_info: ProjectInfo, project_file: Path):
-        """添加文件项目组"""
+        """添加文件项目组 - 只作为显示用途，不参与编译"""
         # 使用项目文件的父目录计算相对路径
         project_dir = project_file.parent
         
-        # 添加源文件
-        source_files = project_info.GetSourceFiles()
-        if source_files:
-            lines.append('  <ItemGroup>')
-            for file_info in source_files:
-                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
-                lines.append(f'    <ClCompile Include="{relative_path}" />')
-            lines.append('  </ItemGroup>')
+        # 收集所有文件，但都作为 None 类型（不参与编译，只用于显示）
+        all_files = []
         
-        # 添加头文件
+        # 添加源文件（作为显示）
+        source_files = project_info.GetSourceFiles()
+        all_files.extend(source_files)
+        
+        # 添加头文件（作为显示）
         header_files = project_info.GetHeaderFiles()
-        if header_files:
-            lines.append('  <ItemGroup>')
-            for file_info in header_files:
-                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
-                lines.append(f'    <ClInclude Include="{relative_path}" />')
-            lines.append('  </ItemGroup>')
+        all_files.extend(header_files)
         
         # 添加其他文件（Meta、Config 等）
-        other_files = []
         for group in [FileGroup.META, FileGroup.CONFIGS]:
-            other_files.extend(project_info.files[group])
+            all_files.extend(project_info.files[group])
         
-        if other_files:
+        # 将所有文件作为 None 类型添加（仅用于显示，不参与编译）
+        if all_files:
             lines.append('  <ItemGroup>')
-            for file_info in other_files:
+            for file_info in all_files:
                 relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <None Include="{relative_path}" />')
             lines.append('  </ItemGroup>')
@@ -401,49 +362,39 @@ class VcxprojGenerator(BaseGenerator):
             '  </ItemGroup>'
         ])
         
-        # 添加源文件到过滤器
+        # 收集所有文件并按类型分组（所有文件都使用 None 类型）
         source_files = project_info.GetSourceFiles()
-        if source_files:
-            lines.append('  <ItemGroup>')
-            for file_info in source_files:
-                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
-                lines.append(f'    <ClCompile Include="{relative_path}">')
-                lines.append('      <Filter>Sources</Filter>')
-                lines.append('    </ClCompile>')
-            lines.append('  </ItemGroup>')
-        
-        # 添加头文件到过滤器
         header_files = project_info.GetHeaderFiles()
-        if header_files:
-            lines.append('  <ItemGroup>')
-            for file_info in header_files:
-                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
-                lines.append(f'    <ClInclude Include="{relative_path}">')
-                lines.append('      <Filter>Headers</Filter>')
-                lines.append('    </ClInclude>')
-            lines.append('  </ItemGroup>')
-        
-        # 添加其他文件到过滤器
         config_files = project_info.files[FileGroup.CONFIGS]
         meta_files = project_info.files[FileGroup.META]
         
-        if config_files or meta_files:
+        # 所有文件都作为 None 类型添加到过滤器
+        all_categorized_files = []
+        
+        # 源文件
+        for file_info in source_files:
+            all_categorized_files.append((file_info, 'Sources'))
+        
+        # 头文件
+        for file_info in header_files:
+            all_categorized_files.append((file_info, 'Headers'))
+            
+        # 配置文件
+        for file_info in config_files:
+            all_categorized_files.append((file_info, 'Configs'))
+            
+        # Meta 文件
+        for file_info in meta_files:
+            all_categorized_files.append((file_info, 'Meta'))
+        
+        # 添加所有文件到过滤器（统一使用 None 类型）
+        if all_categorized_files:
             lines.append('  <ItemGroup>')
-            
-            # 配置文件
-            for file_info in config_files:
+            for file_info, filter_name in all_categorized_files:
                 relative_path = self._GetRelativePath(file_info.path, project_file.parent)
                 lines.append(f'    <None Include="{relative_path}">')
-                lines.append('      <Filter>Configs</Filter>')
+                lines.append(f'      <Filter>{filter_name}</Filter>')
                 lines.append('    </None>')
-            
-            # Meta 文件
-            for file_info in meta_files:
-                relative_path = self._GetRelativePath(file_info.path, project_file.parent)
-                lines.append(f'    <None Include="{relative_path}">')
-                lines.append('      <Filter>Meta</Filter>')
-                lines.append('    </None>')
-            
             lines.append('  </ItemGroup>')
         
         # 项目结束
