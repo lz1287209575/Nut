@@ -25,7 +25,6 @@ class FileGroup(Enum):
     SOURCES = "Sources" 
     META = "Meta"
     CONFIGS = "Configs"
-    PROTOS = "Protos"
 
 
 @dataclass

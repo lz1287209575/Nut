@@ -69,7 +69,8 @@ class XCodeProjectGenerator(BaseGenerator):
             'main_group': self.uuid_generator.generate(),
             'target': self.uuid_generator.generate(),
             'product_ref': self.uuid_generator.generate(),
-            'build_phase_sources': self.uuid_generator.generate(),
+            # 'build_phase_sources': self.uuid_generator.generate(), # Removed - using NutBuild only
+            'build_phase_nutbuild': self.uuid_generator.generate(),
             'config_list_project': self.uuid_generator.generate(),
             'config_list_target': self.uuid_generator.generate(),
             'config_debug_project': self.uuid_generator.generate(),

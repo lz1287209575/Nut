@@ -15,11 +15,11 @@ namespace NutBuildTools.Utils
     public static class Logger
     {
         private static readonly object lockObject = new object();
-        private static string logFilePath;
+        private static string? logFilePath;
         private static bool enableFileLogging = false;
         private static LogLevel minLogLevel = LogLevel.Info;
 
-        public static void Configure(string logFilePath = null, bool enableFileLogging = false, LogLevel minLogLevel = LogLevel.Info)
+        public static void Configure(string? logFilePath = null, bool enableFileLogging = false, LogLevel minLogLevel = LogLevel.Info)
         {
             Logger.logFilePath = logFilePath;
             Logger.enableFileLogging = enableFileLogging;

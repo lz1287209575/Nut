@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- 
+    Nut 项目全局构建目标
+    控制输出文件的精简化
+  -->
+  
+  <!-- 在构建完成后清理不必要的文件 -->
+  <Target Name="CleanupUnnecessaryFiles" AfterTargets="Build">
+    <ItemGroup>
+      <!-- 定义要删除的多语言资源文件夹 -->
+      <ResourceDirectoriesToDelete Include="$(OutputPath)cs" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)de" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)es" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)fr" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)it" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)ja" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)ko" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)pl" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)pt-BR" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)ru" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)tr" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)zh-Hans" />
+      <ResourceDirectoriesToDelete Include="$(OutputPath)zh-Hant" />
+    </ItemGroup>
+    
+    <!-- 删除多语言资源文件夹 -->
+    <RemoveDir Directories="@(ResourceDirectoriesToDelete)" Condition="Exists('%(ResourceDirectoriesToDelete.Identity)')" />
+    
+    <!-- 输出清理信息 -->
+    <Message Text="[Nut] 已清理多语言资源文件夹" Importance="normal" />
+  </Target>
+  
+  <!-- 控制哪些文件被复制到输出目录 -->
+  <Target Name="FilterReferenceAssemblies" BeforeTargets="CopyFilesToOutputDirectory">
+    <ItemGroup>
+      <!-- 保留核心依赖DLL -->
+      <CoreDependencies Include="Microsoft.CodeAnalysis.dll" />
+      <CoreDependencies Include="Microsoft.CodeAnalysis.CSharp.dll" />
+      <CoreDependencies Include="Microsoft.CodeAnalysis.CSharp.Scripting.dll" />
+      <CoreDependencies Include="Microsoft.CodeAnalysis.Scripting.dll" />
+      <CoreDependencies Include="System.Collections.Immutable.dll" />
+      <CoreDependencies Include="System.CommandLine.dll" />
+      <CoreDependencies Include="System.Reflection.Metadata.dll" />
+    </ItemGroup>
+  </Target>
+  
+</Project>

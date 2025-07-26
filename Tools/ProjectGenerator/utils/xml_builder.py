@@ -110,7 +110,7 @@ class XmlBuilder:
             f"\t\t\tproductType = \"{project_data['product_type']}\";",
             f"\t\t\tbuildConfigurationList = {uuids['config_list_target']};",
             "\t\t\tbuildPhases = (",
-            f"\t\t\t\t{uuids['build_phase_sources']},",
+            f"\t\t\t\t{uuids['build_phase_nutbuild']},",
             "\t\t\t);",
             "\t\t\tbuildRules = (",
             "\t\t\t);",
@@ -145,31 +145,53 @@ class XmlBuilder:
             "\t\t};"
         ])
         
-        # 添加构建文件
-        for build_file in project_data['build_files']:
-            lines.extend([
-                f"\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */ = {{",
-                "\t\t\tisa = PBXBuildFile;",
-                f"\t\t\tfileRef = {build_file['file_ref']};",
-                "\t\t};"
-            ])
+        # Build files removed - no longer needed without Sources Build Phase
+        # for build_file in project_data['build_files']:
+        #     lines.extend([
+        #         f"\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */ = {{",
+        #         "\t\t\tisa = PBXBuildFile;",
+        #         f"\t\t\tfileRef = {build_file['file_ref']};",
+        #         "\t\t};"
+        #     ])
         
-        # 添加构建阶段
+        # 添加 NutBuild Shell Script Build Phase
         lines.extend([
-            f"\t\t{uuids['build_phase_sources']} /* Sources */ = {{",
-            "\t\t\tisa = PBXSourcesBuildPhase;",
+            f"\t\t{uuids['build_phase_nutbuild']} /* NutBuild */ = {{",
+            "\t\t\tisa = PBXShellScriptBuildPhase;",
             "\t\t\tbuildActionMask = 2147483647;",
-            "\t\t\tfiles = ("
-        ])
-        
-        for build_file in project_data['build_files']:
-            lines.append(f"\t\t\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */,")
-        
-        lines.extend([
+            "\t\t\tfiles = (",
+            "\t\t\t);",
+            "\t\t\tinputFileListPaths = (",
+            "\t\t\t);",
+            "\t\t\tinputPaths = (",
+            "\t\t\t);",
+            "\t\t\tname = \"NutBuild\";",
+            "\t\t\toutputFileListPaths = (",
+            "\t\t\t);",
+            "\t\t\toutputPaths = (",
             "\t\t\t);",
             "\t\t\trunOnlyForDeploymentPostprocessing = 0;",
+            f"\t\t\tshellPath = /bin/bash;",
+            f"\t\t\tshellScript = \"#!/bin/bash\\necho \\\"=== NutBuild Debug Info ===\\\"\\necho \\\"Xcode SRCROOT: $SRCROOT\\\"\\n\\n# Find the real project root (should contain CLAUDE.md)\\nPROJECT_ROOT=\\\"$SRCROOT\\\"\\nwhile [ ! -f \\\"$PROJECT_ROOT/CLAUDE.md\\\" ] && [ \\\"$PROJECT_ROOT\\\" != \\\"/\\\" ]; do\\n    PROJECT_ROOT=\\\"$(dirname \\\"$PROJECT_ROOT\\\")\\\"\\ndone\\n\\nif [ ! -f \\\"$PROJECT_ROOT/CLAUDE.md\\\" ]; then\\n    echo \\\"Error: Could not find project root (CLAUDE.md not found)\\\"\\n    exit 1\\nfi\\n\\necho \\\"Found project root: $PROJECT_ROOT\\\"\\ncd \\\"$PROJECT_ROOT\\\"\\n\\n# NutBuildTools binary path\\nNUTBUILD_BINARY=\\\"$PROJECT_ROOT/Binary/NutBuildTools/NutBuildTools\\\"\\necho \\\"Looking for binary at: $NUTBUILD_BINARY\\\"\\n\\n# Check if NutBuildTools binary exists\\nif [ ! -f \\\"$NUTBUILD_BINARY\\\" ]; then\\n    echo \\\"NutBuildTools binary not found, building...\\\"\\n    \\n    # Find dotnet executable\\n    DOTNET_PATH=\\\"\\\"\\n    if [ -f \\\"/usr/local/share/dotnet/dotnet\\\" ]; then\\n        DOTNET_PATH=\\\"/usr/local/share/dotnet/dotnet\\\"\\n    elif [ -f \\\"/opt/homebrew/bin/dotnet\\\" ]; then\\n        DOTNET_PATH=\\\"/opt/homebrew/bin/dotnet\\\"\\n    elif command -v dotnet >/dev/null 2>&1; then\\n        DOTNET_PATH=\\\"dotnet\\\"\\n    else\\n        echo \\\"Error: dotnet not found\\\"\\n        exit 1\\n    fi\\n    \\n    echo \\\"Using dotnet at: $DOTNET_PATH\\\"\\n    \\n    # Build NutBuildTools\\n    $DOTNET_PATH publish Source/Programs/NutBuildTools -c Release -o Binary/NutBuildTools\\n    \\n    if [ ! -f \\\"$NUTBUILD_BINARY\\\" ]; then\\n        echo \\\"Error: Failed to build NutBuildTools\\\"\\n        exit 1\\n    fi\\n    echo \\\"NutBuildTools built successfully\\\"\\nelse\\n    echo \\\"✅ NutBuildTools binary found\\\"\\nfi\\n\\n# Run NutBuildTools\\necho \\\"Running NutBuildTools for target {project_data['project_name']}...\\\"\\n\\\"$NUTBUILD_BINARY\\\" --target {project_data['project_name']} --platform Mac --configuration $CONFIGURATION\";",
             "\t\t};"
         ])
+        
+        # Sources Build Phase removed - using NutBuild instead
+        # lines.extend([
+        #     f"\t\t{uuids['build_phase_sources']} /* Sources */ = {{",
+        #     "\t\t\tisa = PBXSourcesBuildPhase;",
+        #     "\t\t\tbuildActionMask = 2147483647;",
+        #     "\t\t\tfiles = ("
+        # ])
+        # 
+        # for build_file in project_data['build_files']:
+        #     lines.append(f"\t\t\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */,")
+        # 
+        # lines.extend([
+        #     "\t\t\t);",
+        #     "\t\t\trunOnlyForDeploymentPostprocessing = 0;",
+        #     "\t\t};"
+        # ])
         
         # 添加构建配置
         self._AddBuildConfigurations(lines, uuids, project_data['project_name'])

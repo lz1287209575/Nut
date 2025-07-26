@@ -12,7 +12,7 @@ cd "$PROJECT_ROOT"
 
 # 1. 生成项目文件
 echo "正在生成项目文件..."
-Tools/ProjectFileGenerator.sh generate
+python3 -m Tools.ProjectGenerator.cli generate
 
 echo "项目文件生成完成！"
 echo ""

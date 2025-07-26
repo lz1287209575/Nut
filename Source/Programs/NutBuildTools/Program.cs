@@ -73,12 +73,14 @@ namespace NutBuildTools
                 string configuration = result.GetRequiredValue<string>("--configuration");
                 Logger.Info($"参数: target={target}, platform={platform}, configuration={configuration}");
                 var builder = new NutBuilder();
-                await builder.BuildAsync(new NutTarget()
+                // 创建一个默认的可执行目标
+                var targetInstance = new NutExecutableTarget()
                 {
-                    Target = target,
+                    Name = target,
                     Platform = platform,
                     Configuration = configuration
-                });
+                };
+                await builder.BuildAsync(targetInstance);
                 Logger.Info("NutBuildTools 运行结束");
             });
 

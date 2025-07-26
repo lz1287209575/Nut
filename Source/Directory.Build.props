@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- 
+    Nut 项目全局构建属性
+    配置所有 C# 项目的输出路径到 Binary 文件夹
+  -->
+  
+  <PropertyGroup>
+    <!-- 设置项目根目录 -->
+    <NutProjectRoot>$(MSBuildThisFileDirectory)..</NutProjectRoot>
+    
+    <!-- 设置 Binary 输出目录 -->
+    <BinaryOutputRoot>$(NutProjectRoot)\Binary</BinaryOutputRoot>
+    
+    <!-- 配置输出路径 -->
+    <BaseOutputPath>$(BinaryOutputRoot)\$(MSBuildProjectName)\</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    
+    <!-- 禁用多语言资源文件输出 -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    
+    <!-- 精简输出 -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    
+    <!-- 配置中间输出路径 -->
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
+    
+    <!-- 公共编译器设置 -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    
+    <!-- 调试信息设置 -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    
+    <!-- 控制输出文件 -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+  </PropertyGroup>
+  
+  <!-- 调试模式设置 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+  
+  <!-- 发布模式设置 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  
+</Project>

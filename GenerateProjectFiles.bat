@@ -16,8 +16,8 @@ echo.
 echo 🔧 正在调用工程化项目生成器...
 echo.
 
-:: 调用新的 BAT 脚本
-call "Tools\generate_projects.bat" generate %*
+::调用Python项目生成器
+python -m Tools.ProjectGenerator.cli generate
 
 echo.
 echo ========================================
