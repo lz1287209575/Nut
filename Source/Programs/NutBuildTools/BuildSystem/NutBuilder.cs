@@ -147,8 +147,20 @@ namespace NutBuildTools.BuildSystem
             if (!result.Success)
             {
                 Logger.Error($"编译失败: {sourceFile}");
-                Logger.Error($"错误信息: {result.StandardError}");
-                throw new InvalidOperationException($"编译失败: {sourceFile}");
+                Logger.Error($"退出码: {result.ExitCode}");
+                Logger.Error($"编译命令: {compiler.CompilerPath} {args}");
+                
+                if (!string.IsNullOrEmpty(result.StandardOutput))
+                {
+                    Logger.Error($"标准输出: {result.StandardOutput}");
+                }
+                
+                if (!string.IsNullOrEmpty(result.StandardError))
+                {
+                    Logger.Error($"错误输出: {result.StandardError}");
+                }
+                
+                throw new InvalidOperationException($"编译失败: {sourceFile} (退出码: {result.ExitCode})");
             }
 
             Logger.Debug($"编译成功: {sourceFile} -> {objectFile}");
@@ -176,7 +188,14 @@ namespace NutBuildTools.BuildSystem
             // 添加包含目录
             foreach (var includeDir in target.IncludeDirs)
             {
-                args.Add($"-I\"{includeDir}\"");
+                if (compiler.Type == CompilerType.MSVC)
+                {
+                    args.Add($"/I\"{includeDir}\"");
+                }
+                else
+                {
+                    args.Add($"-I\"{includeDir}\"");
+                }
             }
 
             // 添加 ThirdParty 包含目录
@@ -192,7 +211,14 @@ namespace NutBuildTools.BuildSystem
             {
                 if (Directory.Exists(include))
                 {
-                    args.Add($"-I\"{include}\"");
+                    if (compiler.Type == CompilerType.MSVC)
+                    {
+                        args.Add($"/I\"{include}\"");
+                    }
+                    else
+                    {
+                        args.Add($"-I\"{include}\"");
+                    }
                 }
             }
 
@@ -204,7 +230,14 @@ namespace NutBuildTools.BuildSystem
             }
 
             // 只编译不链接
-            args.Add("-c");
+            if (compiler.Type == CompilerType.MSVC)
+            {
+                args.Add("/c");
+            }
+            else
+            {
+                args.Add("-c");
+            }
 
             // 输入文件
             args.Add($"\"{sourceFile}\"");
@@ -231,16 +264,26 @@ namespace NutBuildTools.BuildSystem
             
             var args = new List<string>();
 
-            // 添加对象文件
-            args.AddRange(objectFiles.Select(obj => $"\"{obj}\""));
-
-            // 输出文件
             if (compiler.Type == CompilerType.MSVC)
             {
+                // MSVC 链接器参数顺序
                 args.Add($"/OUT:\"{outputFile}\"");
+                args.AddRange(objectFiles.Select(obj => $"\"{obj}\""));
+                
+                // 添加必要的库
+                args.Add("kernel32.lib");
+                args.Add("user32.lib");
+                
+                // 添加 Windows 系统库
+                if (target.Configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase))
+                {
+                    args.Add("/DEBUG");
+                }
             }
             else
             {
+                // GCC/Clang 链接器参数
+                args.AddRange(objectFiles.Select(obj => $"\"{obj}\""));
                 args.Add($"-o \"{outputFile}\"");
             }
 
@@ -252,8 +295,20 @@ namespace NutBuildTools.BuildSystem
             if (!result.Success)
             {
                 Logger.Error($"链接失败: {target.Name}");
-                Logger.Error($"错误信息: {result.StandardError}");
-                throw new InvalidOperationException($"链接失败: {target.Name}");
+                Logger.Error($"退出码: {result.ExitCode}");
+                Logger.Error($"链接命令: {compiler.LinkerPath} {string.Join(" ", args)}");
+                
+                if (!string.IsNullOrEmpty(result.StandardOutput))
+                {
+                    Logger.Error($"标准输出: {result.StandardOutput}");
+                }
+                
+                if (!string.IsNullOrEmpty(result.StandardError))
+                {
+                    Logger.Error($"错误输出: {result.StandardError}");
+                }
+                
+                throw new InvalidOperationException($"链接失败: {target.Name} (退出码: {result.ExitCode})");
             }
 
             Logger.Info($"链接成功: {outputFile}");

@@ -99,7 +99,17 @@ namespace NutBuildTools.BuildSystem
                 return gccConfig;
             }
 
-            throw new InvalidOperationException("未找到可用的 C++ 编译器");
+            // 如果都没找到，尝试使用环境变量中的编译器
+            Logger.Warning("未找到标准位置的编译器，尝试使用环境变量中的编译器");
+            
+            var fallbackClang = TryDetectClang();
+            if (fallbackClang != null)
+            {
+                SetupWindowsClangConfig(fallbackClang);
+                return fallbackClang;
+            }
+
+            throw new InvalidOperationException("未找到可用的 C++ 编译器。请确保安装了 Visual Studio、Clang 或 MinGW");
         }
 
         private static CompilerConfig DetectMacCompiler()
@@ -252,23 +262,31 @@ namespace NutBuildTools.BuildSystem
 
         private static string? FindExecutableInPath(string executable)
         {
+            Logger.Debug($"正在搜索可执行文件: {executable}");
+            
             var paths = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
             var extensions = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
                 ? new[] { ".exe", ".cmd", ".bat" } 
                 : new[] { "" };
+
+            Logger.Debug($"PATH 环境变量包含 {paths.Length} 个路径");
 
             foreach (var path in paths)
             {
                 foreach (var ext in extensions)
                 {
                     var fullPath = Path.Combine(path, executable + ext);
+                    Logger.Debug($"检查路径: {fullPath}");
+                    
                     if (File.Exists(fullPath))
                     {
+                        Logger.Debug($"找到可执行文件: {fullPath}");
                         return fullPath;
                     }
                 }
             }
 
+            Logger.Debug($"未找到可执行文件: {executable}");
             return null;
         }
 

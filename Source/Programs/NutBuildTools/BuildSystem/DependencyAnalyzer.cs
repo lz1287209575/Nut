@@ -144,8 +144,9 @@ namespace NutBuildTools.BuildSystem
                 case CompilerType.Clang:
                     return $"-MMD -MP -MF \"{dependencyFile}\"";
                 case CompilerType.MSVC:
-                    // MSVC 使用不同的依赖生成方式
-                    return $"/sourceDependencies \"{dependencyFile}\"";
+                    // MSVC 在较旧版本中不直接支持依赖文件生成
+                    // 我们暂时跳过依赖生成，依赖时间戳检查
+                    return string.Empty;
                 default:
                     return string.Empty;
             }
