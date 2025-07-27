@@ -68,8 +68,7 @@ fi
 
 echo "[4/4] 创建基础IDE项目文件..."
 echo "正在创建基础项目文件..."
-chmod +x Tools/ProjectFileGenerator.sh
-Tools/ProjectFileGenerator.sh setup
+python3 Tools/ProjectGenerator/tool.py generate
 
 echo
 echo "========================================="
@@ -77,11 +76,11 @@ echo "初始化完成！"
 echo "========================================="
 echo ""
 echo "创建的基础项目文件："
-echo "  📁 Nut.sln - Visual Studio 解决方案"
-echo "  📁 Nut.xcodeproj - Xcode 项目"
+echo "  📁 ProjectFiles/Nut.sln - Visual Studio 解决方案"
+echo "  📁 ProjectFiles/Nut.xcworkspace - Xcode 工作空间"
 echo ""
 echo "使用方法："
-echo "  🚀 运行项目: ./Setup.sh"
-echo "  🔄 重新生成项目文件: ./GenerateProjectFiles.sh"
-echo "  🧹 清理构建: ./RefreshIntelliSense.sh"
+echo "  🚀 重新生成项目文件: ./GenerateProjectFiles.sh"
+echo "  🧹 清理构建: ./RefreshIntelliSense.sh" 
+echo "  📦 开发环境: 打开 ProjectFiles/Nut.sln 或 ProjectFiles/Nut.xcworkspace"
 echo ""

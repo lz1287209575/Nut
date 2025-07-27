@@ -17,7 +17,7 @@ echo 🔧 正在调用工程化项目生成器...
 echo.
 
 ::调用Python项目生成器
-python -m Tools.ProjectGenerator.cli generate
+call "Tools\Scripts\Windows\generate_projects.bat" generate
 
 echo.
 echo ========================================
@@ -25,13 +25,13 @@ echo 初始化完成！
 echo ========================================
 echo.
 echo 生成的项目文件：
-echo   📁 Projects\ - 各个项目文件目录
-echo   📄 Nut.sln - Visual Studio 解决方案
-echo   🗂️ Nut.xcworkspace - XCode 工作空间文件 (macOS)
+echo   📁 ProjectFiles\ - 各个项目文件目录
+echo   📄 ProjectFiles\Nut.sln - Visual Studio 解决方案
+echo   🗂️ ProjectFiles\Nut.xcworkspace - XCode 工作空间文件 (macOS)
 echo.
 echo 使用方法：
-echo   🚀 运行项目: 双击 Nut.sln 用 Visual Studio 打开
+echo   🚀 运行项目: 双击 ProjectFiles\Nut.sln 用 Visual Studio 打开
 echo   🔄 重新生成项目文件: 运行 GenerateProjectFiles.bat
-echo   🧹 仅发现项目: Tools\generate_projects.bat discover
+echo   🧹 仅发现项目: Tools\Scripts\Windows\generate_projects.bat discover
 echo.
 pause 

@@ -12,7 +12,7 @@ cd "$PROJECT_ROOT"
 
 # 1. 生成项目文件
 echo "正在生成项目文件..."
-python3 -m Tools.ProjectGenerator.cli generate
+python3 Tools/ProjectGenerator/tool.py generate
 
 echo "项目文件生成完成！"
 echo ""
@@ -28,7 +28,7 @@ fi
 
 echo ""
 echo "生成的项目文件："
-echo "  📁 Nut.sln - Visual Studio 解决方案"
-echo "  📁 Nut.xcodeproj - Xcode 项目"
+echo "  📁 ProjectFiles/Nut.sln - Visual Studio 解决方案"
+echo "  📁 ProjectFiles/Nut.xcworkspace - Xcode 工作空间"
 echo ""
 echo "所有操作已完成！" 

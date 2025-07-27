@@ -69,7 +69,7 @@ if %errorlevel% neq 0 (
 echo.
 echo [5/5] 创建基础 IDE 项目文件...
 echo 🔧 正在创建基础项目文件...
-call "Tools\generate_projects.bat" generate
+call "Tools\Scripts\Windows\generate_projects.bat" generate
 
 echo.
 echo =========================================
@@ -77,13 +77,13 @@ echo 初始化完成！
 echo =========================================
 echo.
 echo 创建的基础项目文件：
-echo   📁 Projects\ - 各个项目文件目录
-echo   📄 Nut.sln - Visual Studio 解决方案
-echo   🗂️ Nut.xcworkspace - XCode 工作空间文件 (macOS)
+echo   📁 ProjectFiles\ - 各个项目文件目录
+echo   📄 ProjectFiles\Nut.sln - Visual Studio 解决方案
+echo   🗂️ ProjectFiles\Nut.xcworkspace - XCode 工作空间文件 (macOS)
 echo.
 echo 使用方法：
-echo   🚀 开发项目: 双击 Nut.sln 用 Visual Studio 打开
+echo   🚀 开发项目: 双击 ProjectFiles\Nut.sln 用 Visual Studio 打开
 echo   🔄 重新生成项目文件: 运行 GenerateProjectFiles.bat
-echo   🧹 仅发现项目: Tools\generate_projects.bat discover
+echo   🧹 仅发现项目: Tools\Scripts\Windows\generate_projects.bat discover
 echo.
 pause 

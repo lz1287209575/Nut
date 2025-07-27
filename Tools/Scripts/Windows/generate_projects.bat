@@ -108,19 +108,19 @@ if %errorlevel% equ 0 (
     :: 根据命令类型显示不同的后续提示
     if "%COMMAND%"=="xcode" (
         echo 🍎 XCode 项目文件已生成:
-        echo   📁 Projects\ - 各个项目的 .xcodeproj 文件
-        echo   🗂️ Nut.xcworkspace - 主工作空间文件
+        echo   📁 ProjectFiles\ - 各个项目的 .xcodeproj 文件
+        echo   🗂️ ProjectFiles\Nut.xcworkspace - 主工作空间文件
         echo.
         echo 💡 使用方法 ^(需要 macOS^):
-        echo   1. 使用 Xcode 打开 Nut.xcworkspace
+        echo   1. 使用 Xcode 打开 ProjectFiles\Nut.xcworkspace
         echo   2. 或者直接打开单个项目的 .xcodeproj 文件
     ) else if "%COMMAND%"=="vs" (
         echo 🔵 Visual Studio 项目文件已生成:
-        echo   📁 Projects\ - 各个项目的 .vcxproj 文件
-        echo   📄 Nut.sln - Visual Studio 解决方案文件
+        echo   📁 ProjectFiles\ - 各个项目的 .vcxproj 文件
+        echo   📄 ProjectFiles\Nut.sln - Visual Studio 解决方案文件
         echo.
         echo 💡 使用方法:
-        echo   1. 双击 Nut.sln 用 Visual Studio 打开
+        echo   1. 双击 ProjectFiles\Nut.sln 用 Visual Studio 打开
         echo   2. 或者直接打开单个项目的 .vcxproj 文件
     ) else if "%COMMAND%"=="discover" (
         echo 🔍 项目发现完成！
@@ -131,13 +131,13 @@ if %errorlevel% equ 0 (
         echo   - 运行 %~nx0 xcode 生成 XCode 项目文件
     ) else (
         echo 📁 生成的文件:
-        echo   📁 Projects\ - 各个项目文件
-        echo   📄 Nut.sln - Visual Studio 解决方案文件
-        echo   🗂️ Nut.xcworkspace - XCode 工作空间文件
+        echo   📁 ProjectFiles\ - 各个项目文件
+        echo   📄 ProjectFiles\Nut.sln - Visual Studio 解决方案文件
+        echo   🗂️ ProjectFiles\Nut.xcworkspace - XCode 工作空间文件
         echo.
         echo 💡 使用方法:
-        echo   - Windows: 双击 Nut.sln 用 Visual Studio 打开
-        echo   - macOS: 使用 Xcode 打开 Nut.xcworkspace
+        echo   - Windows: 双击 ProjectFiles\Nut.sln 用 Visual Studio 打开
+        echo   - macOS: 使用 Xcode 打开 ProjectFiles\Nut.xcworkspace
     )
     
     echo.
