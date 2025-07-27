@@ -50,7 +50,7 @@ class WorkspaceGenerator(BaseGenerator):
     
     def _GenerateXcodeWorkspace(self, projects: List[ProjectInfo]) -> Path:
         """生成 XCode 工作空间"""
-        workspace_path = self.project_root / "Nut.xcworkspace"
+        workspace_path = self.project_root / "ProjectFiles" / "Nut.xcworkspace"
         workspace_data_path = workspace_path / "contents.xcworkspacedata"
         
         # 确保目录存在
@@ -80,8 +80,8 @@ class WorkspaceGenerator(BaseGenerator):
             lines.append(f'      name = "{group_name}">')
             
             for project in cpp_projects:
-                # 确保路径使用正确的相对路径格式
-                project_path = f"ProjectFiles/{group_name}/{project.name}.xcodeproj"
+                # 工作空间现在在 ProjectFiles/ 目录中，所以路径相对于 ProjectFiles/
+                project_path = f"{group_name}/{project.name}.xcodeproj"
                 lines.append(f'      <FileRef')
                 lines.append(f'         location = "group:{project_path}">')
                 lines.append(f'      </FileRef>')
@@ -99,7 +99,7 @@ class WorkspaceGenerator(BaseGenerator):
     
     def _GenerateVsSolution(self, projects: List[ProjectInfo]) -> Path:
         """生成 Visual Studio 解决方案"""
-        solution_path = self.project_root / "Nut.sln"
+        solution_path = self.project_root / "ProjectFiles" / "Nut.sln"
         
         lines = [
             "Microsoft Visual Studio Solution File, Format Version 12.00",
@@ -125,10 +125,12 @@ class WorkspaceGenerator(BaseGenerator):
                 
                 if project.is_csharp:
                     project_type_guid = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}"
-                    project_file = f"Source/{project.path.relative_to(self.project_root / 'Source')}/{project.name}.csproj"
+                    # 解决方案现在在 ProjectFiles/ 中，所以需要 ../ 来访问 Source/
+                    project_file = f"../Source/{project.path.relative_to(self.project_root / 'Source')}/{project.name}.csproj"
                 else:
                     project_type_guid = "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" 
-                    project_file = f"ProjectFiles/{group_name}/{project.name}.vcxproj"
+                    # 解决方案现在在 ProjectFiles/ 中，vcxproj 文件也在其中
+                    project_file = f"{group_name}/{project.name}.vcxproj"
                 
                 lines.append(f'Project("{project_type_guid}") = "{project.name}", "{project_file}", "{guid}"')
                 lines.append("EndProject")

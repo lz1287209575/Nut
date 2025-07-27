@@ -23,13 +23,16 @@ public class LibNutTarget : NutStaticLibraryTarget
         // 头文件包含目录
         IncludeDirs = new List<string>
         {
-            "../Sources"
+            "../Sources",
+            "../../../ThirdParty/tcmalloc/src",
+            "../../../ThirdParty/spdlog/include"
         };
         
         // 依赖库
         Dependencies = new List<string>
         {
-            // 根据需要添加依赖
+            "tcmalloc",
+            "spdlog"
         };
     }
 }

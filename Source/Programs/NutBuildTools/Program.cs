@@ -70,6 +70,12 @@ namespace NutBuildTools
                 );
 
                 Logger.Info("NutBuildTools 启动");
+                
+                // 调试：显示环境信息
+                Logger.Info($"环境检测: SRCROOT={Environment.GetEnvironmentVariable("SRCROOT")}");
+                Logger.Info($"环境检测: CONFIGURATION={Environment.GetEnvironmentVariable("CONFIGURATION")}");
+                Logger.Info($"环境检测: PLATFORM_NAME={Environment.GetEnvironmentVariable("PLATFORM_NAME")}");
+                
                 string target = result.GetRequiredValue<string>("--target");
                 string platform = result.GetRequiredValue<string>("--platform");
                 string configuration = result.GetRequiredValue<string>("--configuration");

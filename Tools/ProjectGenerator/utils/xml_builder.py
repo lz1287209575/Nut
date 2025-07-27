@@ -102,7 +102,7 @@ class XmlBuilder:
                 "\t\t};"
             ])
         
-        # 添加 Target
+        # 添加 Target（包含 Sources Build Phase 用于 IntelliSense 和 NutBuild 用于实际编译）
         lines.extend([
             f"\t\t{uuids['target']} /* {project_data['project_name']} */ = {{",
             "\t\t\tisa = PBXNativeTarget;",
@@ -110,6 +110,7 @@ class XmlBuilder:
             f"\t\t\tproductType = \"{project_data['product_type']}\";",
             f"\t\t\tbuildConfigurationList = {uuids['config_list_target']};",
             "\t\t\tbuildPhases = (",
+            f"\t\t\t\t{uuids['build_phase_sources']},",
             f"\t\t\t\t{uuids['build_phase_nutbuild']},",
             "\t\t\t);",
             "\t\t\tbuildRules = (",
@@ -145,16 +146,30 @@ class XmlBuilder:
             "\t\t};"
         ])
         
-        # Build files removed - no longer needed without Sources Build Phase
-        # for build_file in project_data['build_files']:
-        #     lines.extend([
-        #         f"\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */ = {{",
-        #         "\t\t\tisa = PBXBuildFile;",
-        #         f"\t\t\tfileRef = {build_file['file_ref']};",
-        #         "\t\t};"
-        #     ])
+        # 添加构建文件（用于 Sources Build Phase 的 IntelliSense 分析）
+        for build_file in project_data['build_files']:
+            lines.extend([
+                f"\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */ = {{",
+                "\t\t\tisa = PBXBuildFile;",
+                f"\t\t\tfileRef = {build_file['file_ref']};",
+                "\t\t};"
+            ])
         
         # 添加 NutBuild Shell Script Build Phase
+        shell_script = self._GenerateXcodeNutBuildScript(project_data['project_name'])
+        
+        # 根据项目类型确定输出文件
+        if project_data['product_type'] == "com.apple.product-type.library.static":
+            output_file = f"$(SRCROOT)/../../Binary/{project_data['project_name']}.a"
+        else:
+            output_file = f"$(SRCROOT)/../../Binary/{project_data['project_name']}"
+        
+        # 准备输入文件列表（源文件和元数据文件）
+        input_paths = []
+        for file_ref in project_data['file_refs']:
+            if file_ref['path'].endswith(('.cpp', '.c', '.cc', '.cxx', '.h', '.hpp', '.cs')):
+                input_paths.append(f"\t\t\t\t\"$(SRCROOT)/{file_ref['path']}\",")
+        
         lines.extend([
             f"\t\t{uuids['build_phase_nutbuild']} /* NutBuild */ = {{",
             "\t\t\tisa = PBXShellScriptBuildPhase;",
@@ -164,34 +179,42 @@ class XmlBuilder:
             "\t\t\tinputFileListPaths = (",
             "\t\t\t);",
             "\t\t\tinputPaths = (",
+        ])
+        
+        # 添加输入文件路径
+        lines.extend(input_paths)
+        
+        lines.extend([
             "\t\t\t);",
             "\t\t\tname = \"NutBuild\";",
             "\t\t\toutputFileListPaths = (",
             "\t\t\t);",
             "\t\t\toutputPaths = (",
+            f"\t\t\t\t\"{output_file}\",",
             "\t\t\t);",
             "\t\t\trunOnlyForDeploymentPostprocessing = 0;",
-            f"\t\t\tshellPath = /bin/bash;",
-            f"\t\t\tshellScript = \"#!/bin/bash\\necho \\\"=== NutBuild Debug Info ===\\\"\\necho \\\"Xcode SRCROOT: $SRCROOT\\\"\\n\\n# Find the real project root (should contain CLAUDE.md)\\nPROJECT_ROOT=\\\"$SRCROOT\\\"\\nwhile [ ! -f \\\"$PROJECT_ROOT/CLAUDE.md\\\" ] && [ \\\"$PROJECT_ROOT\\\" != \\\"/\\\" ]; do\\n    PROJECT_ROOT=\\\"$(dirname \\\"$PROJECT_ROOT\\\")\\\"\\ndone\\n\\nif [ ! -f \\\"$PROJECT_ROOT/CLAUDE.md\\\" ]; then\\n    echo \\\"Error: Could not find project root (CLAUDE.md not found)\\\"\\n    exit 1\\nfi\\n\\necho \\\"Found project root: $PROJECT_ROOT\\\"\\ncd \\\"$PROJECT_ROOT\\\"\\n\\n# NutBuildTools binary path\\nNUTBUILD_BINARY=\\\"$PROJECT_ROOT/Binary/NutBuildTools/NutBuildTools\\\"\\necho \\\"Looking for binary at: $NUTBUILD_BINARY\\\"\\n\\n# Check if NutBuildTools binary exists\\nif [ ! -f \\\"$NUTBUILD_BINARY\\\" ]; then\\n    echo \\\"NutBuildTools binary not found, building...\\\"\\n    \\n    # Find dotnet executable\\n    DOTNET_PATH=\\\"\\\"\\n    if [ -f \\\"/usr/local/share/dotnet/dotnet\\\" ]; then\\n        DOTNET_PATH=\\\"/usr/local/share/dotnet/dotnet\\\"\\n    elif [ -f \\\"/opt/homebrew/bin/dotnet\\\" ]; then\\n        DOTNET_PATH=\\\"/opt/homebrew/bin/dotnet\\\"\\n    elif command -v dotnet >/dev/null 2>&1; then\\n        DOTNET_PATH=\\\"dotnet\\\"\\n    else\\n        echo \\\"Error: dotnet not found\\\"\\n        exit 1\\n    fi\\n    \\n    echo \\\"Using dotnet at: $DOTNET_PATH\\\"\\n    \\n    # Build NutBuildTools\\n    $DOTNET_PATH publish Source/Programs/NutBuildTools -c Release -o Binary/NutBuildTools\\n    \\n    if [ ! -f \\\"$NUTBUILD_BINARY\\\" ]; then\\n        echo \\\"Error: Failed to build NutBuildTools\\\"\\n        exit 1\\n    fi\\n    echo \\\"NutBuildTools built successfully\\\"\\nelse\\n    echo \\\"✅ NutBuildTools binary found\\\"\\nfi\\n\\n# Run NutBuildTools\\necho \\\"Running NutBuildTools for target {project_data['project_name']}...\\\"\\n\\\"$NUTBUILD_BINARY\\\" --target {project_data['project_name']} --platform Mac --configuration $CONFIGURATION\";",
+            "\t\t\tshellPath = /bin/bash;",
+            f"\t\t\tshellScript = \"{shell_script}\";",
+            "\t\t\tshowEnvVarsInLog = 1;",
             "\t\t};"
         ])
         
-        # Sources Build Phase removed - using NutBuild instead
-        # lines.extend([
-        #     f"\t\t{uuids['build_phase_sources']} /* Sources */ = {{",
-        #     "\t\t\tisa = PBXSourcesBuildPhase;",
-        #     "\t\t\tbuildActionMask = 2147483647;",
-        #     "\t\t\tfiles = ("
-        # ])
-        # 
-        # for build_file in project_data['build_files']:
-        #     lines.append(f"\t\t\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */,")
-        # 
-        # lines.extend([
-        #     "\t\t\t);",
-        #     "\t\t\trunOnlyForDeploymentPostprocessing = 0;",
-        #     "\t\t};"
-        # ])
+        # 添加 Sources Build Phase（用于 IntelliSense，配置为不执行实际编译）
+        lines.extend([
+            f"\t\t{uuids['build_phase_sources']} /* Sources */ = {{",
+            "\t\t\tisa = PBXSourcesBuildPhase;",
+            "\t\t\tbuildActionMask = 0;",  # 设置为 0 禁用实际构建
+            "\t\t\tfiles = ("
+        ])
+        
+        for build_file in project_data['build_files']:
+            lines.append(f"\t\t\t\t{build_file['uuid']} /* {build_file['file_name']} in Sources */,")
+        
+        lines.extend([
+            "\t\t\t);",
+            "\t\t\trunOnlyForDeploymentPostprocessing = 1;",  # 设置为 1 跳过构建
+            "\t\t};"
+        ])
         
         # 添加构建配置
         self._AddBuildConfigurations(lines, uuids, project_data['project_name'])
@@ -207,6 +230,95 @@ class XmlBuilder:
         ])
         
         return '\n'.join(lines)
+    
+    def _GenerateXcodeNutBuildScript(self, project_name: str) -> str:
+        """生成优化的 Xcode NutBuild 脚本，提供更好的输出显示"""
+        script_lines = [
+            "#!/bin/bash",
+            "set -e  # Exit on error",
+            "",
+            "# === NutBuild for Xcode ===",
+            "echo \"🔨 Building project: {}\"".format(project_name),
+            "echo \"📁 Xcode SRCROOT: $SRCROOT\"",
+            "echo \"⚙️  Configuration: $CONFIGURATION\"",
+            "echo \"🖥️  Platform: $PLATFORM_NAME\"",
+            "echo \"\"",
+            "",
+            "# Find project root (contains CLAUDE.md)",
+            "PROJECT_ROOT=\"$SRCROOT\"",
+            "while [ ! -f \"$PROJECT_ROOT/CLAUDE.md\" ] && [ \"$PROJECT_ROOT\" != \"/\" ]; do",
+            "    PROJECT_ROOT=\"$(dirname \"$PROJECT_ROOT\")\"",
+            "done",
+            "",
+            "if [ ! -f \"$PROJECT_ROOT/CLAUDE.md\" ]; then",
+            "    echo \"❌ Error: Could not find project root (CLAUDE.md not found)\"",
+            "    exit 1",
+            "fi",
+            "",
+            "echo \"✅ Found project root: $PROJECT_ROOT\"",
+            "cd \"$PROJECT_ROOT\"",
+            "echo \"\"",
+            "",
+            "# Setup NutBuildTools",
+            "NUTBUILD_BINARY=\"$PROJECT_ROOT/Binary/NutBuildTools/NutBuildTools\"",
+            "",
+            "if [ ! -f \"$NUTBUILD_BINARY\" ]; then",
+            "    echo \"📦 NutBuildTools binary not found, building...\"",
+            "    echo \"\"",
+            "    ",
+            "    # Find dotnet",
+            "    DOTNET_PATH=\"\"",
+            "    if [ -f \"/usr/local/share/dotnet/dotnet\" ]; then",
+            "        DOTNET_PATH=\"/usr/local/share/dotnet/dotnet\"",
+            "    elif [ -f \"/opt/homebrew/bin/dotnet\" ]; then",
+            "        DOTNET_PATH=\"/opt/homebrew/bin/dotnet\"",
+            "    elif command -v dotnet >/dev/null 2>&1; then",
+            "        DOTNET_PATH=\"dotnet\"",
+            "    else",
+            "        echo \"❌ Error: dotnet not found\"",
+            "        echo \"💡 Please install .NET SDK from https://dotnet.microsoft.com/download\"", 
+            "        exit 1",
+            "    fi",
+            "    ",
+            "    echo \"🔧 Using dotnet at: $DOTNET_PATH\"",
+            "    echo \"📦 Building NutBuildTools...\"",
+            "    echo \"\"",
+            "    ",
+            "    # Build with output",
+            "    \"$DOTNET_PATH\" publish Source/Programs/NutBuildTools -c Release -o Binary/NutBuildTools",
+            "    ",
+            "    if [ ! -f \"$NUTBUILD_BINARY\" ]; then",
+            "        echo \"❌ Error: Failed to build NutBuildTools\"",
+            "        exit 1",
+            "    fi",
+            "    echo \"\"",
+            "    echo \"✅ NutBuildTools built successfully\"",
+            "else",
+            "    echo \"✅ NutBuildTools binary found\"",
+            "fi",
+            "",
+            "echo \"\"",
+            "echo \"🚀 Starting compilation with NutBuildTools...\"",
+            "echo \"\"",
+            "",
+            "# Run NutBuildTools with Mac platform (Darwin internal name)",
+            "\"$NUTBUILD_BINARY\" --target {} --platform Darwin --configuration \"$CONFIGURATION\"".format(project_name),
+            "",
+            "BUILD_RESULT=$?",
+            "echo \"\"",
+            "if [ $BUILD_RESULT -eq 0 ]; then",
+            "    echo \"✅ Build completed successfully!\"",
+            "else",
+            "    echo \"❌ Build failed with exit code $BUILD_RESULT\"",
+            "    exit $BUILD_RESULT",
+            "fi"
+        ]
+        
+        # Join lines and escape properly for pbxproj format
+        script_content = "\\n".join(script_lines)
+        # Escape quotes and backslashes for pbxproj format
+        script_content = script_content.replace("\\", "\\\\").replace("\"", "\\\"")
+        return script_content
     
     def _AddBuildConfigurations(self, lines: List[str], uuids: Dict[str, str], project_name: str):
         """添加构建配置"""
@@ -279,8 +391,38 @@ class XmlBuilder:
             "\t\t\tisa = XCBuildConfiguration;",
             "\t\t\tbuildSettings = {",
             "\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";",
+            "\t\t\t\t// 搜索路径配置",
             "\t\t\t\tUSER_HEADER_SEARCH_PATHS = \"$(SRCROOT)/../../Source/**\";",
             "\t\t\t\tHEADER_SEARCH_PATHS = \"$(SRCROOT)/../../ThirdParty/**\";",
+            "\t\t\t\t// C++ 语言标准",
+            "\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++20\";",
+            "\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";",
+            "\t\t\t\t// 启用代码分析但跳过实际编译",
+            "\t\t\t\tSKIP_INSTALL = YES;",
+            "\t\t\t\tCODE_SIGN_IDENTITY = \"\";",
+            "\t\t\t\t// 禁用原生构建但保留 IntelliSense",
+            "\t\t\t\tBUILD_ACTIVE_ARCHITECTURE_ONLY = NO;",
+            "\t\t\t\tCOMPILE_SOURCES_BUILD_PHASE_ENABLED = NO;",
+            "\t\t\t\tRUN_ONLY_FOR_DEPLOYMENT_POSTPROCESSING = YES;",
+            "\t\t\t\t// 强制禁用编译器调用",
+            "\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (",
+            "\t\t\t\t\t\"XCODE_INTELLISENSE_ONLY=1\",",
+            "\t\t\t\t\t\"$(inherited)\",",
+            "\t\t\t\t);",
+            "\t\t\t\tOTHER_CFLAGS = \"-fsyntax-only\";",
+            "\t\t\t\t// IntelliSense 相关设置",
+            "\t\t\t\tCLANG_ANALYZER_NONNULL = YES;",
+            "\t\t\t\tCLANG_WARN_BOOL_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_CONSTANT_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_EMPTY_BODY = YES;",
+            "\t\t\t\tCLANG_WARN_ENUM_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_INT_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_UNREACHABLE_CODE = YES;",
+            "\t\t\t\tGCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;",
+            "\t\t\t\tGCC_WARN_UNDECLARED_SELECTOR = YES;",
+            "\t\t\t\tGCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;",
+            "\t\t\t\tGCC_WARN_UNUSED_FUNCTION = YES;",
+            "\t\t\t\tGCC_WARN_UNUSED_VARIABLE = YES;",
             "\t\t\t};",
             "\t\t\tname = Debug;",
             "\t\t};",
@@ -292,8 +434,38 @@ class XmlBuilder:
             "\t\t\tisa = XCBuildConfiguration;",
             "\t\t\tbuildSettings = {",
             "\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";",
+            "\t\t\t\t// 搜索路径配置",
             "\t\t\t\tUSER_HEADER_SEARCH_PATHS = \"$(SRCROOT)/../../Source/**\";",
             "\t\t\t\tHEADER_SEARCH_PATHS = \"$(SRCROOT)/../../ThirdParty/**\";",
+            "\t\t\t\t// C++ 语言标准",
+            "\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++20\";",
+            "\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";",
+            "\t\t\t\t// 启用代码分析但跳过实际编译",
+            "\t\t\t\tSKIP_INSTALL = YES;",
+            "\t\t\t\tCODE_SIGN_IDENTITY = \"\";",
+            "\t\t\t\t// 禁用原生构建但保留 IntelliSense",
+            "\t\t\t\tBUILD_ACTIVE_ARCHITECTURE_ONLY = NO;",
+            "\t\t\t\tCOMPILE_SOURCES_BUILD_PHASE_ENABLED = NO;",
+            "\t\t\t\tRUN_ONLY_FOR_DEPLOYMENT_POSTPROCESSING = YES;",
+            "\t\t\t\t// 强制禁用编译器调用",
+            "\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (",
+            "\t\t\t\t\t\"XCODE_INTELLISENSE_ONLY=1\",",
+            "\t\t\t\t\t\"$(inherited)\",",
+            "\t\t\t\t);",
+            "\t\t\t\tOTHER_CFLAGS = \"-fsyntax-only\";",
+            "\t\t\t\t// IntelliSense 相关设置",
+            "\t\t\t\tCLANG_ANALYZER_NONNULL = YES;",
+            "\t\t\t\tCLANG_WARN_BOOL_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_CONSTANT_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_EMPTY_BODY = YES;",
+            "\t\t\t\tCLANG_WARN_ENUM_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_INT_CONVERSION = YES;",
+            "\t\t\t\tCLANG_WARN_UNREACHABLE_CODE = YES;",
+            "\t\t\t\tGCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;",
+            "\t\t\t\tGCC_WARN_UNDECLARED_SELECTOR = YES;",
+            "\t\t\t\tGCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;",
+            "\t\t\t\tGCC_WARN_UNUSED_FUNCTION = YES;",
+            "\t\t\t\tGCC_WARN_UNUSED_VARIABLE = YES;",
             "\t\t\t};",
             "\t\t\tname = Release;",
             "\t\t};"

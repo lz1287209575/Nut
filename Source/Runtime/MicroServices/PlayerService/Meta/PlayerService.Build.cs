@@ -23,7 +23,10 @@ public class PlayerServiceTarget : NutServiceTarget
         // 头文件包含目录
         IncludeDirs = new List<string>
         {
-            "../Sources"
+            "../Sources",
+            "../../LibNut/Sources",           // LibNut头文件
+            "../../../ThirdParty/tcmalloc/src",
+            "../../../ThirdParty/spdlog/include"
         };
         
         // Protocol Buffer 文件
@@ -41,8 +44,11 @@ public class PlayerServiceTarget : NutServiceTarget
         // 依赖库
         Dependencies = new List<string>
         {
+            "LibNut",                         // 依赖LibNut静态库
             "protobuf",
-            "grpc"
+            "grpc",
+            "tcmalloc",
+            "spdlog"
         };
     }
 }

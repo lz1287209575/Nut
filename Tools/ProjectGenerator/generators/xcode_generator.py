@@ -92,9 +92,12 @@ class XCodeProjectGenerator(BaseGenerator):
             file_key = f"file_{i}"
             uuids['file_refs'][file_key] = self.uuid_generator.generate()
             
-            # 只为源文件生成构建文件 UUID
+            # 为源文件生成构建文件 UUID（用于 IntelliSense）
             if file_info.group == FileGroup.SOURCES:
                 uuids['build_files'][file_key] = self.uuid_generator.generate()
+        
+        # 添加 Sources Build Phase UUID（用于 IntelliSense）
+        uuids['build_phase_sources'] = self.uuid_generator.generate()
         
         return uuids
     
@@ -110,19 +113,19 @@ class XCodeProjectGenerator(BaseGenerator):
         
         # 构建文件引用数据
         file_refs_data = []
-        project_output_dir = self.project_root / "Projects" / project_info.group_name
+        project_output_dir = self.project_root / "ProjectFiles" / project_info.group_name
         
         for i, file_info in enumerate(all_files):
             file_key = f"file_{i}"
             
             # 计算相对于项目文件所在目录的路径
-            # 项目文件在 Projects/GroupName/ProjectName.xcodeproj
+            # 项目文件在 ProjectFiles/GroupName/ProjectName.xcodeproj
             # 需要从该目录返回到项目根目录，然后到达实际文件
             try:
                 relative_path = file_info.path.relative_to(project_output_dir)
             except ValueError:
                 # 如果文件不在项目输出目录下，计算相对路径
-                # 从 Projects/GroupName 到项目根目录需要 ../../
+                # 从 ProjectFiles/GroupName 到项目根目录需要 ../../
                 # 然后加上从项目根目录到文件的相对路径
                 root_to_file = file_info.path.relative_to(self.project_root)
                 relative_path = Path("../../") / root_to_file
@@ -135,7 +138,7 @@ class XCodeProjectGenerator(BaseGenerator):
                 'source_tree': '<group>'
             })
         
-        # 构建构建文件数据
+        # 构建构建文件数据（用于 Sources Build Phase 的 IntelliSense）
         build_files_data = []
         for i, file_info in enumerate(all_files):
             file_key = f"file_{i}"
