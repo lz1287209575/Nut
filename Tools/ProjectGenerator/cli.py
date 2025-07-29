@@ -15,6 +15,7 @@ from Tools.ProjectGenerator.core.project_discoverer import ProjectDiscoverer
 from Tools.ProjectGenerator.generators.xcode_generator import XCodeProjectGenerator
 from Tools.ProjectGenerator.generators.vcxproj_generator import VcxprojGenerator
 from Tools.ProjectGenerator.generators.workspace_generator import WorkspaceGenerator
+from Tools.ProjectGenerator.generators.clangd_generator import ClangdGenerator
 
 
 def SetupLogging(verbose: bool = False):
@@ -91,6 +92,26 @@ def GenerateVsProjects(projects: List, project_root: Path):
         print(f"  📄 {solution_path.relative_to(project_root)}")
 
 
+def GenerateClangdConfigs(projects: List, project_root: Path):
+    """生成 clangd 配置文件"""
+    print("\n🔧 生成 clangd 配置文件...")
+    
+    generator = ClangdGenerator(project_root)
+    generated_files = generator.GenerateClangdConfigs(projects)
+    
+    print(f"\n✅ clangd 配置生成完成:")
+    for config_name, file_path in generated_files.items():
+        if file_path:
+            print(f"  📄 {file_path.relative_to(project_root)}")
+    
+    if generated_files:
+        print("\n💡 clangd 配置说明:")
+        print("  📖 .clangd - 全局 clangd 配置文件")
+        print("  📖 compile_commands.json - 编译命令数据库")
+        print("  📖 各项目目录下的 .clangd - 项目特定配置")
+        print("  🚀 重启 VS Code/编辑器以应用新配置")
+
+
 def GenerateAllProjects(projects: List, project_root: Path):
     """生成所有格式的项目文件"""
     import platform
@@ -111,6 +132,9 @@ def GenerateAllProjects(projects: List, project_root: Path):
         # Linux 或其他平台只生成 Visual Studio 项目（可以用 VS Code 打开）
         print("🐧 Linux/其他平台：仅生成 Visual Studio 项目")
         GenerateVsProjects(projects, project_root)
+    
+    # 所有平台都生成 clangd 配置
+    GenerateClangdConfigs(projects, project_root)
 
 
 def main():
@@ -123,6 +147,7 @@ def main():
   %(prog)s generate          # 生成所有格式的项目文件
   %(prog)s xcode             # 仅生成 XCode 项目文件  
   %(prog)s vs                # 仅生成 Visual Studio 项目文件
+  %(prog)s clangd            # 仅生成 clangd 配置文件
   %(prog)s discover          # 仅发现项目，不生成文件
   %(prog)s --verbose xcode   # 详细输出模式
         """
@@ -130,7 +155,7 @@ def main():
     
     parser.add_argument(
         'command',
-        choices=['discover', 'xcode', 'vs', 'generate'],
+        choices=['discover', 'xcode', 'vs', 'clangd', 'generate'],
         help='执行的命令'
     )
     
@@ -180,6 +205,8 @@ def main():
             GenerateXcodeProjects(projects, project_root)  
         elif args.command == 'vs':
             GenerateVsProjects(projects, project_root)
+        elif args.command == 'clangd':
+            GenerateClangdConfigs(projects, project_root)
         elif args.command == 'generate':
             GenerateAllProjects(projects, project_root)
         

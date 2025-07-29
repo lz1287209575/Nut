@@ -1,39 +1,45 @@
+# clangd 配置文件
+# 由 Nut 项目生成器自动生成 - 请勿手动修改
+
 CompileFlags:
-  Add: 
-    - -std=c++20
-    - -I./Include
-    - -I./MicroServices/*/Sources
-    - -I./MicroServices/*/Protos
-  Remove: []
-  
+  Add:
+    - "-std=c++20"
+    - "-Wall"
+    - "-Wextra"
+    - "-g"
+    - "-O0"
+    - "-DDEBUG"
+    - "-mmacosx-version-min=10.15"
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/Binary
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/Source
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/Source/Runtime/LibNut/Sources
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/Source/Runtime/MicroServices/PlayerService/Sources
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/Source/Runtime/ServiceAllocate/Sources
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/ThirdParty/spdlog/include
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/ThirdParty/tcmalloc/src
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/ThirdParty/tcmalloc/vendor/googletest/googlemock/include
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/ThirdParty/tcmalloc/vendor/googletest/googletest/include
+    - "-I"
+    - /Users/fusionrise/Desktop/Nut/ThirdParty/tcmalloc/vsprojects/include
+  Remove:
+    - "-W*"
 Index:
   Background: Build
-
-Diagnostics:
-  ClangTidy:
-    Add: 
-      - modernize-*
-      - performance-*
-      - cppcoreguidelines-*
-    Remove: 
-      - modernize-use-trailing-return-type
-      - cppcoreguidelines-avoid-magic-numbers
-
+  StandardLibrary: true
 InlayHints:
-  Enabled: True
-  ParameterNames: True
-  DeducedTypes: True
-  TemplateParameterTypes: True
-
-Completion:
-  EnableSnippets: True
-  EnableIndex: True
-
+  Enabled: true
+  ParameterNames: true
+  DeducedTypes: true
 Hover:
-  ShowAKA: True
-
-References:
-  ShowAKA: True
-
-SymbolSearch:
-  Limit: 100 
+  ShowAKA: true
+Completion:
+  AllScopes: true
