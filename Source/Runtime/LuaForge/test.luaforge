@@ -1,0 +1,109 @@
+-- LuaForge 类系统测试文件
+
+-- 基类定义
+class GameObject {
+    public:
+        string name = "GameObject";
+        float x = 0.0;
+        float y = 0.0;
+        
+    public:
+        constructor(string objectName) {
+            this.name = objectName;
+        }
+        
+        virtual void update() {
+            -- 默认更新逻辑
+        }
+        
+        property float positionX {
+            get { return this.x; }
+            set { this.x = value; }
+        }
+        
+        property float positionY {
+            get { return this.y; }
+            set { this.y = value; }
+        }
+}
+
+-- 派生类定义
+class Player : GameObject {
+    private:
+        float health = 100.0;
+        int level = 1;
+        
+    public:
+        constructor(string playerName) {
+            super(playerName);
+            this.health = 100.0;
+        }
+        
+        override void update() {
+            super.update();
+            -- 玩家特定更新逻辑
+        }
+        
+        void takeDamage(float damage) {
+            this.health -= damage;
+            if (this.health <= 0) {
+                this.health = 0;
+                this:onDeath();
+            }
+        }
+        
+        property float health {
+            get { return this.health; }
+            set { 
+                if (value >= 0) {
+                    this.health = value;
+                }
+            }
+        }
+        
+    protected:
+        virtual void onDeath() {
+            print("Player " + this.name + " has died!");
+        }
+}
+
+-- 接口定义
+interface IDamageable {
+    void takeDamage(float damage);
+    float getHealth();
+}
+
+-- 命名空间定义
+namespace Game.Entities {
+    class Enemy : GameObject {
+        public:
+            float attackPower = 10.0;
+            
+        public:
+            constructor(string enemyName, float power) {
+                super(enemyName);
+                this.attackPower = power;
+            }
+            
+            void attack(Player target) {
+                target:takeDamage(this.attackPower);
+            }
+    }
+}
+
+-- 使用示例
+function main() {
+    local player = new Player("Hero");
+    local enemy = new Game.Entities.Enemy("Orc", 15.0);
+    
+    player.positionX = 10.0;
+    player.positionY = 20.0;
+    
+    print("Player: " + player.name + " at (" + player.positionX + ", " + player.positionY + ")");
+    print("Player health: " + player.health);
+    
+    enemy:attack(player);
+    print("After attack, player health: " + player.health);
+}
+
+main();

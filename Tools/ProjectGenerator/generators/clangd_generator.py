@@ -138,6 +138,8 @@ class ClangdGenerator:
             "ThirdParty/spdlog/include",
             "ThirdParty/tcmalloc/src",
             "Binary",  # 生成的头文件可能在这里
+            "Intermediate/Generated",  # 生成的头文件根目录
+            "Intermediate/Generated/Runtime/LibNut/Sources",  # NLib 生成的头文件
         ]
         
         for dir_name in common_dirs:
@@ -157,6 +159,21 @@ class ClangdGenerator:
             if include_dir.is_dir():
                 include_dirs.add(str(include_dir))
         
+        # 自动发现 Intermediate/Generated 下的所有子目录
+        generated_base = self.project_root / "Intermediate" / "Generated"
+        if generated_base.exists():
+            # 添加 Generated 根目录
+            include_dirs.add(str(generated_base))
+            
+            # 递归添加所有子目录，特别是包含生成头文件的目录
+            for generated_dir in generated_base.rglob("*"):
+                if generated_dir.is_dir():
+                    # 检查是否包含 .h 或 .generate.h 文件
+                    has_headers = any(generated_dir.glob("*.h")) or any(generated_dir.glob("*.generate.h"))
+                    if has_headers:
+                        include_dirs.add(str(generated_dir))
+                        logger.debug(f"添加生成头文件目录: {generated_dir}")
+        
         return include_dirs
     
     def CollectProjectIncludeDirs(self, project: ProjectInfo) -> Set[str]:
@@ -167,6 +184,13 @@ class ClangdGenerator:
         project_sources_dir = project.path / "Sources"
         if project_sources_dir.exists():
             include_dirs.add(str(project_sources_dir))
+        
+        # 添加项目特定的生成头文件目录
+        project_relative_path = project.path.relative_to(self.project_root)
+        project_generated_dir = self.project_root / "Intermediate" / "Generated" / project_relative_path / "Sources"
+        if project_generated_dir.exists():
+            include_dirs.add(str(project_generated_dir))
+            logger.debug(f"添加项目 {project.name} 的生成头文件目录: {project_generated_dir}")
         
         # 添加全局包含目录
         include_dirs.update(self.CollectGlobalIncludeDirs())

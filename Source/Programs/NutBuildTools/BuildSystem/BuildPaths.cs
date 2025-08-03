@@ -1,9 +1,42 @@
 using System;
 using System.IO;
+using System.Linq;
 using NutBuildTools.Utils;
 
 namespace NutBuildTools.BuildSystem
 {
+    /// <summary>
+    /// 清理选项
+    /// </summary>
+    [Flags]
+    public enum CleanOptions
+    {
+        /// <summary>
+        /// 仅清理构建中间文件
+        /// </summary>
+        BuildFiles = 1 << 0,
+        
+        /// <summary>
+        /// 清理输出文件
+        /// </summary>
+        OutputFiles = 1 << 1,
+        
+        /// <summary>
+        /// 清理生成的文件
+        /// </summary>
+        GeneratedFiles = 1 << 2,
+        
+        /// <summary>
+        /// 默认清理选项（构建文件 + 输出文件）
+        /// </summary>
+        Default = BuildFiles | OutputFiles,
+        
+        /// <summary>
+        /// 完全清理（所有文件）
+        /// </summary>
+        All = BuildFiles | OutputFiles | GeneratedFiles
+    }
+
     /// <summary>
     /// 构建路径管理
     /// </summary>
@@ -91,25 +124,107 @@ namespace NutBuildTools.BuildSystem
         /// <summary>
         /// 清理构建目录
         /// </summary>
-        public void Clean()
+        public void Clean(CleanOptions options = CleanOptions.Default)
         {
-            Logger.Info("清理构建目录...");
+            Logger.Info($"开始清理构建目录，选项: {options}...");
             
-            if (Directory.Exists(ConfigurationDir))
+            // 清理特定配置的构建目录
+            if (options.HasFlag(CleanOptions.BuildFiles))
+            {
+                if (Directory.Exists(ConfigurationDir))
+                {
+                    try
+                    {
+                        Directory.Delete(ConfigurationDir, true);
+                        Logger.Info($"已清理构建目录: {ConfigurationDir}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"清理构建目录失败: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Logger.Info("构建目录不存在，无需清理");
+                }
+            }
+
+            // 清理输出目录中的相关文件
+            if (options.HasFlag(CleanOptions.OutputFiles))
+            {
+                CleanOutputFiles();
+            }
+            
+            // 清理生成的中间文件
+            if (options.HasFlag(CleanOptions.GeneratedFiles))
+            {
+                CleanGeneratedFiles();
+            }
+        }
+
+        /// <summary>
+        /// 清理输出文件
+        /// </summary>
+        private void CleanOutputFiles()
+        {
+            if (!Directory.Exists(OutputDir))
+            {
+                Logger.Info("输出目录不存在，跳过清理");
+                return;
+            }
+
+            try
+            {
+                // 清理可执行文件和库文件
+                var executableExtensions = new[] { ".exe", ".app", "" }; // 空字符串用于 Unix 可执行文件
+                var libraryExtensions = new[] { ".dll", ".so", ".dylib", ".a", ".lib" };
+                
+                var allExtensions = executableExtensions.Concat(libraryExtensions);
+                
+                foreach (var file in Directory.GetFiles(OutputDir, "*.*", SearchOption.TopDirectoryOnly))
+                {
+                    var extension = Path.GetExtension(file).ToLowerInvariant();
+                    if (allExtensions.Contains(extension) || string.IsNullOrEmpty(extension))
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            Logger.Info($"已删除输出文件: {Path.GetFileName(file)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warning($"删除输出文件失败 {file}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"清理输出目录失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清理生成的文件
+        /// </summary>
+        private void CleanGeneratedFiles()
+        {
+            var generatedDir = Path.Combine(ProjectRoot, "Intermediate", "Generated");
+            if (Directory.Exists(generatedDir))
             {
                 try
                 {
-                    Directory.Delete(ConfigurationDir, true);
-                    Logger.Info($"已清理构建目录: {ConfigurationDir}");
+                    Directory.Delete(generatedDir, true);
+                    Logger.Info($"已清理生成文件目录: {generatedDir}");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warning($"清理构建目录失败: {ex.Message}");
+                    Logger.Warning($"清理生成文件目录失败: {ex.Message}");
                 }
             }
             else
             {
-                Logger.Info("构建目录不存在，无需清理");
+                Logger.Info("生成文件目录不存在，跳过清理");
             }
         }
 

@@ -1,0 +1,9 @@
+-- 方法测试
+class MethodClass {
+    public:
+        void testMethod() {
+            print("Method called!");
+        }
+}
+
+print("Method class definition successful!"); 

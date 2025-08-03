@@ -46,14 +46,28 @@ namespace NutBuildTools
 
             var buildCommand = new Command("build")
             {
-
+                Description = "构建项目"
             };
 
-            command.Add(buildCommand);
-
-            command.SetAction(async result =>
+            var cleanOptionsOption = new Option<string>("--clean-options", "-co")
             {
-                // 解析日志配置
+                DefaultValueFactory = _ => "Default",
+                Description = "清理选项 (Default/All/BuildFiles/OutputFiles/GeneratedFiles)"
+            };
+
+
+            var cleanCommand = new Command("clean")
+            {
+                Description = "清理构建产物"
+            };
+            cleanCommand.Add(cleanOptionsOption);
+
+            command.Add(buildCommand);
+            command.Add(cleanCommand);
+
+            // 配置日志的通用函数
+            void ConfigureLogging(ParseResult result)
+            {
                 var logLevelStr = result.GetValue<string>("--log-level");
                 var logFile = result.GetValue<string>("--log-file");
 
@@ -62,30 +76,67 @@ namespace NutBuildTools
                     logLevel = LogLevel.Info;
                 }
 
-                // 配置日志
                 Logger.Configure(
                     logFilePath: logFile ?? "logs/nutbuildtools.log",
                     enableFileLogging: !string.IsNullOrEmpty(logFile),
                     minLogLevel: logLevel
                 );
+            }
 
-                Logger.Info("NutBuildTools 启动");
-                
+            // 获取构建参数的通用函数
+            (string target, string platform, string configuration) GetBuildParameters(ParseResult result)
+            {
+                string target = result.GetRequiredValue<string>("--target");
+                string platform = result.GetRequiredValue<string>("--platform");
+                string configuration = result.GetRequiredValue<string>("--configuration");
+                return (target, platform, configuration);
+            }
+
+            buildCommand.SetAction(async result =>
+            {
+                ConfigureLogging(result);
+                Logger.Info("NutBuildTools 启动 - 构建模式");
+
                 // 调试：显示环境信息
                 Logger.Info($"环境检测: SRCROOT={Environment.GetEnvironmentVariable("SRCROOT")}");
                 Logger.Info($"环境检测: CONFIGURATION={Environment.GetEnvironmentVariable("CONFIGURATION")}");
                 Logger.Info($"环境检测: PLATFORM_NAME={Environment.GetEnvironmentVariable("PLATFORM_NAME")}");
-                
-                string target = result.GetRequiredValue<string>("--target");
-                string platform = result.GetRequiredValue<string>("--platform");
-                string configuration = result.GetRequiredValue<string>("--configuration");
+
+                var (target, platform, configuration) = GetBuildParameters(result);
                 Logger.Info($"参数: target={target}, platform={platform}, configuration={configuration}");
 
                 var builder = new NutBuilder();
                 var targetInstance = CreateTargetFromMetadata(target, platform, configuration);
-                
+
                 await builder.BuildAsync(targetInstance);
-                Logger.Info("NutBuildTools 运行结束");
+                Logger.Info("NutBuildTools 构建完成");
+            });
+
+            cleanCommand.SetAction(async result =>
+            {
+                ConfigureLogging(result);
+                Logger.Info("NutBuildTools 启动 - 清理模式");
+
+                var (target, platform, configuration) = GetBuildParameters(result);
+                var cleanOptionsStr = result.GetValue<string>("--clean-options");
+                Logger.Info($"参数: target={target}, platform={platform}, configuration={configuration}, clean-options={cleanOptionsStr}");
+
+                // 解析清理选项
+                CleanOptions cleanOptions = CleanOptions.Default;
+                if (Enum.TryParse<CleanOptions>(cleanOptionsStr, true, out var parsedOptions))
+                {
+                    cleanOptions = parsedOptions;
+                }
+                else
+                {
+                    Logger.Warning($"无效的清理选项: {cleanOptionsStr}，使用默认选项");
+                }
+
+                var builder = new NutBuilder();
+                var targetInstance = CreateTargetFromMetadata(target, platform, configuration);
+
+                await builder.CleanAsync(targetInstance, cleanOptions);
+                Logger.Info("NutBuildTools 清理完成");
             });
 
             return await command.Parse(args).InvokeAsync();
@@ -99,7 +150,7 @@ namespace NutBuildTools
             {
                 var projectRoot = FindProjectRoot();
                 var targetInstance = FindAndCreateTarget(projectRoot, targetName, platform, configuration);
-                
+
                 if (targetInstance == null)
                 {
                     // 如果找不到元数据，创建默认目标
@@ -178,6 +229,10 @@ namespace NutBuildTools
 
                 // 添加通用包含目录
                 target.IncludeDirs.Add(Path.Combine(projectRoot, "Source"));
+                target.IncludeDirs.Add(Path.Combine(projectRoot, "Source", "Runtime", "LibNut", "Sources"));
+                target.IncludeDirs.Add(Path.Combine(projectRoot, "Intermediate", "Generated", "Runtime", "LibNut", "Sources"));
+                target.IncludeDirs.Add(Path.Combine(projectRoot, "Intermediate", "Generated", "Runtime", "LibNut", "Sources", "Containers"));
+                target.IncludeDirs.Add(Path.Combine(projectRoot, "Intermediate", "Generated", "Runtime", "LibNut", "Sources", "Core"));
 
                 // 解析依赖（简单的字符串匹配）
                 if (content.Contains("spdlog"))

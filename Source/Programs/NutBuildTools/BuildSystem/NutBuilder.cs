@@ -75,7 +75,7 @@ namespace NutBuildTools.BuildSystem
             }
         }
 
-        public async ValueTask CleanAsync(NutTarget target)
+        public async ValueTask CleanAsync(NutTarget target, CleanOptions options = CleanOptions.Default)
         {
             Logger.Info($"开始清理: Target={target.Name}, Platform={target.Platform}, Configuration={target.Configuration}");
             
@@ -83,7 +83,7 @@ namespace NutBuildTools.BuildSystem
             {
                 var projectRoot = FindProjectRoot();
                 var buildPaths = new BuildPaths(projectRoot, target.Platform, target.Configuration);
-                buildPaths.Clean();
+                buildPaths.Clean(options);
                 Logger.Info("清理完成!");
             }
             catch (Exception ex)
@@ -204,7 +204,8 @@ namespace NutBuildTools.BuildSystem
             {
                 Path.Combine(projectRoot, "ThirdParty", "spdlog", "include"),
                 Path.Combine(projectRoot, "ThirdParty", "tcmalloc", "src"),
-                Path.Combine(projectRoot, "Source")
+                Path.Combine(projectRoot, "Source"),
+                Path.Combine(projectRoot, "Intermediate", "Generated")
             };
 
             foreach (var include in thirdPartyIncludes)

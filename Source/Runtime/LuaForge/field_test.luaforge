@@ -1,0 +1,7 @@
+-- 字段测试
+class FieldClass {
+    public:
+        string name;
+}
+
+print("Field class definition successful!"); 

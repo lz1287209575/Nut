@@ -1,0 +1,21 @@
+-- 简单的LuaForge测试
+class TestClass {
+    public:
+        string name = "Test";
+        
+    public:
+        constructor(string n) {
+            this.name = n;
+        }
+        
+        void sayHello() {
+            print("Hello from " + this.name);
+        }
+}
+
+function main() {
+    local obj = new TestClass("MyObject");
+    obj:sayHello();
+}
+
+main(); 

@@ -12,8 +12,8 @@ cd "$PROJECT_ROOT"
 
 # 1. 生成 NCLASS 反射头文件
 echo "🔧 生成 NCLASS 反射头文件..."
-if [ -f "Tools/Scripts/GenerateHeaders.sh" ]; then
-    ./Tools/Scripts/GenerateHeaders.sh
+if [ -f "./Tools/Scripts/Unix/GenerateHeaders.sh" ]; then
+    bash ./Tools/Scripts/Unix/GenerateHeaders.sh
     echo "✅ NCLASS 头文件生成完成"
 else
     echo "⚠️  未找到 GenerateHeaders.sh，跳过反射头文件生成"

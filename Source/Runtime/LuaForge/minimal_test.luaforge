@@ -1,0 +1,5 @@
+-- 最小LuaForge测试
+class EmptyClass {
+}
+
+print("Empty class definition successful!"); 

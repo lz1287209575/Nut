@@ -1,0 +1,16 @@
+-- 最基本的LuaForge测试
+class SimpleClass {
+    public:
+        string name;
+        
+    public:
+        constructor() {
+            this.name = "Simple";
+        }
+        
+        void sayHello() {
+            print("Hello from " + this.name);
+        }
+}
+
+print("Class definition successful!"); 

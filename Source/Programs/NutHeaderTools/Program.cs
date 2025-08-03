@@ -116,7 +116,7 @@ namespace NutHeaderTools
             {
                 string content = File.ReadAllText(headerPath);
                 Console.WriteLine($"  🔍 处理文件: {Path.GetFileName(headerPath)}");
-                
+
                 HeaderInfo headerInfo = ParseHeader(headerPath, content);
 
                 if (headerInfo.HasNClassMarkedClasses)
@@ -125,7 +125,7 @@ namespace NutHeaderTools
                     GenerateCodeFile(generateFilePath, headerInfo);
                     ProcessedHeaders[headerPath] = headerInfo;
                     GeneratedFileCount++;
-                    
+
                     Console.WriteLine($"  ✓ 已生成: {Path.GetFileName(generateFilePath)}");
                 }
                 else
@@ -152,17 +152,17 @@ namespace NutHeaderTools
             {
                 return info;
             }
-            
+
             Console.WriteLine($"    Debug: 文件包含NCLASS");
-            
-            // 尝试不同的正则表达式，处理换行符
+
+            // 尝试不同的正则表达式，处理换行符和API宏
             string[] patterns = {
-                @"NCLASS\s*\([^)]*\)\s*\r?\n\s*class\s+(\w+)\s*(?::\s*public\s+(\w+))?",
-                @"NCLASS\s*\([^)]*\)\s*class\s+(\w+)\s*(?::\s*public\s+(\w+))?",
-                @"NCLASS\s*\([^)]*\)[\s\r\n]*class\s+(\w+)",
-                @"NCLASS.*?class\s+(\w+)"
+                @"NCLASS\s*\([^)]*\)\s*\r?\n\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
+                @"NCLASS\s*\([^)]*\)\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
+                @"NCLASS\s*\([^)]*\)[\s\r\n]*class\s+(?:\w+\s+)?(\w+)",
+                @"NCLASS.*?class\s+(?:\w+\s+)?(\w+)"
             };
-            
+
             MatchCollection nclassMatches = null;
             foreach (string pattern in patterns)
             {
@@ -170,7 +170,7 @@ namespace NutHeaderTools
                 Console.WriteLine($"    Debug: 模式 '{pattern}' 找到 {nclassMatches.Count} 个匹配");
                 if (nclassMatches.Count > 0) break;
             }
-            
+
             Console.WriteLine($"    Debug: 最终找到 {nclassMatches?.Count ?? 0} 个NCLASS匹配");
 
             foreach (Match match in nclassMatches)
@@ -187,7 +187,7 @@ namespace NutHeaderTools
 
                 // 解析NPROPERTY标记的属性
                 ParseProperties(content, classInfo);
-                
+
                 // 解析NFUNCTION标记的函数
                 ParseFunctions(content, classInfo);
 
@@ -201,16 +201,16 @@ namespace NutHeaderTools
         {
             // 使用更精确的单一正则表达式，避免重复匹配
             string propertyPattern = @"NPROPERTY\s*\([^)]*\)[\s\r\n]*(\w+(?:\s*<[^>]+>)?(?:\s*::\w+)*)\s+(\w+)(?:\s*=\s*[^;]+)?;";
-            
+
             MatchCollection propertyMatches = Regex.Matches(content, propertyPattern, RegexOptions.Multiline);
-            
+
             HashSet<string> addedProperties = new HashSet<string>();
-            
+
             foreach (Match match in propertyMatches)
             {
                 string type = match.Groups[1].Value.Trim();
                 string name = match.Groups[2].Value;
-                
+
                 // 避免重复添加
                 if (!addedProperties.Contains(name))
                 {
@@ -246,25 +246,67 @@ namespace NutHeaderTools
 
         private static string GetGenerateFilePath(string headerPath)
         {
-            string directory = Path.GetDirectoryName(headerPath);
+            // 获取项目根目录（从当前工作目录开始，向上查找包含Source目录的位置）
+            string projectRoot = FindProjectRoot(headerPath);
+            
+            // 构建相对于Source目录的路径
+            string sourcePath = Path.Combine(projectRoot, "Source");
+            string relativePath = Path.GetRelativePath(sourcePath, headerPath);
+            
+            // 生成文件放在 Intermediate/Generated 目录下，保持相同的子目录结构
+            string intermediateRoot = Path.Combine(projectRoot, "Intermediate", "Generated");
             string fileName = Path.GetFileNameWithoutExtension(headerPath);
-            return Path.Combine(directory, $"{fileName}.generate.h");
+            string relativeDir = Path.GetDirectoryName(relativePath);
+            
+            string generateDir = Path.Combine(intermediateRoot, relativeDir);
+            Directory.CreateDirectory(generateDir); // 确保目录存在
+            
+            return Path.Combine(generateDir, $"{fileName}.generate.h");
+        }
+
+        private static string FindProjectRoot(string headerPath)
+        {
+            string currentDir = Path.GetDirectoryName(headerPath);
+            
+            while (currentDir != null)
+            {
+                // 查找包含Source目录的根目录
+                if (Directory.Exists(Path.Combine(currentDir, "Source")))
+                {
+                    return currentDir;
+                }
+                currentDir = Directory.GetParent(currentDir)?.FullName;
+            }
+            
+            // 如果找不到，使用当前工作目录
+            return Directory.GetCurrentDirectory();
         }
 
         private static void GenerateCodeFile(string outputPath, HeaderInfo headerInfo)
         {
             using StreamWriter writer = new StreamWriter(outputPath);
-            
+
             writer.WriteLine("// 此文件由 NutHeaderTools 自动生成 - 请勿手动修改");
             writer.WriteLine($"// 生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             writer.WriteLine($"// 源文件: {Path.GetFileName(headerInfo.FilePath)}");
             writer.WriteLine();
             writer.WriteLine("#pragma once");
             writer.WriteLine();
-            writer.WriteLine("// 包含反射系统头文件");
-            writer.WriteLine("#include \"NObjectReflection.h\"");
+            writer.WriteLine("#include <cstddef>  // for size_t");
             writer.WriteLine();
-            writer.WriteLine("namespace Nut");
+
+            // 检查是否需要包含反射系统头文件
+            bool needsReflectionInclude = headerInfo.Classes.Any(c => 
+                !IsTemplateClass(c.Name) && !IsAbstractClass(c.Name));
+
+            if (needsReflectionInclude)
+            {
+                writer.WriteLine("// 包含反射系统头文件");
+                writer.WriteLine("#include \"Reflection/NObjectReflection.h\"");
+                writer.WriteLine();
+            }
+
+            writer.WriteLine("namespace NLib");
             writer.WriteLine("{");
             writer.WriteLine();
 
@@ -273,7 +315,7 @@ namespace NutHeaderTools
                 GenerateClassReflection(writer, classInfo);
             }
 
-            writer.WriteLine("} // namespace Nut");
+            writer.WriteLine("} // namespace NLib");
             writer.WriteLine();
             writer.WriteLine("// NutHeaderTools 生成结束");
         }
@@ -315,10 +357,40 @@ namespace NutHeaderTools
                 writer.WriteLine();
             }
 
-            // 注册反射信息
-            writer.WriteLine($"// 注册 {classInfo.Name} 到反射系统");
-            writer.WriteLine($"REGISTER_NCLASS_REFLECTION({classInfo.Name});");
+            // 检查是否为模板类或抽象类
+            bool isTemplateClass = IsTemplateClass(classInfo.Name);
+            bool isAbstractClass = IsAbstractClass(classInfo.Name);
+
+            if (isTemplateClass)
+            {
+                writer.WriteLine($"// 注意：{classInfo.Name} 是模板类，不支持直接反射注册");
+                writer.WriteLine("// 模板类的反射需要在具体实例化时处理");
+            }
+            else if (isAbstractClass)
+            {
+                writer.WriteLine($"// 注意：{classInfo.Name} 是抽象类，反射注册代码已移至 {classInfo.Name}.cpp 文件中");
+            }
+            else
+            {
+                // 注册反射信息
+                writer.WriteLine($"// 注册 {classInfo.Name} 到反射系统");
+                writer.WriteLine($"REGISTER_NCLASS_REFLECTION({classInfo.Name});");
+            }
             writer.WriteLine();
+        }
+
+        private static bool IsTemplateClass(string className)
+        {
+            // 检查是否为已知的模板类
+            var templateClasses = new[] { "NArray", "NHashMap" };
+            return templateClasses.Contains(className);
+        }
+
+        private static bool IsAbstractClass(string className)
+        {
+            // 检查是否为已知的抽象类
+            var abstractClasses = new[] { "NContainer" };
+            return abstractClasses.Contains(className);
         }
     }
 
@@ -329,7 +401,7 @@ namespace NutHeaderTools
         public string FilePath { get; set; } = "";
         public string FileName { get; set; } = "";
         public List<ClassInfo> Classes { get; set; } = new();
-        
+
         public bool HasNClassMarkedClasses => Classes.Count > 0;
     }
 
