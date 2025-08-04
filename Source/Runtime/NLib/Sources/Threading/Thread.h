@@ -4,7 +4,6 @@
 #include "Core/Object.h"
 #include "Events/Delegate.h"
 #include "Logging/LogCategory.h"
-#include "Thread.generate.h"
 #include "Time/TimeTypes.h"
 
 #include <atomic>
@@ -12,6 +11,8 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+
+#include "Thread.generate.h"
 
 namespace NLib
 {

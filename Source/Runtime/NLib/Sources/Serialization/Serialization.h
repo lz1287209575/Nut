@@ -81,7 +81,7 @@ inline bool FromJson(T& Object, const TString& JsonString)
  */
 template <typename T>
 inline Result ToStream(const T& Object,
-                       TSharedPtr<CStream> Stream,
+                       TSharedPtr<NStream> Stream,
                        Format SerializationFormat = Format::Binary,
                        Flags SerializationFlags = Flags::None)
 {
@@ -115,7 +115,7 @@ inline Result ToStream(const T& Object,
  */
 template <typename T>
 inline Result FromStream(T& Object,
-                         TSharedPtr<CStream> Stream,
+                         TSharedPtr<NStream> Stream,
                          Format SerializationFormat = Format::Binary,
                          Flags SerializationFlags = Flags::None)
 {
@@ -146,7 +146,7 @@ inline Result FromStream(T& Object,
 /**
  * @brief 创建二进制序列化档案
  */
-inline TSharedPtr<BinaryArchive> CreateBinaryArchive(TSharedPtr<CStream> Stream,
+inline TSharedPtr<BinaryArchive> CreateBinaryArchive(TSharedPtr<NStream> Stream,
                                                      Mode SerializationMode,
                                                      Flags SerializationFlags = Flags::None)
 {
@@ -158,7 +158,7 @@ inline TSharedPtr<BinaryArchive> CreateBinaryArchive(TSharedPtr<CStream> Stream,
 /**
  * @brief 创建JSON序列化档案
  */
-inline TSharedPtr<JsonArchive> CreateJsonArchive(TSharedPtr<CStream> Stream,
+inline TSharedPtr<JsonArchive> CreateJsonArchive(TSharedPtr<NStream> Stream,
                                                  Mode SerializationMode,
                                                  bool bPrettyPrint = true)
 {

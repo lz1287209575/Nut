@@ -47,7 +47,7 @@ inline void ShutdownIOModule()
 	NLOG_IO(Info, "Shutting down IO module");
 
 	// 停止所有文件监控
-	CFileSystem::StopAllWatching();
+	NFileSystem::StopAllWatching();
 
 	NLOG_IO(Info, "IO module shutdown complete");
 }
@@ -71,9 +71,9 @@ inline bool IsIOModuleAvailable()
  * @param FilePath 文件路径
  * @return 文件内容，失败则返回空字符串
  */
-inline TString ReadTextFile(const CPath& FilePath)
+inline TString ReadTextFile(const NPath& FilePath)
 {
-	return CFileSystem::ReadAllText(FilePath);
+	return NFileSystem::ReadAllText(FilePath);
 }
 
 /**
@@ -84,9 +84,9 @@ inline TString ReadTextFile(const CPath& FilePath)
  * @param bOverwrite 是否覆盖现有文件
  * @return 是否成功
  */
-inline bool WriteTextFile(const CPath& FilePath, const TString& Content, bool bOverwrite = true)
+inline bool WriteTextFile(const NPath& FilePath, const TString& Content, bool bOverwrite = true)
 {
-	return CFileSystem::WriteAllText(FilePath, Content, bOverwrite).bSuccess;
+	return NFileSystem::WriteAllText(FilePath, Content, bOverwrite).bSuccess;
 }
 
 /**
@@ -96,9 +96,9 @@ inline bool WriteTextFile(const CPath& FilePath, const TString& Content, bool bO
  * @param Content 要追加的内容
  * @return 是否成功
  */
-inline bool AppendTextFile(const CPath& FilePath, const TString& Content)
+inline bool AppendTextFile(const NPath& FilePath, const TString& Content)
 {
-	return CFileSystem::AppendAllText(FilePath, Content).bSuccess;
+	return NFileSystem::AppendAllText(FilePath, Content).bSuccess;
 }
 
 /**
@@ -107,9 +107,9 @@ inline bool AppendTextFile(const CPath& FilePath, const TString& Content)
  * @param FilePath 文件路径
  * @return 文件数据，失败则返回空数组
  */
-inline TArray<uint8_t, CMemoryManager> ReadBinaryFile(const CPath& FilePath)
+inline TArray<uint8_t, CMemoryManager> ReadBinaryFile(const NPath& FilePath)
 {
-	return CFileSystem::ReadAllBytes(FilePath);
+	return NFileSystem::ReadAllBytes(FilePath);
 }
 
 /**
@@ -120,9 +120,9 @@ inline TArray<uint8_t, CMemoryManager> ReadBinaryFile(const CPath& FilePath)
  * @param bOverwrite 是否覆盖现有文件
  * @return 是否成功
  */
-inline bool WriteBinaryFile(const CPath& FilePath, const TArray<uint8_t, CMemoryManager>& Data, bool bOverwrite = true)
+inline bool WriteBinaryFile(const NPath& FilePath, const TArray<uint8_t, CMemoryManager>& Data, bool bOverwrite = true)
 {
-	return CFileSystem::WriteAllBytes(FilePath, Data, bOverwrite).bSuccess;
+	return NFileSystem::WriteAllBytes(FilePath, Data, bOverwrite).bSuccess;
 }
 
 // === 便捷路径操作函数 ===
@@ -133,32 +133,32 @@ inline bool WriteBinaryFile(const CPath& FilePath, const TArray<uint8_t, CMemory
  * @param AppName 应用程序名称
  * @return 应用程序数据目录路径
  */
-inline CPath GetAppDataDirectory(const TString& AppName)
+inline NPath GetAppDataDirectory(const TString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows: %APPDATA%/AppName
 	const char* AppData = std::getenv("APPDATA");
 	if (AppData)
 	{
-		return CPath(AppData) / AppName;
+		return NPath(AppData) / AppName;
 	}
 	else
 	{
-		return CPath::GetUserDirectory() / "AppData" / "Roaming" / AppName;
+		return NPath::GetUserDirectory() / "AppData" / "Roaming" / AppName;
 	}
 #elif defined(__APPLE__)
 	// macOS: ~/Library/Application Support/AppName
-	return CPath::GetUserDirectory() / "Library" / "Application Support" / AppName;
+	return NPath::GetUserDirectory() / "Library" / "Application Support" / AppName;
 #else
 	// Linux: ~/.local/share/AppName
 	const char* XdgDataHome = std::getenv("XDG_DATA_HOME");
 	if (XdgDataHome)
 	{
-		return CPath(XdgDataHome) / AppName;
+		return NPath(XdgDataHome) / AppName;
 	}
 	else
 	{
-		return CPath::GetUserDirectory() / ".local" / "share" / AppName;
+		return NPath::GetUserDirectory() / ".local" / "share" / AppName;
 	}
 #endif
 }
@@ -169,24 +169,24 @@ inline CPath GetAppDataDirectory(const TString& AppName)
  * @param AppName 应用程序名称
  * @return 应用程序配置目录路径
  */
-inline CPath GetAppConfigDirectory(const TString& AppName)
+inline NPath GetAppConfigDirectory(const TString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows使用AppData
 	return GetAppDataDirectory(AppName);
 #elif defined(__APPLE__)
 	// macOS: ~/Library/Preferences/AppName
-	return CPath::GetUserDirectory() / "Library" / "Preferences" / AppName;
+	return NPath::GetUserDirectory() / "Library" / "Preferences" / AppName;
 #else
 	// Linux: ~/.config/AppName
 	const char* XdgConfigHome = std::getenv("XDG_CONFIG_HOME");
 	if (XdgConfigHome)
 	{
-		return CPath(XdgConfigHome) / AppName;
+		return NPath(XdgConfigHome) / AppName;
 	}
 	else
 	{
-		return CPath::GetUserDirectory() / ".config" / AppName;
+		return NPath::GetUserDirectory() / ".config" / AppName;
 	}
 #endif
 }
@@ -197,32 +197,32 @@ inline CPath GetAppConfigDirectory(const TString& AppName)
  * @param AppName 应用程序名称
  * @return 应用程序缓存目录路径
  */
-inline CPath GetAppCacheDirectory(const TString& AppName)
+inline NPath GetAppCacheDirectory(const TString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows: %LOCALAPPDATA%/AppName/Cache
 	const char* LocalAppData = std::getenv("LOCALAPPDATA");
 	if (LocalAppData)
 	{
-		return CPath(LocalAppData) / AppName / "Cache";
+		return NPath(LocalAppData) / AppName / "Cache";
 	}
 	else
 	{
-		return CPath::GetUserDirectory() / "AppData" / "Local" / AppName / "Cache";
+		return NPath::GetUserDirectory() / "AppData" / "Local" / AppName / "Cache";
 	}
 #elif defined(__APPLE__)
 	// macOS: ~/Library/Caches/AppName
-	return CPath::GetUserDirectory() / "Library" / "Caches" / AppName;
+	return NPath::GetUserDirectory() / "Library" / "Caches" / AppName;
 #else
 	// Linux: ~/.cache/AppName
 	const char* XdgCacheHome = std::getenv("XDG_CACHE_HOME");
 	if (XdgCacheHome)
 	{
-		return CPath(XdgCacheHome) / AppName;
+		return NPath(XdgCacheHome) / AppName;
 	}
 	else
 	{
-		return CPath::GetUserDirectory() / ".cache" / AppName;
+		return NPath::GetUserDirectory() / ".cache" / AppName;
 	}
 #endif
 }
@@ -233,14 +233,14 @@ inline CPath GetAppCacheDirectory(const TString& AppName)
  * @param DirectoryPath 目录路径
  * @return 是否成功（目录存在或创建成功）
  */
-inline bool EnsureDirectoryExists(const CPath& DirectoryPath)
+inline bool EnsureDirectoryExists(const NPath& DirectoryPath)
 {
-	if (CFileSystem::IsDirectory(DirectoryPath))
+	if (NFileSystem::IsDirectory(DirectoryPath))
 	{
 		return true;
 	}
 
-	return CFileSystem::CreateDirectory(DirectoryPath, true).bSuccess;
+	return NFileSystem::CreateDirectory(DirectoryPath, true).bSuccess;
 }
 
 /**
@@ -249,18 +249,18 @@ inline bool EnsureDirectoryExists(const CPath& DirectoryPath)
  * @param FilePath 文件路径
  * @return 是否成功
  */
-inline bool SafeDeleteFile(const CPath& FilePath)
+inline bool SafeDeleteFile(const NPath& FilePath)
 {
-	if (!CFileSystem::Exists(FilePath))
+	if (!NFileSystem::Exists(FilePath))
 	{
 		return true; // 文件不存在，认为删除成功
 	}
 
 	// 生成备份文件名
-	CPath BackupPath = FilePath.WithExtension(FilePath.GetExtension() + ".deleted");
+	NPath BackupPath = FilePath.WithExtension(FilePath.GetExtension() + ".deleted");
 
 	// 先移动到备份位置
-	auto MoveResult = CFileSystem::Move(FilePath, BackupPath);
+	auto MoveResult = NFileSystem::Move(FilePath, BackupPath);
 	if (MoveResult.bSuccess)
 	{
 		// 可以考虑延迟删除或移动到回收站
@@ -269,7 +269,7 @@ inline bool SafeDeleteFile(const CPath& FilePath)
 	}
 
 	// 如果移动失败，直接删除
-	return CFileSystem::DeleteFile(FilePath).bSuccess;
+	return NFileSystem::DeleteFile(FilePath).bSuccess;
 }
 
 /**
@@ -280,7 +280,7 @@ inline bool SafeDeleteFile(const CPath& FilePath)
  * @param bOverwrite 是否覆盖现有文件
  * @return 是否成功
  */
-inline bool CopyDirectoryTree(const CPath& SourceDir, const CPath& DestDir, bool bOverwrite = false)
+inline bool CopyDirectoryTree(const NPath& SourceDir, const NPath& DestDir, bool bOverwrite = false)
 {
 	EFileCopyOptions Options = EFileCopyOptions::Recursive;
 	if (bOverwrite)
@@ -294,7 +294,7 @@ inline bool CopyDirectoryTree(const CPath& SourceDir, const CPath& DestDir, bool
 		                                        static_cast<uint32_t>(EFileCopyOptions::SkipExisting));
 	}
 
-	return CFileSystem::CopyDirectory(SourceDir, DestDir, Options).bSuccess;
+	return NFileSystem::CopyDirectory(SourceDir, DestDir, Options).bSuccess;
 }
 
 // === 便捷流操作函数 ===
@@ -308,15 +308,15 @@ inline bool CopyDirectoryTree(const CPath& SourceDir, const CPath& DestDir, bool
  * @param BufferSize 缓冲区大小
  * @return 缓冲流指针
  */
-inline TSharedPtr<CBufferedStream> CreateBufferedFileStream(const CPath& FilePath,
+inline TSharedPtr<CBufferedStream> CreateBufferedFileStream(const NPath& FilePath,
                                                             EStreamAccess Access = EStreamAccess::ReadWrite,
                                                             EStreamMode Mode = EStreamMode::OpenOrCreate,
                                                             int32_t BufferSize = 8192)
 {
-	auto FileStream = CStreamFactory::CreateFileStream(FilePath, Access, Mode);
+	auto FileStream = NStreamFactory::CreateFileStream(FilePath, Access, Mode);
 	if (FileStream)
 	{
-		return CStreamFactory::CreateBufferedStream(FileStream, BufferSize);
+		return NStreamFactory::CreateBufferedStream(FileStream, BufferSize);
 	}
 	return nullptr;
 }
@@ -327,11 +327,11 @@ inline TSharedPtr<CBufferedStream> CreateBufferedFileStream(const CPath& FilePat
  * @param Text 文本内容
  * @return 内存流指针
  */
-inline TSharedPtr<CMemoryStream> CreateMemoryStreamFromText(const TString& Text)
+inline TSharedPtr<NMemoryStream> CreateMemoryStreamFromText(const TString& Text)
 {
 	TArray<uint8_t, CMemoryManager> Data(Text.Length());
 	memcpy(Data.GetData(), Text.GetData(), Text.Length());
-	return CStreamFactory::CreateMemoryStreamFromData(Data);
+	return NStreamFactory::CreateMemoryStreamFromData(Data);
 }
 
 /**
@@ -340,7 +340,7 @@ inline TSharedPtr<CMemoryStream> CreateMemoryStreamFromText(const TString& Text)
  * @param Stream 内存流
  * @return 文本内容
  */
-inline TString ReadTextFromMemoryStream(TSharedPtr<CMemoryStream> Stream)
+inline TString ReadTextFromMemoryStream(TSharedPtr<NMemoryStream> Stream)
 {
 	if (!Stream)
 	{
@@ -362,7 +362,7 @@ inline TString ReadTextFromMemoryStream(TSharedPtr<CMemoryStream> Stream)
  * @param bIncludeDirectories 是否包含目录
  * @return 匹配的文件路径列表
  */
-inline TArray<CPath, CMemoryManager> SearchFiles(const CPath& Directory,
+inline TArray<NPath, CMemoryManager> SearchFiles(const NPath& Directory,
                                                  const TString& Pattern = TString("*"),
                                                  bool bRecursive = false,
                                                  bool bIncludeDirectories = false)
@@ -374,7 +374,7 @@ inline TArray<CPath, CMemoryManager> SearchFiles(const CPath& Directory,
 	Options.Pattern = Pattern;
 	Options.bIncludeHidden = false;
 
-	return CFileSystem::ListDirectory(Directory, Options);
+	return NFileSystem::ListDirectory(Directory, Options);
 }
 
 /**
@@ -385,16 +385,16 @@ inline TArray<CPath, CMemoryManager> SearchFiles(const CPath& Directory,
  * @param bRecursive 是否递归搜索
  * @return 最新文件路径，如果没有找到返回空路径
  */
-inline CPath FindNewestFile(const CPath& Directory, const TString& Pattern = TString("*"), bool bRecursive = false)
+inline NPath FindNewestFile(const NPath& Directory, const TString& Pattern = TString("*"), bool bRecursive = false)
 {
 	auto Files = SearchFiles(Directory, Pattern, bRecursive, false);
 
-	CPath NewestFile;
+	NPath NewestFile;
 	CDateTime NewestTime;
 
 	for (const auto& File : Files)
 	{
-		auto LastWriteTime = CFileSystem::GetLastWriteTime(File);
+		auto LastWriteTime = NFileSystem::GetLastWriteTime(File);
 		if (NewestFile.IsEmpty() || LastWriteTime > NewestTime)
 		{
 			NewestFile = File;
@@ -414,13 +414,13 @@ inline CPath FindNewestFile(const CPath& Directory, const TString& Pattern = TSt
  * @param Extension 文件扩展名
  * @return 临时文件流
  */
-inline TSharedPtr<CFileStream> CreateTempFileStream(const TString& Prefix = TString("temp"),
+inline TSharedPtr<NFileStream> CreateTempFileStream(const TString& Prefix = TString("temp"),
                                                     const TString& Extension = TString(".tmp"))
 {
-	CPath TempFile = CFileSystem::CreateTempFile(Prefix, Extension);
+	NPath TempFile = NFileSystem::CreateTempFile(Prefix, Extension);
 	if (!TempFile.IsEmpty())
 	{
-		return CStreamFactory::CreateFileStream(TempFile, EStreamAccess::ReadWrite, EStreamMode::Create);
+		return NStreamFactory::CreateFileStream(TempFile, EStreamAccess::ReadWrite, EStreamMode::Create);
 	}
 	return nullptr;
 }
@@ -433,7 +433,7 @@ class CTempDirectoryManager
 public:
 	explicit CTempDirectoryManager(const TString& Prefix = TString("temp"))
 	{
-		TempDir = CFileSystem::CreateTempDirectory(Prefix);
+		TempDir = NFileSystem::CreateTempDirectory(Prefix);
 		if (!TempDir.IsEmpty())
 		{
 			NLOG_IO(Debug, "Created temporary directory: {}", TempDir.GetData());
@@ -442,9 +442,9 @@ public:
 
 	~CTempDirectoryManager()
 	{
-		if (!TempDir.IsEmpty() && CFileSystem::Exists(TempDir))
+		if (!TempDir.IsEmpty() && NFileSystem::Exists(TempDir))
 		{
-			auto Result = CFileSystem::DeleteDirectory(TempDir, true);
+			auto Result = NFileSystem::DeleteDirectory(TempDir, true);
 			if (Result.bSuccess)
 			{
 				NLOG_IO(Debug, "Cleaned up temporary directory: {}", TempDir.GetData());
@@ -456,7 +456,7 @@ public:
 		}
 	}
 
-	const CPath& GetPath() const
+	const NPath& GetPath() const
 	{
 		return TempDir;
 	}
@@ -487,20 +487,20 @@ public:
 	}
 
 private:
-	CPath TempDir;
+	NPath TempDir;
 };
 
 // === 模块导出 ===
 
 // 主要类的类型别名
-using FIO = CFileSystem;
-using FPath = CPath;
-using FFileSystem = CFileSystem;
-using FStream = CStream;
-using FFileStream = CFileStream;
-using FMemoryStream = CMemoryStream;
+using FIO = NFileSystem;
+using FPath = NPath;
+using FFileSystem = NFileSystem;
+using FStream = NStream;
+using FFileStream = NFileStream;
+using FMemoryStream = NMemoryStream;
 using FBufferedStream = CBufferedStream;
-using FStreamFactory = CStreamFactory;
+using FStreamFactory = NStreamFactory;
 using FTempDirectoryManager = CTempDirectoryManager;
 
 // 枚举类型别名
@@ -527,7 +527,7 @@ using FDirectoryIterationOptions = SDirectoryIterationOptions;
  * NLib::InitializeIOModule();
  *
  * // 2. 基础文件操作
- * NLib::CPath ConfigFile = NLib::GetAppConfigDirectory("MyApp") / "config.json";
+ * NLib::NPath ConfigFile = NLib::GetAppConfigDirectory("MyApp") / "config.json";
  * NLib::EnsureDirectoryExists(ConfigFile.GetDirectoryName());
  *
  * TString Config = "{ \"setting\": \"value\" }";
@@ -551,15 +551,15 @@ using FDirectoryIterationOptions = SDirectoryIterationOptions;
  * {
  *     NLib::CTempDirectoryManager TempMgr("myapp");
  *     if (TempMgr.IsValid()) {
- *         NLib::CPath TempFile = TempMgr.GetPath() / "data.tmp";
+ *         NLib::NPath TempFile = TempMgr.GetPath() / "data.tmp";
  *         // 使用临时文件...
  *     }
  *     // 析构时自动清理
  * }
  *
  * // 6. 文件监控
- * NLib::CFileSystem::StartWatchingDirectory("config", true);
- * NLib::CFileSystem::OnFileWatchEvent.BindLambda([](const auto& Event) {
+ * NLib::NFileSystem::StartWatchingDirectory("config", true);
+ * NLib::NFileSystem::OnFileWatchEvent.BindLambda([](const auto& Event) {
  *     NLOG_IO(Info, "File changed: {}", Event.FilePath.GetData());
  * });
  *

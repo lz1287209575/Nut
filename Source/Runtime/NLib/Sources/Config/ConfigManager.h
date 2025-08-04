@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ConfigManager.generate.h"
 #include "ConfigValue.h"
 #include "Containers/TArray.h"
 #include "Containers/THashMap.h"
@@ -15,6 +14,8 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+
+#include "ConfigManager.generate.h"
 
 namespace NLib
 {

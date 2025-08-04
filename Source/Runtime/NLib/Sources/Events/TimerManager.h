@@ -34,7 +34,7 @@ enum class ETimerManagerState : uint8_t
  */
 struct SManagedTimer
 {
-	TSharedPtr<CTimer> Timer;                   // 定时器对象
+	TSharedPtr<NTimer> Timer;                   // 定时器对象
 	FTimerHandle Handle = INVALID_TIMER_HANDLE; // 定时器句柄
 	CString DebugName;                          // 调试名称
 	bool bIsPendingKill = false;                // 是否待删除
@@ -42,7 +42,7 @@ struct SManagedTimer
 
 	SManagedTimer() = default;
 
-	SManagedTimer(TSharedPtr<CTimer> InTimer, FTimerHandle InHandle, const char* InDebugName = "")
+	SManagedTimer(TSharedPtr<NTimer> InTimer, FTimerHandle InHandle, const char* InDebugName = "")
 	    : Timer(InTimer),
 	      Handle(InHandle),
 	      DebugName(InDebugName ? InDebugName : ""),
@@ -642,7 +642,7 @@ private:
 
 		// 创建定时器
 		CTimespan Duration = CTimespan::FromSeconds(static_cast<double>(Delay));
-		auto Timer = MakeShared<CTimer>(Duration, nullptr, bLooping);
+		auto Timer = MakeShared<NTimer>(Duration, nullptr, bLooping);
 
 		// 设置回调
 		Timer->SetCallback([Delegate = std::move(Delegate)]() mutable { Delegate.ExecuteIfBound(); });

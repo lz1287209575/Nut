@@ -7,13 +7,14 @@
 #include "Logging/LogCategory.h"
 #include "Task.h"
 #include "Thread.h"
-#include "ThreadPool.generate.h"
 #include "Time/TimeTypes.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+
+#include "ThreadPool.generate.h"
 
 namespace NLib
 {
@@ -628,7 +629,7 @@ private:
 
 		uint32_t WorkerId = WorkerThreads.Size();
 		auto Worker = MakeShared<CWorkerThread>(this, WorkerId);
-		auto Thread = MakeShared<CThread>("ThreadPoolWorker");
+		auto Thread = MakeShared<NThread>("ThreadPoolWorker");
 
 		if (!Thread->Start(Worker, Config.DefaultPriority))
 		{
@@ -769,7 +770,7 @@ private:
 	std::atomic<uint64_t> NextTaskId;    // 下一个任务ID
 
 	// 线程管理
-	TArray<TSharedPtr<CThread>, CMemoryManager> WorkerThreads; // 工作线程数组
+	TArray<TSharedPtr<NThread>, CMemoryManager> WorkerThreads; // 工作线程数组
 	mutable std::mutex ThreadsMutex;                           // 线程互斥锁
 
 	// 任务队列

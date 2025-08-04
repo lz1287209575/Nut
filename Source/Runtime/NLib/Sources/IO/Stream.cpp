@@ -8,26 +8,26 @@
 
 namespace NLib
 {
-// === CFileStream 实现 ===
+// === NFileStream 实现 ===
 
-CFileStream::CFileStream()
+NFileStream::NFileStream()
     : bIsOpen(false),
       Access(EStreamAccess::ReadWrite)
 {}
 
-CFileStream::CFileStream(const CPath& InFilePath, EStreamAccess InAccess, EStreamMode Mode)
+NFileStream::NFileStream(const NPath& InFilePath, EStreamAccess InAccess, EStreamMode Mode)
     : bIsOpen(false),
       Access(InAccess)
 {
 	Open(InFilePath, InAccess, Mode);
 }
 
-CFileStream::~CFileStream()
+NFileStream::~NFileStream()
 {
 	Close();
 }
 
-bool CFileStream::Open(const CPath& InFilePath, EStreamAccess InAccess, EStreamMode Mode)
+bool NFileStream::Open(const NPath& InFilePath, EStreamAccess InAccess, EStreamMode Mode)
 {
 	Close(); // 关闭现有的文件
 
@@ -36,9 +36,9 @@ bool CFileStream::Open(const CPath& InFilePath, EStreamAccess InAccess, EStreamM
 
 	// 确保父目录存在
 	auto ParentDir = FilePath.GetDirectoryName();
-	if (!ParentDir.IsEmpty() && !CFileSystem::Exists(ParentDir))
+	if (!ParentDir.IsEmpty() && !NFileSystem::Exists(ParentDir))
 	{
-		auto Result = CFileSystem::CreateDirectory(ParentDir, true);
+		auto Result = NFileSystem::CreateDirectory(ParentDir, true);
 		if (!Result.bSuccess)
 		{
 			NLOG_IO(Error, "Failed to create parent directory for file: {}", FilePath.GetData());
@@ -66,14 +66,14 @@ bool CFileStream::Open(const CPath& InFilePath, EStreamAccess InAccess, EStreamM
 		OpenMode |= std::ios_base::trunc;
 		break;
 	case EStreamMode::CreateNew:
-		if (CFileSystem::Exists(FilePath))
+		if (NFileSystem::Exists(FilePath))
 		{
 			NLOG_IO(Error, "File already exists: {}", FilePath.GetData());
 			return false;
 		}
 		break;
 	case EStreamMode::Open:
-		if (!CFileSystem::Exists(FilePath))
+		if (!NFileSystem::Exists(FilePath))
 		{
 			NLOG_IO(Error, "File does not exist: {}", FilePath.GetData());
 			return false;
@@ -84,7 +84,7 @@ bool CFileStream::Open(const CPath& InFilePath, EStreamAccess InAccess, EStreamM
 		break;
 	case EStreamMode::Truncate:
 		OpenMode |= std::ios_base::trunc;
-		if (!CFileSystem::Exists(FilePath))
+		if (!NFileSystem::Exists(FilePath))
 		{
 			NLOG_IO(Error, "File does not exist for truncation: {}", FilePath.GetData());
 			return false;
@@ -119,7 +119,7 @@ bool CFileStream::Open(const CPath& InFilePath, EStreamAccess InAccess, EStreamM
 	}
 }
 
-void CFileStream::Close()
+void NFileStream::Close()
 {
 	if (FileHandle && bIsOpen)
 	{
@@ -138,32 +138,32 @@ void CFileStream::Close()
 	}
 }
 
-bool CFileStream::CanRead() const
+bool NFileStream::CanRead() const
 {
 	return bIsOpen && (static_cast<uint8_t>(Access) & static_cast<uint8_t>(EStreamAccess::Read)) != 0;
 }
 
-bool CFileStream::CanWrite() const
+bool NFileStream::CanWrite() const
 {
 	return bIsOpen && (static_cast<uint8_t>(Access) & static_cast<uint8_t>(EStreamAccess::Write)) != 0;
 }
 
-bool CFileStream::CanSeek() const
+bool NFileStream::CanSeek() const
 {
 	return bIsOpen;
 }
 
-bool CFileStream::IsClosed() const
+bool NFileStream::IsClosed() const
 {
 	return !bIsOpen || !FileHandle || !FileHandle->is_open();
 }
 
-bool CFileStream::IsEOF() const
+bool NFileStream::IsEOF() const
 {
 	return !bIsOpen || !FileHandle || FileHandle->eof();
 }
 
-int64_t CFileStream::GetLength() const
+int64_t NFileStream::GetLength() const
 {
 	if (!bIsOpen || !FileHandle)
 	{
@@ -190,7 +190,7 @@ int64_t CFileStream::GetLength() const
 	}
 }
 
-int64_t CFileStream::GetPosition() const
+int64_t NFileStream::GetPosition() const
 {
 	if (!bIsOpen || !FileHandle)
 	{
@@ -207,7 +207,7 @@ int64_t CFileStream::GetPosition() const
 	}
 }
 
-bool CFileStream::SetPosition(int64_t Position)
+bool NFileStream::SetPosition(int64_t Position)
 {
 	if (!bIsOpen || !FileHandle)
 	{
@@ -226,7 +226,7 @@ bool CFileStream::SetPosition(int64_t Position)
 	}
 }
 
-SStreamResult CFileStream::Read(uint8_t* Buffer, int32_t Size)
+SStreamResult NFileStream::Read(uint8_t* Buffer, int32_t Size)
 {
 	if (!CanRead() || !Buffer || Size <= 0)
 	{
@@ -248,7 +248,7 @@ SStreamResult CFileStream::Read(uint8_t* Buffer, int32_t Size)
 	}
 }
 
-SStreamResult CFileStream::Write(const uint8_t* Buffer, int32_t Size)
+SStreamResult NFileStream::Write(const uint8_t* Buffer, int32_t Size)
 {
 	if (!CanWrite() || !Buffer || Size <= 0)
 	{
@@ -275,7 +275,7 @@ SStreamResult CFileStream::Write(const uint8_t* Buffer, int32_t Size)
 	}
 }
 
-int64_t CFileStream::Seek(int64_t Offset, ESeekOrigin Origin)
+int64_t NFileStream::Seek(int64_t Offset, ESeekOrigin Origin)
 {
 	if (!CanSeek())
 	{
@@ -318,7 +318,7 @@ int64_t CFileStream::Seek(int64_t Offset, ESeekOrigin Origin)
 	}
 }
 
-bool CFileStream::Flush()
+bool NFileStream::Flush()
 {
 	if (!bIsOpen || !FileHandle)
 	{
@@ -336,7 +336,7 @@ bool CFileStream::Flush()
 	}
 }
 
-bool CFileStream::SetLength(int64_t Length)
+bool NFileStream::SetLength(int64_t Length)
 {
 	if (!CanWrite())
 	{
@@ -371,7 +371,7 @@ bool CFileStream::SetLength(int64_t Length)
 	return false;
 }
 
-bool CFileStream::Lock(int64_t Position, int64_t Length, bool bExclusive)
+bool NFileStream::Lock(int64_t Position, int64_t Length, bool bExclusive)
 {
 	// 文件锁的实现需要平台特定的代码
 	// 这里提供基础框架
@@ -379,20 +379,20 @@ bool CFileStream::Lock(int64_t Position, int64_t Length, bool bExclusive)
 	return false;
 }
 
-bool CFileStream::Unlock(int64_t Position, int64_t Length)
+bool NFileStream::Unlock(int64_t Position, int64_t Length)
 {
 	// 文件解锁的实现需要平台特定的代码
 	NLOG_IO(Warning, "File unlocking not fully implemented yet");
 	return false;
 }
 
-// === CMemoryStream 实现 ===
+// === NMemoryStream 实现 ===
 
-CMemoryStream::CMemoryStream()
+NMemoryStream::NMemoryStream()
     : Position(0)
 {}
 
-CMemoryStream::CMemoryStream(int32_t InitialCapacity)
+NMemoryStream::NMemoryStream(int32_t InitialCapacity)
     : Position(0)
 {
 	if (InitialCapacity > 0)
@@ -401,12 +401,12 @@ CMemoryStream::CMemoryStream(int32_t InitialCapacity)
 	}
 }
 
-CMemoryStream::CMemoryStream(const TArray<uint8_t, CMemoryManager>& Data)
+NMemoryStream::NMemoryStream(const TArray<uint8_t, CMemoryManager>& Data)
     : Buffer(Data),
       Position(0)
 {}
 
-CMemoryStream::CMemoryStream(const uint8_t* Data, int32_t Size)
+NMemoryStream::NMemoryStream(const uint8_t* Data, int32_t Size)
     : Position(0)
 {
 	if (Data && Size > 0)
@@ -416,7 +416,7 @@ CMemoryStream::CMemoryStream(const uint8_t* Data, int32_t Size)
 	}
 }
 
-bool CMemoryStream::SetPosition(int64_t InPosition)
+bool NMemoryStream::SetPosition(int64_t InPosition)
 {
 	if (InPosition < 0)
 	{
@@ -427,7 +427,7 @@ bool CMemoryStream::SetPosition(int64_t InPosition)
 	return true;
 }
 
-SStreamResult CMemoryStream::Read(uint8_t* OutBuffer, int32_t Size)
+SStreamResult NMemoryStream::Read(uint8_t* OutBuffer, int32_t Size)
 {
 	if (!OutBuffer || Size <= 0)
 	{
@@ -451,7 +451,7 @@ SStreamResult CMemoryStream::Read(uint8_t* OutBuffer, int32_t Size)
 	return SStreamResult(true, BytesToRead);
 }
 
-SStreamResult CMemoryStream::Write(const uint8_t* InBuffer, int32_t Size)
+SStreamResult NMemoryStream::Write(const uint8_t* InBuffer, int32_t Size)
 {
 	if (!InBuffer || Size <= 0)
 	{
@@ -472,7 +472,7 @@ SStreamResult CMemoryStream::Write(const uint8_t* InBuffer, int32_t Size)
 	return SStreamResult(true, Size);
 }
 
-int64_t CMemoryStream::Seek(int64_t Offset, ESeekOrigin Origin)
+int64_t NMemoryStream::Seek(int64_t Offset, ESeekOrigin Origin)
 {
 	int64_t NewPosition;
 
@@ -500,7 +500,7 @@ int64_t CMemoryStream::Seek(int64_t Offset, ESeekOrigin Origin)
 	return Position;
 }
 
-void CMemoryStream::SetCapacity(int32_t Capacity)
+void NMemoryStream::SetCapacity(int32_t Capacity)
 {
 	if (Capacity >= Buffer.Size())
 	{
@@ -508,20 +508,20 @@ void CMemoryStream::SetCapacity(int32_t Capacity)
 	}
 }
 
-void CMemoryStream::Clear()
+void NMemoryStream::Clear()
 {
 	Buffer.Clear();
 	Position = 0;
 }
 
-TArray<uint8_t, CMemoryManager> CMemoryStream::ToArray() const
+TArray<uint8_t, CMemoryManager> NMemoryStream::ToArray() const
 {
 	return Buffer;
 }
 
 // === CBufferedStream 实现 ===
 
-CBufferedStream::CBufferedStream(TSharedPtr<CStream> InInnerStream, int32_t InBufferSize)
+CBufferedStream::CBufferedStream(TSharedPtr<NStream> InInnerStream, int32_t InBufferSize)
     : InnerStream(InInnerStream),
       BufferSize(InBufferSize),
       ReadBufferPos(0),
@@ -749,11 +749,11 @@ void CBufferedStream::InvalidateBuffer()
 	bBufferDirty = false;
 }
 
-// === CStreamFactory 实现 ===
+// === NStreamFactory 实现 ===
 
-TSharedPtr<CFileStream> CStreamFactory::CreateFileStream(const CPath& FilePath, EStreamAccess Access, EStreamMode Mode)
+TSharedPtr<NFileStream> NStreamFactory::CreateFileStream(const NPath& FilePath, EStreamAccess Access, EStreamMode Mode)
 {
-	auto Stream = MakeShared<CFileStream>();
+	auto Stream = MakeShared<NFileStream>();
 	if (Stream->Open(FilePath, Access, Mode))
 	{
 		return Stream;
@@ -761,17 +761,17 @@ TSharedPtr<CFileStream> CStreamFactory::CreateFileStream(const CPath& FilePath, 
 	return nullptr;
 }
 
-TSharedPtr<CMemoryStream> CStreamFactory::CreateMemoryStream(int32_t InitialCapacity)
+TSharedPtr<NMemoryStream> NStreamFactory::CreateMemoryStream(int32_t InitialCapacity)
 {
-	return MakeShared<CMemoryStream>(InitialCapacity);
+	return MakeShared<NMemoryStream>(InitialCapacity);
 }
 
-TSharedPtr<CMemoryStream> CStreamFactory::CreateMemoryStreamFromData(const TArray<uint8_t, CMemoryManager>& Data)
+TSharedPtr<NMemoryStream> NStreamFactory::CreateMemoryStreamFromData(const TArray<uint8_t, CMemoryManager>& Data)
 {
-	return MakeShared<CMemoryStream>(Data);
+	return MakeShared<NMemoryStream>(Data);
 }
 
-TSharedPtr<CBufferedStream> CStreamFactory::CreateBufferedStream(TSharedPtr<CStream> InnerStream, int32_t BufferSize)
+TSharedPtr<CBufferedStream> NStreamFactory::CreateBufferedStream(TSharedPtr<NStream> InnerStream, int32_t BufferSize)
 {
 	if (!InnerStream)
 	{
@@ -781,18 +781,18 @@ TSharedPtr<CBufferedStream> CStreamFactory::CreateBufferedStream(TSharedPtr<CStr
 	return MakeShared<CBufferedStream>(InnerStream, BufferSize);
 }
 
-TSharedPtr<CFileStream> CStreamFactory::OpenReadOnly(const CPath& FilePath)
+TSharedPtr<NFileStream> NStreamFactory::OpenReadOnly(const NPath& FilePath)
 {
 	return CreateFileStream(FilePath, EStreamAccess::Read, EStreamMode::Open);
 }
 
-TSharedPtr<CFileStream> CStreamFactory::CreateWriteOnly(const CPath& FilePath, bool bOverwrite)
+TSharedPtr<NFileStream> NStreamFactory::CreateWriteOnly(const NPath& FilePath, bool bOverwrite)
 {
 	EStreamMode Mode = bOverwrite ? EStreamMode::Create : EStreamMode::CreateNew;
 	return CreateFileStream(FilePath, EStreamAccess::Write, Mode);
 }
 
-TSharedPtr<CFileStream> CStreamFactory::OpenAppend(const CPath& FilePath)
+TSharedPtr<NFileStream> NStreamFactory::OpenAppend(const NPath& FilePath)
 {
 	return CreateFileStream(FilePath, EStreamAccess::Write, EStreamMode::Append);
 }

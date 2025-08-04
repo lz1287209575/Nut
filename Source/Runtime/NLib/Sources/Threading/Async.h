@@ -31,7 +31,7 @@ struct SAsyncConfig
 	EAsyncPolicy Policy = EAsyncPolicy::ThreadPool;     // 执行策略
 	EThreadPriority Priority = EThreadPriority::Normal; // 线程优先级
 	TString TaskName = TString("AsyncTask");            // 任务名称
-	TSharedPtr<CThreadPool> CustomThreadPool = nullptr; // 自定义线程池
+	TSharedPtr<NThreadPool> CustomThreadPool = nullptr; // 自定义线程池
 
 	SAsyncConfig() = default;
 
@@ -348,7 +348,7 @@ public:
 	/**
 	 * @brief 设置默认线程池
 	 */
-	static void SetDefaultThreadPool(TSharedPtr<CThreadPool> ThreadPool)
+	static void SetDefaultThreadPool(TSharedPtr<NThreadPool> ThreadPool)
 	{
 		std::lock_guard<std::mutex> Lock(DefaultPoolMutex);
 		DefaultThreadPool = ThreadPool;
@@ -358,7 +358,7 @@ public:
 	/**
 	 * @brief 获取默认线程池
 	 */
-	static TSharedPtr<CThreadPool> GetDefaultThreadPool()
+	static TSharedPtr<NThreadPool> GetDefaultThreadPool()
 	{
 		std::lock_guard<std::mutex> Lock(DefaultPoolMutex);
 
@@ -495,12 +495,12 @@ private:
 private:
 	// === 静态成员变量 ===
 
-	static TSharedPtr<CThreadPool> DefaultThreadPool;
+	static TSharedPtr<NThreadPool> DefaultThreadPool;
 	static std::mutex DefaultPoolMutex;
 };
 
 // 静态成员初始化
-inline TSharedPtr<CThreadPool> CAsync::DefaultThreadPool = nullptr;
+inline TSharedPtr<NThreadPool> CAsync::DefaultThreadPool = nullptr;
 inline std::mutex CAsync::DefaultPoolMutex;
 
 // === 便捷函数 ===

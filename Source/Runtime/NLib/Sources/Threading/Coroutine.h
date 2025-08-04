@@ -4,7 +4,6 @@
 #include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
-#include "Coroutine.generate.h"
 #include "Events/Delegate.h"
 #include "Logging/LogCategory.h"
 #include "Time/TimeTypes.h"
@@ -13,6 +12,8 @@
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
+
+#include "Coroutine.generate.h"
 
 namespace NLib
 {

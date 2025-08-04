@@ -5,9 +5,10 @@
 #include "Core/SmartPointers.h"
 #include "Logging/LogCategory.h"
 #include "Path.h"
-#include "Stream.generate.h"
 
 #include <memory>
+
+#include "Stream.generate.h"
 
 namespace NLib
 {
@@ -271,18 +272,18 @@ public:
  *
  * 提供文件的流式读写访问
  */
-class CFileStream : public NStream
+class NFileStream : public NStream
 {
 	GENERATED_BODY()
 
 public:
 	// === 构造函数 ===
 
-	CFileStream();
-	explicit CFileStream(const CPath& FilePath,
+	NFileStream();
+	explicit NFileStream(const NPath& FilePath,
 	                     EStreamAccess Access = EStreamAccess::ReadWrite,
 	                     EStreamMode Mode = EStreamMode::OpenOrCreate);
-	~CFileStream() override;
+	~NFileStream() override;
 
 public:
 	// === 打开和关闭 ===
@@ -290,7 +291,7 @@ public:
 	/**
 	 * @brief 打开文件
 	 */
-	bool Open(const CPath& FilePath,
+	bool Open(const NPath& FilePath,
 	          EStreamAccess Access = EStreamAccess::ReadWrite,
 	          EStreamMode Mode = EStreamMode::OpenOrCreate);
 
@@ -323,7 +324,7 @@ public:
 	/**
 	 * @brief 获取文件路径
 	 */
-	const CPath& GetFilePath() const
+	const NPath& GetFilePath() const
 	{
 		return FilePath;
 	}
@@ -344,7 +345,7 @@ public:
 	bool Unlock(int64_t Position, int64_t Length);
 
 private:
-	CPath FilePath;
+	NPath FilePath;
 	EStreamAccess Access;
 	std::unique_ptr<std::fstream> FileHandle;
 	bool bIsOpen;
@@ -355,18 +356,18 @@ private:
  *
  * 在内存中提供流式访问
  */
-class CMemoryStream : public NStream
+class NMemoryStream : public NStream
 {
 	GENERATED_BODY()
 
 public:
 	// === 构造函数 ===
 
-	CMemoryStream();
-	explicit CMemoryStream(int32_t InitialCapacity);
-	explicit CMemoryStream(const TArray<uint8_t, CMemoryManager>& Data);
-	explicit CMemoryStream(const uint8_t* Data, int32_t Size);
-	~CMemoryStream() override = default;
+	NMemoryStream();
+	explicit NMemoryStream(int32_t InitialCapacity);
+	explicit NMemoryStream(const TArray<uint8_t, CMemoryManager>& Data);
+	explicit NMemoryStream(const uint8_t* Data, int32_t Size);
+	~NMemoryStream() override = default;
 
 public:
 	// === NStream接口实现 ===
@@ -548,19 +549,19 @@ public:
 	/**
 	 * @brief 创建文件流
 	 */
-	static TSharedPtr<CFileStream> CreateFileStream(const CPath& FilePath,
+	static TSharedPtr<NFileStream> CreateFileStream(const NPath& FilePath,
 	                                                EStreamAccess Access = EStreamAccess::ReadWrite,
 	                                                EStreamMode Mode = EStreamMode::OpenOrCreate);
 
 	/**
 	 * @brief 创建内存流
 	 */
-	static TSharedPtr<CMemoryStream> CreateMemoryStream(int32_t InitialCapacity = 0);
+	static TSharedPtr<NMemoryStream> CreateMemoryStream(int32_t InitialCapacity = 0);
 
 	/**
 	 * @brief 从数据创建内存流
 	 */
-	static TSharedPtr<CMemoryStream> CreateMemoryStreamFromData(const TArray<uint8_t, CMemoryManager>& Data);
+	static TSharedPtr<NMemoryStream> CreateMemoryStreamFromData(const TArray<uint8_t, CMemoryManager>& Data);
 
 	/**
 	 * @brief 创建缓冲流
@@ -570,17 +571,17 @@ public:
 	/**
 	 * @brief 创建只读文件流
 	 */
-	static TSharedPtr<CFileStream> OpenReadOnly(const CPath& FilePath);
+	static TSharedPtr<NFileStream> OpenReadOnly(const NPath& FilePath);
 
 	/**
 	 * @brief 创建只写文件流
 	 */
-	static TSharedPtr<CFileStream> CreateWriteOnly(const CPath& FilePath, bool bOverwrite = true);
+	static TSharedPtr<NFileStream> CreateWriteOnly(const NPath& FilePath, bool bOverwrite = true);
 
 	/**
 	 * @brief 创建追加文件流
 	 */
-	static TSharedPtr<CFileStream> OpenAppend(const CPath& FilePath);
+	static TSharedPtr<NFileStream> OpenAppend(const NPath& FilePath);
 };
 
 // === 便捷函数 ===
@@ -588,7 +589,7 @@ public:
 /**
  * @brief 从文件读取所有数据
  */
-inline TArray<uint8_t, CMemoryManager> ReadFileToArray(const CPath& FilePath)
+inline TArray<uint8_t, CMemoryManager> ReadFileToArray(const NPath& FilePath)
 {
 	auto Stream = NStreamFactory::OpenReadOnly(FilePath);
 	return Stream ? Stream->ReadAll() : TArray<uint8_t, CMemoryManager>();
@@ -597,7 +598,7 @@ inline TArray<uint8_t, CMemoryManager> ReadFileToArray(const CPath& FilePath)
 /**
  * @brief 将数据写入文件
  */
-inline bool WriteArrayToFile(const CPath& FilePath, const TArray<uint8_t, CMemoryManager>& Data)
+inline bool WriteArrayToFile(const NPath& FilePath, const TArray<uint8_t, CMemoryManager>& Data)
 {
 	auto Stream = NStreamFactory::CreateWriteOnly(FilePath);
 	return Stream && Stream->WriteAll(Data);
@@ -605,8 +606,8 @@ inline bool WriteArrayToFile(const CPath& FilePath, const TArray<uint8_t, CMemor
 
 // === 类型别名 ===
 using FStream = NStream;
-using FFileStream = CFileStream;
-using FMemoryStream = CMemoryStream;
+using FFileStream = NFileStream;
+using FMemoryStream = NMemoryStream;
 using FBufferedStream = CBufferedStream;
 using FStreamFactory = NStreamFactory;
 

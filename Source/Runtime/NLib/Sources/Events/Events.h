@@ -279,7 +279,7 @@ public:
 		// 估算内存使用（简化实现）
 		Info.DelegateMemoryUsage = Info.TotalListeners * sizeof(void*) * 4; // 粗略估算
 		Info.EventMemoryUsage = Info.TotalEventTypes * 256;                 // 粗略估算
-		Info.TimerMemoryUsage = Info.TotalTimers * sizeof(CTimer);
+		Info.TimerMemoryUsage = Info.TotalTimers * sizeof(NTimer);
 		Info.TotalMemoryUsage = Info.DelegateMemoryUsage + Info.EventMemoryUsage + Info.TimerMemoryUsage;
 
 		return Info;

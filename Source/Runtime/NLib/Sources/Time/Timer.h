@@ -3,10 +3,11 @@
 #include "Core/Object.h"
 #include "Logging/LogCategory.h"
 #include "TimeTypes.h"
-#include "Timer.generate.h"
 
 #include <chrono>
 #include <functional>
+
+#include "Timer.generate.h"
 
 namespace NLib
 {

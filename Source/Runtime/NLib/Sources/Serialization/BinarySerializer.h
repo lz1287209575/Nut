@@ -35,7 +35,7 @@ class CBinarySerializationArchive : public CSerializationArchive
 public:
 	// === 构造函数 ===
 
-	explicit CBinarySerializationArchive(TSharedPtr<CStream> InStream, const SSerializationContext& InContext);
+	explicit CBinarySerializationArchive(TSharedPtr<NStream> InStream, const SSerializationContext& InContext);
 	~CBinarySerializationArchive() override = default;
 
 public:
@@ -266,7 +266,7 @@ public:
 	 */
 	template <typename T>
 	static SSerializationResult SerializeToStream(const T& Object,
-	                                              TSharedPtr<CStream> Stream,
+	                                              TSharedPtr<NStream> Stream,
 	                                              ESerializationFlags Flags = ESerializationFlags::None)
 	{
 		SSerializationContext Context(ESerializationMode::Serialize, ESerializationFormat::Binary);
@@ -294,7 +294,7 @@ public:
 	 */
 	template <typename T>
 	static SSerializationResult DeserializeFromStream(T& Object,
-	                                                  TSharedPtr<CStream> Stream,
+	                                                  TSharedPtr<NStream> Stream,
 	                                                  ESerializationFlags Flags = ESerializationFlags::None)
 	{
 		SSerializationContext Context(ESerializationMode::Deserialize, ESerializationFormat::Binary);
@@ -323,7 +323,7 @@ public:
 	static TArray<uint8_t, CMemoryManager> SerializeToBytes(const T& Object,
 	                                                        ESerializationFlags Flags = ESerializationFlags::None)
 	{
-		auto MemoryStream = MakeShared<CMemoryStream>();
+		auto MemoryStream = MakeShared<NMemoryStream>();
 		auto Result = SerializeToStream(Object, MemoryStream, Flags);
 
 		if (Result.bSuccess)
@@ -345,7 +345,7 @@ public:
 	                                 const TArray<uint8_t, CMemoryManager>& Data,
 	                                 ESerializationFlags Flags = ESerializationFlags::None)
 	{
-		auto MemoryStream = MakeShared<CMemoryStream>(Data);
+		auto MemoryStream = MakeShared<NMemoryStream>(Data);
 		auto Result = DeserializeFromStream(Object, MemoryStream, Flags);
 
 		if (!Result.bSuccess)

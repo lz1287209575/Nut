@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Object.h"
-#include "GameTime.generate.h"
 #include "Logging/LogCategory.h"
 #include "Math/MathTypes.h"
 #include "TimeTypes.h"
@@ -9,6 +8,8 @@
 
 #include <atomic>
 #include <thread>
+
+#include "GameTime.generate.h"
 
 namespace NLib
 {

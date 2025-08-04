@@ -11,9 +11,9 @@
 
 namespace NLib
 {
-// === CConfigManager 初始化和关闭 ===
+// === NConfigManager 初始化和关闭 ===
 
-bool CConfigManager::Initialize()
+bool NConfigManager::Initialize()
 {
 	std::lock_guard<std::mutex> Lock(ConfigMutex);
 
@@ -41,7 +41,7 @@ bool CConfigManager::Initialize()
 	return true;
 }
 
-void CConfigManager::Shutdown()
+void NConfigManager::Shutdown()
 {
 	if (!bIsInitialized.load())
 	{
@@ -76,7 +76,7 @@ void CConfigManager::Shutdown()
 
 // === 配置源管理 ===
 
-bool CConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, EConfigPriority Priority, bool bOptional)
+bool NConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, EConfigPriority Priority, bool bOptional)
 {
 	if (!bIsInitialized.load())
 	{
@@ -132,14 +132,14 @@ bool CConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, E
 	if (bAutoReloadEnabled.load() && !bWatcherThreadRunning.load())
 	{
 		bWatcherThreadRunning.store(true);
-		FileWatcherThread_ = std::thread(&CConfigManager::FileWatcherThread, this);
+		FileWatcherThread_ = std::thread(&NConfigManager::FileWatcherThread, this);
 	}
 
 	NLOG_CONFIG(Info, "Successfully added JSON config source: {}", Name.GetData());
 	return true;
 }
 
-bool CConfigManager::AddEnvironmentVariables(const TString& Prefix, EConfigPriority Priority)
+bool NConfigManager::AddEnvironmentVariables(const TString& Prefix, EConfigPriority Priority)
 {
 	if (!bIsInitialized.load())
 	{
@@ -178,7 +178,7 @@ bool CConfigManager::AddEnvironmentVariables(const TString& Prefix, EConfigPrior
 	return true;
 }
 
-bool CConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority Priority)
+bool NConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority Priority)
 {
 	if (!bIsInitialized.load())
 	{
@@ -215,7 +215,7 @@ bool CConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority 
 	return true;
 }
 
-bool CConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Config, EConfigPriority Priority)
+bool NConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Config, EConfigPriority Priority)
 {
 	if (!bIsInitialized.load())
 	{
@@ -252,7 +252,7 @@ bool CConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Co
 	return true;
 }
 
-bool CConfigManager::RemoveConfigSource(const TString& Name)
+bool NConfigManager::RemoveConfigSource(const TString& Name)
 {
 	if (!bIsInitialized.load())
 	{
@@ -282,7 +282,7 @@ bool CConfigManager::RemoveConfigSource(const TString& Name)
 	return false;
 }
 
-bool CConfigManager::ReloadConfigSource(const TString& Name)
+bool NConfigManager::ReloadConfigSource(const TString& Name)
 {
 	if (!bIsInitialized.load())
 	{
@@ -317,7 +317,7 @@ bool CConfigManager::ReloadConfigSource(const TString& Name)
 	return false;
 }
 
-void CConfigManager::ReloadAllSources()
+void NConfigManager::ReloadAllSources()
 {
 	if (!bIsInitialized.load())
 	{
@@ -350,7 +350,7 @@ void CConfigManager::ReloadAllSources()
 
 // === 配置访问 ===
 
-CConfigValue CConfigManager::GetConfig(const TString& Key, const CConfigValue& DefaultValue) const
+CConfigValue NConfigManager::GetConfig(const TString& Key, const CConfigValue& DefaultValue) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -370,14 +370,14 @@ CConfigValue CConfigManager::GetConfig(const TString& Key, const CConfigValue& D
 	if (!Value.IsNull())
 	{
 		// 缓存结果
-		const_cast<CConfigManager*>(this)->ConfigCache.Add(Key, Value);
+		const_cast<NConfigManager*>(this)->ConfigCache.Add(Key, Value);
 		return Value;
 	}
 
 	return DefaultValue;
 }
 
-void CConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, const TString& SourceName)
+void NConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, const TString& SourceName)
 {
 	if (!bIsInitialized.load())
 	{
@@ -429,7 +429,7 @@ void CConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, co
 	NotifyConfigChanged(Key, OldValue, Value, SourceName);
 }
 
-bool CConfigManager::HasConfig(const TString& Key) const
+bool NConfigManager::HasConfig(const TString& Key) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -440,7 +440,7 @@ bool CConfigManager::HasConfig(const TString& Key) const
 	return MergedConfig.HasPath(Key);
 }
 
-TArray<TString, CMemoryManager> CConfigManager::GetAllKeys() const
+TArray<TString, CMemoryManager> NConfigManager::GetAllKeys() const
 {
 	TArray<TString, CMemoryManager> Keys;
 
@@ -474,7 +474,7 @@ TArray<TString, CMemoryManager> CConfigManager::GetAllKeys() const
 	return Keys;
 }
 
-CConfigObject CConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
+CConfigObject NConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
 {
 	CConfigObject Result;
 
@@ -506,7 +506,7 @@ CConfigObject CConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
 
 // === 配置验证 ===
 
-void CConfigManager::AddValidator(const TString& Key, TSharedPtr<IConfigValidator> Validator)
+void NConfigManager::AddValidator(const TString& Key, TSharedPtr<IConfigValidator> Validator)
 {
 	if (!bIsInitialized.load())
 	{
@@ -520,7 +520,7 @@ void CConfigManager::AddValidator(const TString& Key, TSharedPtr<IConfigValidato
 	Validators.Add(Key, Validator);
 }
 
-void CConfigManager::RemoveValidator(const TString& Key)
+void NConfigManager::RemoveValidator(const TString& Key)
 {
 	if (!bIsInitialized.load())
 	{
@@ -533,7 +533,7 @@ void CConfigManager::RemoveValidator(const TString& Key)
 	Validators.Remove(Key);
 }
 
-bool CConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErrors) const
+bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErrors) const
 {
 	OutErrors.Clear();
 
@@ -561,14 +561,14 @@ bool CConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErro
 			bAllValid = false;
 
 			// 触发验证失败事件
-			const_cast<CConfigManager*>(this)->OnConfigValidationFailed.Broadcast(Key, ErrorMessage);
+			const_cast<NConfigManager*>(this)->OnConfigValidationFailed.Broadcast(Key, ErrorMessage);
 		}
 	}
 
 	return bAllValid;
 }
 
-bool CConfigManager::ValidateConfig(const TString& Key, TString& OutError) const
+bool NConfigManager::ValidateConfig(const TString& Key, TString& OutError) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -589,7 +589,7 @@ bool CConfigManager::ValidateConfig(const TString& Key, TString& OutError) const
 	if (!Validator->Validate(Key, Value, OutError))
 	{
 		// 触发验证失败事件
-		const_cast<CConfigManager*>(this)->OnConfigValidationFailed.Broadcast(Key, OutError);
+		const_cast<NConfigManager*>(this)->OnConfigValidationFailed.Broadcast(Key, OutError);
 		return false;
 	}
 
@@ -598,14 +598,14 @@ bool CConfigManager::ValidateConfig(const TString& Key, TString& OutError) const
 
 // === 配置监控 ===
 
-void CConfigManager::SetAutoReloadEnabled(bool bEnabled)
+void NConfigManager::SetAutoReloadEnabled(bool bEnabled)
 {
 	bAutoReloadEnabled.store(bEnabled);
 
 	if (bEnabled && !bWatcherThreadRunning.load() && bIsInitialized.load())
 	{
 		bWatcherThreadRunning.store(true);
-		FileWatcherThread_ = std::thread(&CConfigManager::FileWatcherThread, this);
+		FileWatcherThread_ = std::thread(&NConfigManager::FileWatcherThread, this);
 	}
 	else if (!bEnabled && bWatcherThreadRunning.load())
 	{
@@ -619,13 +619,13 @@ void CConfigManager::SetAutoReloadEnabled(bool bEnabled)
 	NLOG_CONFIG(Info, "Auto reload {}", bEnabled ? "enabled" : "disabled");
 }
 
-void CConfigManager::SetFileWatchInterval(const CTimespan& Interval)
+void NConfigManager::SetFileWatchInterval(const CTimespan& Interval)
 {
 	FileWatchInterval = Interval;
 	NLOG_CONFIG(Info, "File watch interval set to {} seconds", Interval.GetTotalSeconds());
 }
 
-TArray<SConfigSource, CMemoryManager> CConfigManager::GetConfigSources() const
+TArray<SConfigSource, CMemoryManager> NConfigManager::GetConfigSources() const
 {
 	if (!bIsInitialized.load())
 	{
@@ -636,7 +636,7 @@ TArray<SConfigSource, CMemoryManager> CConfigManager::GetConfigSources() const
 	return ConfigSources;
 }
 
-CConfigValue CConfigManager::GetMergedConfig() const
+CConfigValue NConfigManager::GetMergedConfig() const
 {
 	if (!bIsInitialized.load())
 	{
@@ -649,7 +649,7 @@ CConfigValue CConfigManager::GetMergedConfig() const
 
 // === 调试和诊断 ===
 
-TString CConfigManager::GenerateConfigReport() const
+TString NConfigManager::GenerateConfigReport() const
 {
 	if (!bIsInitialized.load())
 	{
@@ -692,7 +692,7 @@ TString CConfigManager::GenerateConfigReport() const
 	return Report;
 }
 
-bool CConfigManager::ExportConfig(const TString& FilePath, bool bPrettyPrint) const
+bool NConfigManager::ExportConfig(const TString& FilePath, bool bPrettyPrint) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -726,7 +726,7 @@ bool CConfigManager::ExportConfig(const TString& FilePath, bool bPrettyPrint) co
 	return true;
 }
 
-CConfigManager::SConfigStats CConfigManager::GetConfigStats() const
+NConfigManager::SConfigStats NConfigManager::GetConfigStats() const
 {
 	SConfigStats Stats;
 
@@ -761,7 +761,7 @@ CConfigManager::SConfigStats CConfigManager::GetConfigStats() const
 
 // === 内部实现 ===
 
-void CConfigManager::MergeAllSources()
+void NConfigManager::MergeAllSources()
 {
 	// 按优先级排序配置源
 	TArray<SConfigSource*, CMemoryManager> SortedSources;
@@ -805,7 +805,7 @@ void CConfigManager::MergeAllSources()
 	NLOG_CONFIG(Debug, "Merged {} config sources", SortedSources.Size());
 }
 
-bool CConfigManager::LoadConfigSource(SConfigSource& Source)
+bool NConfigManager::LoadConfigSource(SConfigSource& Source)
 {
 	switch (Source.Type)
 	{
@@ -845,7 +845,7 @@ bool CConfigManager::LoadConfigSource(SConfigSource& Source)
 	}
 }
 
-CConfigValue CConfigManager::ParseCommandLineArgs(int argc, char* argv[])
+CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 {
 	CConfigObject Result;
 
@@ -890,7 +890,7 @@ CConfigValue CConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 	return CConfigValue(Result);
 }
 
-CConfigValue CConfigManager::ParseEnvironmentVariables(const TString& Prefix)
+CConfigValue NConfigManager::ParseEnvironmentVariables(const TString& Prefix)
 {
 	CConfigObject Result;
 
@@ -935,7 +935,7 @@ CConfigValue CConfigManager::ParseEnvironmentVariables(const TString& Prefix)
 	return CConfigValue(Result);
 }
 
-void CConfigManager::FileWatcherThread()
+void NConfigManager::FileWatcherThread()
 {
 	NLOG_CONFIG(Info, "File watcher thread started");
 
@@ -976,7 +976,7 @@ void CConfigManager::FileWatcherThread()
 	NLOG_CONFIG(Info, "File watcher thread stopped");
 }
 
-bool CConfigManager::IsFileModified(const SConfigSource& Source) const
+bool NConfigManager::IsFileModified(const SConfigSource& Source) const
 {
 	if (Source.Type != EConfigSourceType::File)
 	{
@@ -987,7 +987,7 @@ bool CConfigManager::IsFileModified(const SConfigSource& Source) const
 	return CurrentModTime > Source.LastModified;
 }
 
-void CConfigManager::NotifyConfigChanged(const TString& Key,
+void NConfigManager::NotifyConfigChanged(const TString& Key,
                                          const CConfigValue& OldValue,
                                          const CConfigValue& NewValue,
                                          const TString& SourceName)
@@ -998,7 +998,7 @@ void CConfigManager::NotifyConfigChanged(const TString& Key,
 	NLOG_CONFIG(Debug, "Config changed: {} in source: {}", Key.GetData(), SourceName.GetData());
 }
 
-void CConfigManager::ApplyConfigValue(const TString& Key, const CConfigValue& Value, const TString& SourceName)
+void NConfigManager::ApplyConfigValue(const TString& Key, const CConfigValue& Value, const TString& SourceName)
 {
 	// 这个方法可以用于应用配置值的副作用，比如更新系统设置等
 	// 目前只是记录日志
@@ -1011,7 +1011,7 @@ void CConfigManager::ApplyConfigValue(const TString& Key, const CConfigValue& Va
 
 // === 辅助函数 ===
 
-CDateTime CConfigManager::GetFileModificationTime(const TString& FilePath) const
+CDateTime NConfigManager::GetFileModificationTime(const TString& FilePath) const
 {
 	try
 	{
@@ -1027,7 +1027,7 @@ CDateTime CConfigManager::GetFileModificationTime(const TString& FilePath) const
 	}
 }
 
-TString CConfigManager::GetSourceTypeName(EConfigSourceType Type) const
+TString NConfigManager::GetSourceTypeName(EConfigSourceType Type) const
 {
 	switch (Type)
 	{
@@ -1046,7 +1046,7 @@ TString CConfigManager::GetSourceTypeName(EConfigSourceType Type) const
 	}
 }
 
-CConfigValue CConfigManager::ParseStringValue(const TString& Value) const
+CConfigValue NConfigManager::ParseStringValue(const TString& Value) const
 {
 	// 尝试解析为布尔值
 	if (Value.ToLower() == "true" || Value.ToLower() == "yes" || Value == "1")
@@ -1087,7 +1087,7 @@ CConfigValue CConfigManager::ParseStringValue(const TString& Value) const
 	return CConfigValue(Value);
 }
 
-void CConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObject& Source) const
+void NConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObject& Source) const
 {
 	for (const auto& Pair : Source)
 	{
@@ -1109,7 +1109,7 @@ void CConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObje
 	}
 }
 
-void CConfigManager::CollectKeysFromValue(const CConfigValue& Value,
+void NConfigManager::CollectKeysFromValue(const CConfigValue& Value,
                                           const TString& Prefix,
                                           TArray<TString, CMemoryManager>& OutKeys) const
 {
@@ -1135,7 +1135,7 @@ void CConfigManager::CollectKeysFromValue(const CConfigValue& Value,
 	}
 }
 
-int32_t CConfigManager::CountConfigValues(const CConfigValue& Value) const
+int32_t NConfigManager::CountConfigValues(const CConfigValue& Value) const
 {
 	int32_t Count = 1;
 

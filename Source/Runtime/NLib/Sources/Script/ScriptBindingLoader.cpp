@@ -158,7 +158,7 @@ bool CScriptBindingLoader::LoadScriptBindings(EScriptLanguage Language,
 		return false;
 	}
 
-	if (!CFileSystem::DirectoryExists(BindingDirectory))
+	if (!NFileSystem::DirectoryExists(BindingDirectory))
 	{
 		NLOG_SCRIPT(Error, "Script binding directory does not exist: {}", BindingDirectory.GetData());
 		return false;
@@ -183,16 +183,16 @@ bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, c
 	NLOG_SCRIPT(Info, "Loading Lua script bindings from: {}", BindingDirectory.GetData());
 
 	// 查找所有.lua绑定文件
-	TString LuaBindingDir = CPath::Combine(BindingDirectory, TEXT("Lua"));
-	if (!CFileSystem::DirectoryExists(LuaBindingDir))
+	TString LuaBindingDir = NPath::Combine(BindingDirectory, TEXT("Lua"));
+	if (!NFileSystem::DirectoryExists(LuaBindingDir))
 	{
 		NLOG_SCRIPT(Warning, "Lua binding directory not found: {}", LuaBindingDir.GetData());
 		return false;
 	}
 
 	// 首先加载NLib核心API
-	TString NLibApiFile = CPath::Combine(LuaBindingDir, TEXT("NLibAPI.lua"));
-	if (CFileSystem::FileExists(NLibApiFile))
+	TString NLibApiFile = NPath::Combine(LuaBindingDir, TEXT("NLibAPI.lua"));
+	if (NFileSystem::FileExists(NLibApiFile))
 	{
 		if (!LoadBindingFile(NLibApiFile, EScriptLanguage::Lua, Context))
 		{
@@ -202,13 +202,13 @@ bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, c
 	}
 
 	// 加载所有类绑定文件
-	auto LuaFiles = CFileSystem::GetFilesInDirectory(LuaBindingDir, TEXT("*.lua"));
+	auto LuaFiles = NFileSystem::GetFilesInDirectory(LuaBindingDir, TEXT("*.lua"));
 	int32_t LoadedCount = 0;
 
 	for (const auto& FilePath : LuaFiles)
 	{
 		// 跳过已经加载的NLibAPI.lua
-		if (CPath::GetFileName(FilePath) == TEXT("NLibAPI.lua"))
+		if (NPath::GetFileName(FilePath) == TEXT("NLibAPI.lua"))
 			continue;
 
 		if (LoadBindingFile(FilePath, EScriptLanguage::Lua, Context))
@@ -231,14 +231,14 @@ bool CScriptBindingLoader::LoadTypeScriptBindings(TSharedPtr<CScriptContext> Con
 
 	// TypeScript绑定主要是类型定义文件，不需要在运行时加载
 	// 这里主要是验证文件存在性
-	TString TypeScriptBindingDir = CPath::Combine(BindingDirectory, TEXT("TypeScript"));
-	if (!CFileSystem::DirectoryExists(TypeScriptBindingDir))
+	TString TypeScriptBindingDir = NPath::Combine(BindingDirectory, TEXT("TypeScript"));
+	if (!NFileSystem::DirectoryExists(TypeScriptBindingDir))
 	{
 		NLOG_SCRIPT(Warning, "TypeScript binding directory not found: {}", TypeScriptBindingDir.GetData());
 		return false;
 	}
 
-	auto TypeScriptFiles = CFileSystem::GetFilesInDirectory(TypeScriptBindingDir, TEXT("*.d.ts"));
+	auto TypeScriptFiles = NFileSystem::GetFilesInDirectory(TypeScriptBindingDir, TEXT("*.d.ts"));
 	NLOG_SCRIPT(Info, "Found {} TypeScript definition files", TypeScriptFiles.Size());
 
 	return TypeScriptFiles.Size() > 0;
@@ -519,7 +519,7 @@ bool CScriptBindingLoader::LoadBindingFile(const TString& FilePath,
                                            EScriptLanguage Language,
                                            TSharedPtr<CScriptContext> Context)
 {
-	if (!CFileSystem::FileExists(FilePath))
+	if (!NFileSystem::FileExists(FilePath))
 	{
 		NLOG_SCRIPT(Error, "Binding file not found: {}", FilePath.GetData());
 		return false;

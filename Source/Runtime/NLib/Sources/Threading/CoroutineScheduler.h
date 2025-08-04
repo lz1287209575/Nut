@@ -6,7 +6,6 @@
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Coroutine.h"
-#include "CoroutineScheduler.generate.h"
 #include "Events/Delegate.h"
 #include "Logging/LogCategory.h"
 #include "Time/TimeTypes.h"
@@ -14,6 +13,8 @@
 #include <atomic>
 #include <mutex>
 #include <setjmp.h>
+
+#include "CoroutineScheduler.generate.h"
 
 namespace NLib
 {
@@ -99,7 +100,7 @@ struct SCoroutineSchedulerStats
  */
 struct SCoroutineScheduleItem
 {
-	TSharedPtr<CCoroutine> Coroutine;                         // 协程对象
+	TSharedPtr<NCoroutine> Coroutine;                         // 协程对象
 	ECoroutinePriority Priority = ECoroutinePriority::Normal; // 优先级
 	CDateTime LastRunTime;                                    // 最后运行时间
 	CTimespan TotalRunTime;                                   // 总运行时间
@@ -108,7 +109,7 @@ struct SCoroutineScheduleItem
 
 	SCoroutineScheduleItem() = default;
 
-	SCoroutineScheduleItem(TSharedPtr<CCoroutine> InCoroutine,
+	SCoroutineScheduleItem(TSharedPtr<NCoroutine> InCoroutine,
 	                       ECoroutinePriority InPriority = ECoroutinePriority::Normal)
 	    : Coroutine(InCoroutine),
 	      Priority(InPriority),
@@ -140,7 +141,7 @@ class NCoroutineScheduler : public NObject
 {
 	GENERATED_BODY()
 
-	friend class CCoroutine;
+	friend class NCoroutine;
 
 public:
 	// === 委托定义 ===
@@ -150,7 +151,7 @@ public:
 	DECLARE_DELEGATE(FOnSchedulingCycleCompleted, uint32_t);
 
 	using CustomSchedulerFunc =
-	    std::function<TSharedPtr<CCoroutine>(const TArray<SCoroutineScheduleItem, CMemoryManager>&)>;
+	    std::function<TSharedPtr<NCoroutine>(const TArray<SCoroutineScheduleItem, CMemoryManager>&)>;
 
 public:
 	// === 单例模式 ===
@@ -207,7 +208,7 @@ public:
 		Stats = SCoroutineSchedulerStats{};
 
 		// 创建主协程
-		MainCoroutine = MakeShared<CCoroutine>(TString("MainCoroutine"));
+		MainCoroutine = MakeShared<NCoroutine>(TString("MainCoroutine"));
 		CurrentCoroutine = MainCoroutine;
 
 		// 预分配容器
@@ -267,7 +268,7 @@ public:
 	 * @brief 创建并启动协程
 	 */
 	template <typename TFunc>
-	TSharedPtr<CCoroutine> StartCoroutine(TFunc&& Function,
+	TSharedPtr<NCoroutine> StartCoroutine(TFunc&& Function,
 	                                      const TString& Name = TString("Coroutine"),
 	                                      ECoroutinePriority Priority = ECoroutinePriority::Normal,
 	                                      size_t StackSize = DEFAULT_COROUTINE_STACK_SIZE)
@@ -285,7 +286,7 @@ public:
 		}
 
 		// 创建协程
-		auto Coroutine = MakeShared<CCoroutine>(
+		auto Coroutine = MakeShared<NCoroutine>(
 		    [Function = std::forward<TFunc>(Function)]() { Function(); }, Name, StackSize);
 
 		if (!Coroutine->Initialize())
@@ -343,7 +344,7 @@ public:
 	/**
 	 * @brief 停止协程
 	 */
-	bool StopCoroutine(TSharedPtr<CCoroutine> Coroutine)
+	bool StopCoroutine(TSharedPtr<NCoroutine> Coroutine)
 	{
 		if (!Coroutine.IsValid())
 		{
@@ -467,7 +468,7 @@ public:
 	/**
 	 * @brief 获取当前运行的协程
 	 */
-	TSharedPtr<CCoroutine> GetCurrentCoroutine() const
+	TSharedPtr<NCoroutine> GetCurrentCoroutine() const
 	{
 		return CurrentCoroutine;
 	}
@@ -475,7 +476,7 @@ public:
 	/**
 	 * @brief 获取主协程
 	 */
-	TSharedPtr<CCoroutine> GetMainCoroutine() const
+	TSharedPtr<NCoroutine> GetMainCoroutine() const
 	{
 		return MainCoroutine;
 	}
@@ -499,7 +500,7 @@ public:
 	/**
 	 * @brief 查找协程
 	 */
-	TSharedPtr<CCoroutine> FindCoroutine(FCoroutineId CoroutineId) const
+	TSharedPtr<NCoroutine> FindCoroutine(FCoroutineId CoroutineId) const
 	{
 		std::lock_guard<std::mutex> Lock(ScheduleMutex);
 
@@ -647,7 +648,7 @@ private:
 	/**
 	 * @brief 选择下一个要执行的协程
 	 */
-	TSharedPtr<CCoroutine> SelectNextCoroutine()
+	TSharedPtr<NCoroutine> SelectNextCoroutine()
 	{
 		switch (Config.Policy)
 		{
@@ -671,9 +672,9 @@ private:
 	/**
 	 * @brief 轮询调度
 	 */
-	TSharedPtr<CCoroutine> SelectRoundRobin()
+	TSharedPtr<NCoroutine> SelectRoundRobin()
 	{
-		TSharedPtr<CCoroutine> Selected;
+		TSharedPtr<NCoroutine> Selected;
 
 		if (ReadyQueue.TryDequeue(Selected))
 		{
@@ -696,9 +697,9 @@ private:
 	/**
 	 * @brief 优先级调度
 	 */
-	TSharedPtr<CCoroutine> SelectByPriority()
+	TSharedPtr<NCoroutine> SelectByPriority()
 	{
-		TSharedPtr<CCoroutine> HighestPriorityCoroutine = nullptr;
+		TSharedPtr<NCoroutine> HighestPriorityCoroutine = nullptr;
 		ECoroutinePriority HighestPriority = ECoroutinePriority::Lowest;
 
 		for (auto& Item : ScheduleItems)
@@ -716,9 +717,9 @@ private:
 	/**
 	 * @brief 公平调度
 	 */
-	TSharedPtr<CCoroutine> SelectFair()
+	TSharedPtr<NCoroutine> SelectFair()
 	{
-		TSharedPtr<CCoroutine> LeastRunCoroutine = nullptr;
+		TSharedPtr<NCoroutine> LeastRunCoroutine = nullptr;
 		uint32_t LeastRunCount = UINT32_MAX;
 
 		for (auto& Item : ScheduleItems)
@@ -736,7 +737,7 @@ private:
 	/**
 	 * @brief 自定义调度
 	 */
-	TSharedPtr<CCoroutine> SelectCustom()
+	TSharedPtr<NCoroutine> SelectCustom()
 	{
 		if (CustomScheduler)
 		{
@@ -749,14 +750,14 @@ private:
 	/**
 	 * @brief 切换到指定协程
 	 */
-	void SwitchToCoroutine(TSharedPtr<CCoroutine> Coroutine)
+	void SwitchToCoroutine(TSharedPtr<NCoroutine> Coroutine)
 	{
 		if (!Coroutine.IsValid() || Coroutine == CurrentCoroutine)
 		{
 			return;
 		}
 
-		TSharedPtr<CCoroutine> PreviousCoroutine = CurrentCoroutine;
+		TSharedPtr<NCoroutine> PreviousCoroutine = CurrentCoroutine;
 		CurrentCoroutine = Coroutine;
 
 		// 更新调度项统计
@@ -908,12 +909,12 @@ private:
 	std::atomic<bool> bIsRunning;     // 是否正在运行
 	std::atomic<bool> bIsInitialized; // 是否已初始化
 
-	TSharedPtr<CCoroutine> CurrentCoroutine; // 当前运行的协程
-	TSharedPtr<CCoroutine> MainCoroutine;    // 主协程
+	TSharedPtr<NCoroutine> CurrentCoroutine; // 当前运行的协程
+	TSharedPtr<NCoroutine> MainCoroutine;    // 主协程
 
 	// 调度数据
 	TArray<SCoroutineScheduleItem, CMemoryManager> ScheduleItems; // 调度项列表
-	TQueue<TSharedPtr<CCoroutine>, CMemoryManager> ReadyQueue;    // 就绪队列
+	TQueue<TSharedPtr<NCoroutine>, CMemoryManager> ReadyQueue;    // 就绪队列
 	mutable std::mutex ScheduleMutex;                             // 调度互斥锁
 
 	// 统计信息
@@ -926,9 +927,9 @@ private:
 	CustomSchedulerFunc CustomScheduler; // 自定义调度函数
 };
 
-// === CCoroutine中调度器上下文的实现 ===
+// === NCoroutine中调度器上下文的实现 ===
 
-inline jmp_buf& CCoroutine::GetSchedulerContext()
+inline jmp_buf& NCoroutine::GetSchedulerContext()
 {
 	return NCoroutineScheduler::GetInstance().SchedulerContext;
 }
@@ -947,7 +948,7 @@ inline NCoroutineScheduler& GetCoroutineScheduler()
  * @brief 启动协程的便捷函数
  */
 template <typename TFunc>
-TSharedPtr<CCoroutine> StartCoroutine(TFunc&& Function,
+TSharedPtr<NCoroutine> StartCoroutine(TFunc&& Function,
                                       const TString& Name = TString("Coroutine"),
                                       ECoroutinePriority Priority = ECoroutinePriority::Normal,
                                       size_t StackSize = DEFAULT_COROUTINE_STACK_SIZE)

@@ -4,11 +4,12 @@
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Events/Delegate.h"
-#include "FileSystem.generate.h"
 #include "Path.h"
 #include "Time/TimeTypes.h"
 
 #include <filesystem>
+
+#include "FileSystem.generate.h"
 
 namespace NLib
 {
@@ -65,7 +66,7 @@ ENUM_CLASS_FLAGS(EFilePermissions)
  */
 struct SFileStatus
 {
-	CPath Path;                                            // 文件路径
+	NPath Path;                                            // 文件路径
 	EFileType Type = EFileType::Unknown;                   // 文件类型
 	uint64_t Size = 0;                                     // 文件大小（字节）
 	EFilePermissions Permissions = EFilePermissions::None; // 文件权限
@@ -77,7 +78,7 @@ struct SFileStatus
 	bool bIsHidden = false;                                // 是否隐藏
 
 	SFileStatus() = default;
-	explicit SFileStatus(const CPath& InPath)
+	explicit SFileStatus(const NPath& InPath)
 	    : Path(InPath)
 	{}
 
@@ -184,12 +185,12 @@ enum class EFileWatchEvent : uint8_t
 struct SFileWatchEventInfo
 {
 	EFileWatchEvent EventType;
-	CPath FilePath;
-	CPath OldPath; // 重命名事件的旧路径
+	NPath FilePath;
+	NPath OldPath; // 重命名事件的旧路径
 	CDateTime Timestamp;
 
 	SFileWatchEventInfo() = default;
-	SFileWatchEventInfo(EFileWatchEvent InEventType, const CPath& InFilePath)
+	SFileWatchEventInfo(EFileWatchEvent InEventType, const NPath& InFilePath)
 	    : EventType(InEventType),
 	      FilePath(InFilePath),
 	      Timestamp(CDateTime::Now())
@@ -222,27 +223,27 @@ public:
 	/**
 	 * @brief 检查文件或目录是否存在
 	 */
-	static bool Exists(const CPath& Path);
+	static bool Exists(const NPath& Path);
 
 	/**
 	 * @brief 检查是否是文件
 	 */
-	static bool IsFile(const CPath& Path);
+	static bool IsFile(const NPath& Path);
 
 	/**
 	 * @brief 检查是否是目录
 	 */
-	static bool IsDirectory(const CPath& Path);
+	static bool IsDirectory(const NPath& Path);
 
 	/**
 	 * @brief 检查是否是符号链接
 	 */
-	static bool IsSymbolicLink(const CPath& Path);
+	static bool IsSymbolicLink(const NPath& Path);
 
 	/**
 	 * @brief 检查文件是否为空
 	 */
-	static bool IsEmpty(const CPath& Path);
+	static bool IsEmpty(const NPath& Path);
 
 public:
 	// === 文件状态查询 ===
@@ -250,27 +251,27 @@ public:
 	/**
 	 * @brief 获取文件状态信息
 	 */
-	static SFileStatus GetFileStatus(const CPath& Path);
+	static SFileStatus GetFileStatus(const NPath& Path);
 
 	/**
 	 * @brief 获取文件大小
 	 */
-	static uint64_t GetFileSize(const CPath& Path);
+	static uint64_t GetFileSize(const NPath& Path);
 
 	/**
 	 * @brief 获取文件最后修改时间
 	 */
-	static CDateTime GetLastWriteTime(const CPath& Path);
+	static CDateTime GetLastWriteTime(const NPath& Path);
 
 	/**
 	 * @brief 获取文件创建时间
 	 */
-	static CDateTime GetCreationTime(const CPath& Path);
+	static CDateTime GetCreationTime(const NPath& Path);
 
 	/**
 	 * @brief 获取文件权限
 	 */
-	static EFilePermissions GetPermissions(const CPath& Path);
+	static EFilePermissions GetPermissions(const NPath& Path);
 
 public:
 	// === 文件和目录创建 ===
@@ -278,22 +279,22 @@ public:
 	/**
 	 * @brief 创建目录
 	 */
-	static SFileSystemResult CreateDirectory(const CPath& Path, bool bCreateParents = true);
+	static SFileSystemResult CreateDirectory(const NPath& Path, bool bCreateParents = true);
 
 	/**
 	 * @brief 创建文件
 	 */
-	static SFileSystemResult CreateFile(const CPath& Path, bool bOverwrite = false);
+	static SFileSystemResult CreateFile(const NPath& Path, bool bOverwrite = false);
 
 	/**
 	 * @brief 创建符号链接
 	 */
-	static SFileSystemResult CreateSymbolicLink(const CPath& LinkPath, const CPath& TargetPath);
+	static SFileSystemResult CreateSymbolicLink(const NPath& LinkPath, const NPath& TargetPath);
 
 	/**
 	 * @brief 创建硬链接
 	 */
-	static SFileSystemResult CreateHardLink(const CPath& LinkPath, const CPath& TargetPath);
+	static SFileSystemResult CreateHardLink(const NPath& LinkPath, const NPath& TargetPath);
 
 public:
 	// === 文件和目录删除 ===
@@ -301,17 +302,17 @@ public:
 	/**
 	 * @brief 删除文件
 	 */
-	static SFileSystemResult DeleteFile(const CPath& Path);
+	static SFileSystemResult DeleteFile(const NPath& Path);
 
 	/**
 	 * @brief 删除目录
 	 */
-	static SFileSystemResult DeleteDirectory(const CPath& Path, bool bRecursive = false);
+	static SFileSystemResult DeleteDirectory(const NPath& Path, bool bRecursive = false);
 
 	/**
 	 * @brief 删除文件或目录
 	 */
-	static SFileSystemResult Delete(const CPath& Path, bool bRecursive = false);
+	static SFileSystemResult Delete(const NPath& Path, bool bRecursive = false);
 
 public:
 	// === 文件和目录移动/重命名 ===
@@ -319,12 +320,12 @@ public:
 	/**
 	 * @brief 移动/重命名文件或目录
 	 */
-	static SFileSystemResult Move(const CPath& SourcePath, const CPath& DestinationPath);
+	static SFileSystemResult Move(const NPath& SourcePath, const NPath& DestinationPath);
 
 	/**
 	 * @brief 重命名文件或目录
 	 */
-	static SFileSystemResult Rename(const CPath& Path, const TString& NewName);
+	static SFileSystemResult Rename(const NPath& Path, const TString& NewName);
 
 public:
 	// === 文件和目录复制 ===
@@ -332,15 +333,15 @@ public:
 	/**
 	 * @brief 复制文件
 	 */
-	static SFileSystemResult CopyFile(const CPath& SourcePath,
-	                                  const CPath& DestinationPath,
+	static SFileSystemResult CopyFile(const NPath& SourcePath,
+	                                  const NPath& DestinationPath,
 	                                  EFileCopyOptions Options = EFileCopyOptions::None);
 
 	/**
 	 * @brief 复制目录
 	 */
-	static SFileSystemResult CopyDirectory(const CPath& SourcePath,
-	                                       const CPath& DestinationPath,
+	static SFileSystemResult CopyDirectory(const NPath& SourcePath,
+	                                       const NPath& DestinationPath,
 	                                       EFileCopyOptions Options = EFileCopyOptions::Recursive);
 
 public:
@@ -349,20 +350,20 @@ public:
 	/**
 	 * @brief 列出目录内容
 	 */
-	static TArray<CPath, CMemoryManager> ListDirectory(
-	    const CPath& DirectoryPath, const SDirectoryIterationOptions& Options = SDirectoryIterationOptions{});
+	static TArray<NPath, CMemoryManager> ListDirectory(
+	    const NPath& DirectoryPath, const SDirectoryIterationOptions& Options = SDirectoryIterationOptions{});
 
 	/**
 	 * @brief 查找文件
 	 */
-	static TArray<CPath, CMemoryManager> FindFiles(const CPath& DirectoryPath,
+	static TArray<NPath, CMemoryManager> FindFiles(const NPath& DirectoryPath,
 	                                               const TString& Pattern,
 	                                               bool bRecursive = false);
 
 	/**
 	 * @brief 查找目录
 	 */
-	static TArray<CPath, CMemoryManager> FindDirectories(const CPath& DirectoryPath,
+	static TArray<NPath, CMemoryManager> FindDirectories(const NPath& DirectoryPath,
 	                                                     const TString& Pattern,
 	                                                     bool bRecursive = false);
 
@@ -372,22 +373,22 @@ public:
 	/**
 	 * @brief 设置文件权限
 	 */
-	static SFileSystemResult SetPermissions(const CPath& Path, EFilePermissions Permissions);
+	static SFileSystemResult SetPermissions(const NPath& Path, EFilePermissions Permissions);
 
 	/**
 	 * @brief 设置文件只读属性
 	 */
-	static SFileSystemResult SetReadOnly(const CPath& Path, bool bReadOnly);
+	static SFileSystemResult SetReadOnly(const NPath& Path, bool bReadOnly);
 
 	/**
 	 * @brief 设置文件隐藏属性
 	 */
-	static SFileSystemResult SetHidden(const CPath& Path, bool bHidden);
+	static SFileSystemResult SetHidden(const NPath& Path, bool bHidden);
 
 	/**
 	 * @brief 设置文件时间
 	 */
-	static SFileSystemResult SetFileTime(const CPath& Path,
+	static SFileSystemResult SetFileTime(const NPath& Path,
 	                                     const CDateTime& LastWriteTime,
 	                                     const CDateTime& LastAccessTime = CDateTime::Now());
 
@@ -397,12 +398,12 @@ public:
 	/**
 	 * @brief 读取符号链接目标
 	 */
-	static CPath ReadSymbolicLink(const CPath& LinkPath);
+	static NPath ReadSymbolicLink(const NPath& LinkPath);
 
 	/**
 	 * @brief 解析符号链接的最终目标
 	 */
-	static CPath ResolveSymbolicLink(const CPath& LinkPath);
+	static NPath ResolveSymbolicLink(const NPath& LinkPath);
 
 public:
 	// === 路径操作 ===
@@ -410,17 +411,17 @@ public:
 	/**
 	 * @brief 获取绝对路径
 	 */
-	static CPath GetAbsolutePath(const CPath& Path);
+	static NPath GetAbsolutePath(const NPath& Path);
 
 	/**
 	 * @brief 获取相对路径
 	 */
-	static CPath GetRelativePath(const CPath& Path, const CPath& BasePath);
+	static NPath GetRelativePath(const NPath& Path, const NPath& BasePath);
 
 	/**
 	 * @brief 规范化路径
 	 */
-	static CPath CanonicalizePath(const CPath& Path);
+	static NPath CanonicalizePath(const NPath& Path);
 
 public:
 	// === 磁盘空间查询 ===
@@ -437,7 +438,7 @@ public:
 		SDiskSpaceInfo() = default;
 	};
 
-	static SDiskSpaceInfo GetDiskSpaceInfo(const CPath& Path);
+	static SDiskSpaceInfo GetDiskSpaceInfo(const NPath& Path);
 
 public:
 	// === 临时文件操作 ===
@@ -445,12 +446,12 @@ public:
 	/**
 	 * @brief 创建临时文件
 	 */
-	static CPath CreateTempFile(const TString& Prefix = TString("temp"), const TString& Extension = TString(".tmp"));
+	static NPath CreateTempFile(const TString& Prefix = TString("temp"), const TString& Extension = TString(".tmp"));
 
 	/**
 	 * @brief 创建临时目录
 	 */
-	static CPath CreateTempDirectory(const TString& Prefix = TString("temp"));
+	static NPath CreateTempDirectory(const TString& Prefix = TString("temp"));
 
 public:
 	// === 文件内容快速操作 ===
@@ -458,29 +459,29 @@ public:
 	/**
 	 * @brief 读取整个文件到字符串
 	 */
-	static TString ReadAllText(const CPath& Path);
+	static TString ReadAllText(const NPath& Path);
 
 	/**
 	 * @brief 读取整个文件到字节数组
 	 */
-	static TArray<uint8_t, CMemoryManager> ReadAllBytes(const CPath& Path);
+	static TArray<uint8_t, CMemoryManager> ReadAllBytes(const NPath& Path);
 
 	/**
 	 * @brief 写入字符串到文件
 	 */
-	static SFileSystemResult WriteAllText(const CPath& Path, const TString& Content, bool bOverwrite = true);
+	static SFileSystemResult WriteAllText(const NPath& Path, const TString& Content, bool bOverwrite = true);
 
 	/**
 	 * @brief 写入字节数组到文件
 	 */
-	static SFileSystemResult WriteAllBytes(const CPath& Path,
+	static SFileSystemResult WriteAllBytes(const NPath& Path,
 	                                       const TArray<uint8_t, CMemoryManager>& Data,
 	                                       bool bOverwrite = true);
 
 	/**
 	 * @brief 追加文本到文件
 	 */
-	static SFileSystemResult AppendAllText(const CPath& Path, const TString& Content);
+	static SFileSystemResult AppendAllText(const NPath& Path, const TString& Content);
 
 public:
 	// === 文件监控 ===
@@ -488,12 +489,12 @@ public:
 	/**
 	 * @brief 开始监控目录
 	 */
-	static bool StartWatchingDirectory(const CPath& DirectoryPath, bool bRecursive = true);
+	static bool StartWatchingDirectory(const NPath& DirectoryPath, bool bRecursive = true);
 
 	/**
 	 * @brief 停止监控目录
 	 */
-	static void StopWatchingDirectory(const CPath& DirectoryPath);
+	static void StopWatchingDirectory(const NPath& DirectoryPath);
 
 	/**
 	 * @brief 停止所有文件监控
@@ -516,12 +517,12 @@ public:
 	/**
 	 * @brief 计算目录大小
 	 */
-	static uint64_t CalculateDirectorySize(const CPath& DirectoryPath, bool bRecursive = true);
+	static uint64_t CalculateDirectorySize(const NPath& DirectoryPath, bool bRecursive = true);
 
 	/**
 	 * @brief 计算文件或目录的校验和
 	 */
-	static TString CalculateChecksum(const CPath& Path, const TString& Algorithm = TString("MD5"));
+	static TString CalculateChecksum(const NPath& Path, const TString& Algorithm = TString("MD5"));
 
 private:
 	// === 内部实现 ===
@@ -554,9 +555,9 @@ private:
 	/**
 	 * @brief 递归遍历目录的内部实现
 	 */
-	static void ListDirectoryRecursive(const CPath& DirectoryPath,
+	static void ListDirectoryRecursive(const NPath& DirectoryPath,
 	                                   const SDirectoryIterationOptions& Options,
-	                                   TArray<CPath, CMemoryManager>& OutPaths,
+	                                   TArray<NPath, CMemoryManager>& OutPaths,
 	                                   int32_t CurrentDepth = 0);
 };
 
@@ -565,7 +566,7 @@ private:
 /**
  * @brief 文件是否存在的便捷函数
  */
-inline bool FileExists(const CPath& Path)
+inline bool FileExists(const NPath& Path)
 {
 	return NFileSystem::Exists(Path) && NFileSystem::IsFile(Path);
 }
@@ -573,7 +574,7 @@ inline bool FileExists(const CPath& Path)
 /**
  * @brief 目录是否存在的便捷函数
  */
-inline bool DirectoryExists(const CPath& Path)
+inline bool DirectoryExists(const NPath& Path)
 {
 	return NFileSystem::Exists(Path) && NFileSystem::IsDirectory(Path);
 }
@@ -581,7 +582,7 @@ inline bool DirectoryExists(const CPath& Path)
 /**
  * @brief 创建目录的便捷函数
  */
-inline bool CreateDirectory(const CPath& Path)
+inline bool CreateDirectory(const NPath& Path)
 {
 	return NFileSystem::CreateDirectory(Path, true).bSuccess;
 }
@@ -589,7 +590,7 @@ inline bool CreateDirectory(const CPath& Path)
 /**
  * @brief 删除文件的便捷函数
  */
-inline bool DeleteFile(const CPath& Path)
+inline bool DeleteFile(const NPath& Path)
 {
 	return NFileSystem::DeleteFile(Path).bSuccess;
 }
@@ -597,7 +598,7 @@ inline bool DeleteFile(const CPath& Path)
 /**
  * @brief 删除目录的便捷函数
  */
-inline bool DeleteDirectory(const CPath& Path)
+inline bool DeleteDirectory(const NPath& Path)
 {
 	return NFileSystem::DeleteDirectory(Path, true).bSuccess;
 }

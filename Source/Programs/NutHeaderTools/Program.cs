@@ -4,100 +4,83 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.CommandLine;
+using NutBuildSystem.Discovery;
+using NutBuildSystem.BuildTargets;
+using NutBuildSystem.Logging;
+using NutBuildSystem.CommandLine;
 
 namespace NutHeaderTools
 {
     /// <summary>
     /// NutHeaderTools - Nut引擎的代码生成工具
     /// 类似UE的UnrealHeaderTool，用于解析NCLASS宏并生成.generate.h文件
+    /// 支持读取Build.cs文件来确定要处理的源文件
     /// </summary>
-    class Program
+    class NutHeaderToolsApp : CommandLineApplication
     {
         private static readonly Dictionary<string, HeaderInfo> ProcessedHeaders = new();
         private static readonly List<string> SourcePaths = new();
-        private static int GeneratedFileCount = 0;
+        private readonly List<BuildTargetInfo> buildTargets = new();
+        private int generatedFileCount = 0;
+        private ILogger logger = LoggerFactory.Default;
 
-        static void Main(string[] args)
+        public NutHeaderToolsApp() : base("NutHeaderTools - Nut Engine Code Generator")
         {
-            Console.WriteLine("NutHeaderTools v1.0 - Nut Engine Code Generator");
-            Console.WriteLine("=====================================");
+        }
 
-            if (args.Length == 0)
-            {
-                ShowUsage();
-                return;
-            }
+        static async Task<int> Main(string[] args)
+        {
+            var app = new NutHeaderToolsApp();
+            return await app.RunAsync(args);
+        }
+
+        protected override void ConfigureCommands()
+        {
+            builder.AddCommonGlobalOptions();
+            
+            builder.AddGlobalOption(HeaderToolOptions.SourcePaths);
+            builder.AddGlobalOption(HeaderToolOptions.UseMeta);
+            builder.AddGlobalOption(HeaderToolOptions.OutputDirectory);
+            builder.AddGlobalOption(HeaderToolOptions.Force);
+
+            builder.SetDefaultHandler(ExecuteAsync);
+        }
+
+        private async Task<int> ExecuteAsync(CommandContext context)
+        {
+            logger = context.Logger;
+            
+            logger.Info("NutHeaderTools v1.0 - Nut Engine Code Generator");
+            logger.Info("=====================================");
 
             try
             {
-                ParseArguments(args);
-                ProcessAllHeaders();
-                Console.WriteLine($"\n✓ 成功生成 {GeneratedFileCount} 个 .generate.h 文件");
+                var parseResult = context.CancellationToken;
+                // TODO: 从 context 中获取命令行参数
+                // 这里需要调整以获取实际的参数值
+                
+                await ProcessAllHeadersAsync();
+                logger.Info($"✓ 成功生成 {generatedFileCount} 个 .generate.h 文件");
+                return 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ 错误: {ex.Message}");
-                Environment.Exit(1);
+                logger.Error($"错误: {ex.Message}", ex);
+                return 1;
             }
         }
 
-        private static void ShowUsage()
+        private async Task ProcessAllHeadersAsync()
         {
-            Console.WriteLine("用法:");
-            Console.WriteLine("  NutHeaderTools <source_paths> [options]");
-            Console.WriteLine();
-            Console.WriteLine("参数:");
-            Console.WriteLine("  source_paths    要处理的源代码目录路径（可以多个）");
-            Console.WriteLine();
-            Console.WriteLine("选项:");
-            Console.WriteLine("  --help         显示此帮助信息");
-            Console.WriteLine("  --verbose      显示详细输出");
-            Console.WriteLine();
-            Console.WriteLine("示例:");
-            Console.WriteLine("  NutHeaderTools \"Source/Runtime/LibNut/Sources\"");
-            Console.WriteLine("  NutHeaderTools \"Source/Runtime\" --verbose");
+            // 这里需要根据实际的命令行参数来决定是否使用Meta文件
+            // 暂时使用Meta模式作为默认
+            logger.Info("🔍 扫描Meta构建文件...");
+            await ScanBuildFilesAsync();
+            ProcessBuildTargets();
         }
 
-        private static void ParseArguments(string[] args)
-        {
-            foreach (string arg in args)
-            {
-                if (arg == "--help")
-                {
-                    ShowUsage();
-                    Environment.Exit(0);
-                }
-                else if (arg == "--verbose")
-                {
-                    // 设置详细输出标志
-                    continue;
-                }
-                else if (Directory.Exists(arg))
-                {
-                    SourcePaths.Add(arg);
-                }
-                else
-                {
-                    throw new ArgumentException($"无效的源代码路径: {arg}");
-                }
-            }
-
-            if (SourcePaths.Count == 0)
-            {
-                throw new ArgumentException("至少需要指定一个有效的源代码路径");
-            }
-        }
-
-        private static void ProcessAllHeaders()
-        {
-            foreach (string sourcePath in SourcePaths)
-            {
-                Console.WriteLine($"🔍 扫描目录: {sourcePath}");
-                ProcessDirectory(sourcePath);
-            }
-        }
-
-        private static void ProcessDirectory(string directory)
+        private void ProcessDirectory(string directory)
         {
             // 处理.h和.hpp文件
             string[] headerFiles = Directory.GetFiles(directory, "*.h", SearchOption.AllDirectories)
@@ -110,12 +93,12 @@ namespace NutHeaderTools
             }
         }
 
-        private static void ProcessHeaderFile(string headerPath)
+        private void ProcessHeaderFile(string headerPath)
         {
             try
             {
                 string content = File.ReadAllText(headerPath);
-                Console.WriteLine($"  🔍 处理文件: {Path.GetFileName(headerPath)}");
+                logger.Debug($"  🔍 处理文件: {Path.GetFileName(headerPath)}");
 
                 HeaderInfo headerInfo = ParseHeader(headerPath, content);
 
@@ -124,22 +107,22 @@ namespace NutHeaderTools
                     string generateFilePath = GetGenerateFilePath(headerPath);
                     GenerateCodeFile(generateFilePath, headerInfo);
                     ProcessedHeaders[headerPath] = headerInfo;
-                    GeneratedFileCount++;
+                    generatedFileCount++;
 
-                    Console.WriteLine($"  ✓ 已生成: {Path.GetFileName(generateFilePath)}");
+                    logger.Info($"  ✓ 已生成: {Path.GetFileName(generateFilePath)}");
                 }
                 else
                 {
-                    Console.WriteLine($"  - 跳过: {Path.GetFileName(headerPath)} (无NCLASS标记)");
+                    logger.Debug($"  - 跳过: {Path.GetFileName(headerPath)} (无NCLASS标记)");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  ❌ 处理文件失败 {Path.GetFileName(headerPath)}: {ex.Message}");
+                logger.Error($"  处理文件失败 {Path.GetFileName(headerPath)}: {ex.Message}", ex);
             }
         }
 
-        private static HeaderInfo ParseHeader(string filePath, string content)
+        private HeaderInfo ParseHeader(string filePath, string content)
         {
             HeaderInfo info = new HeaderInfo
             {
@@ -153,31 +136,34 @@ namespace NutHeaderTools
                 return info;
             }
 
-            Console.WriteLine($"    Debug: 文件包含NCLASS");
+            logger.Debug($"    文件包含NCLASS");
 
             // 尝试不同的正则表达式，处理换行符和API宏
             string[] patterns = {
                 @"NCLASS\s*\([^)]*\)\s*\r?\n\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
                 @"NCLASS\s*\([^)]*\)\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
-                @"NCLASS\s*\([^)]*\)[\s\r\n]*class\s+(?:\w+\s+)?(\w+)",
-                @"NCLASS.*?class\s+(?:\w+\s+)?(\w+)"
+                @"NCLASS\s*\([^)]*\)[\s\r\n]*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
+                @"NCLASS\s*\([^)]*\)[\s\r\n]*class\s+(\w+)\s*(?::\s*public\s+(\w+))?",
+                @"NCLASS\s*\([^)]*\)[\s\r\n]+class\s+(\w+)\s*:\s*public\s+(\w+)",
+                @"NCLASS.*?class\s+(\w+)\s*:\s*public\s+(\w+)",
+                @"NCLASS.*?class\s+(\w+)"
             };
 
             MatchCollection nclassMatches = null;
             foreach (string pattern in patterns)
             {
                 nclassMatches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.Singleline);
-                Console.WriteLine($"    Debug: 模式 '{pattern}' 找到 {nclassMatches.Count} 个匹配");
+                logger.Debug($"    模式 '{pattern}' 找到 {nclassMatches.Count} 个匹配");
                 if (nclassMatches.Count > 0) break;
             }
 
-            Console.WriteLine($"    Debug: 最终找到 {nclassMatches?.Count ?? 0} 个NCLASS匹配");
+            logger.Debug($"    最终找到 {nclassMatches?.Count ?? 0} 个NCLASS匹配");
 
             foreach (Match match in nclassMatches)
             {
                 string className = match.Groups[1].Value;
                 string baseClass = match.Groups[2].Success ? match.Groups[2].Value : "NObject";
-                Console.WriteLine($"    Debug: 解析类 {className} : {baseClass}");
+                logger.Debug($"    解析类 {className} : {baseClass}");
 
                 ClassInfo classInfo = new ClassInfo
                 {
@@ -197,50 +183,88 @@ namespace NutHeaderTools
             return info;
         }
 
-        private static void ParseProperties(string content, ClassInfo classInfo)
+        private void ParseProperties(string content, ClassInfo classInfo)
         {
-            // 使用更精确的单一正则表达式，避免重复匹配
-            string propertyPattern = @"NPROPERTY\s*\([^)]*\)[\s\r\n]*(\w+(?:\s*<[^>]+>)?(?:\s*::\w+)*)\s+(\w+)(?:\s*=\s*[^;]+)?;";
-
-            MatchCollection propertyMatches = Regex.Matches(content, propertyPattern, RegexOptions.Multiline);
+            // 使用更精确的正则表达式，处理各种类型声明格式
+            string[] propertyPatterns = {
+                // 标准格式：NPROPERTY(...) Type Name;
+                @"NPROPERTY\s*\([^)]*\)[\s\r\n]*([A-Za-z_]\w*(?:<[^<>]*>)?(?:::\w+)*)\s+([A-Za-z_]\w*)\s*(?:=\s*[^;]*)?\s*;",
+                // 带模板的格式：NPROPERTY(...) TTemplate<Type> Name;
+                @"NPROPERTY\s*\([^)]*\)[\s\r\n]*([A-Za-z_]\w*<[^<>]*>)\s+([A-Za-z_]\w*)\s*(?:=\s*[^;]*)?\s*;",
+                // 命名空间类型：NPROPERTY(...) Namespace::Type Name;
+                @"NPROPERTY\s*\([^)]*\)[\s\r\n]*([A-Za-z_]\w*::[A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*(?:=\s*[^;]*)?\s*;"
+            };
 
             HashSet<string> addedProperties = new HashSet<string>();
 
-            foreach (Match match in propertyMatches)
+            foreach (string pattern in propertyPatterns)
             {
-                string type = match.Groups[1].Value.Trim();
-                string name = match.Groups[2].Value;
+                MatchCollection propertyMatches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-                // 避免重复添加
-                if (!addedProperties.Contains(name))
+                foreach (Match match in propertyMatches)
                 {
-                    PropertyInfo property = new PropertyInfo
+                    string type = match.Groups[1].Value.Trim();
+                    string name = match.Groups[2].Value.Trim();
+
+                    // 验证类型和名称格式
+                    if (!addedProperties.Contains(name) && 
+                        !string.IsNullOrEmpty(type) && 
+                        !string.IsNullOrEmpty(name) &&
+                        IsValidIdentifier(name) &&
+                        IsValidTypeIdentifier(type))
                     {
-                        Type = type,
-                        Name = name
-                    };
-                    classInfo.Properties.Add(property);
-                    addedProperties.Add(name);
-                    Console.WriteLine($"    Debug: 找到属性 {property.Type} {property.Name}");
+                        PropertyInfo property = new PropertyInfo
+                        {
+                            Type = type,
+                            Name = name
+                        };
+                        classInfo.Properties.Add(property);
+                        addedProperties.Add(name);
+                        logger.Debug($"    找到属性 {property.Type} {property.Name}");
+                    }
                 }
             }
         }
 
-        private static void ParseFunctions(string content, ClassInfo classInfo)
+        private void ParseFunctions(string content, ClassInfo classInfo)
         {
-            // 简化的函数解析 - 查找NFUNCTION()标记的函数
-            MatchCollection functionMatches = Regex.Matches(content,
-                @"NFUNCTION\s*\([^)]*\)\s*(\w+(?:\s*<[^>]+>)?)\s+(\w+)\s*\([^)]*\);",
-                RegexOptions.Multiline);
+            // 更灵活的函数解析 - 查找NFUNCTION()或NMETHOD()标记的函数
+            string[] functionPatterns = {
+                // 标准函数：NFUNCTION(...) ReturnType FunctionName(...);
+                @"(?:NFUNCTION|NMETHOD)\s*\([^)]*\)[\s\r\n]*([A-Za-z_]\w*(?:<[^<>]*>)?(?:::\w+)*)\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*;",
+                // 虚函数：NFUNCTION(...) virtual ReturnType FunctionName(...) = 0;
+                @"(?:NFUNCTION|NMETHOD)\s*\([^)]*\)[\s\r\n]*virtual\s+([A-Za-z_]\w*(?:<[^<>]*>)?(?:::\w+)*)\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*(?:const)?\s*(?:override)?\s*(?:=\s*0)?\s*;",
+                // 静态函数：NFUNCTION(...) static ReturnType FunctionName(...);
+                @"(?:NFUNCTION|NMETHOD)\s*\([^)]*\)[\s\r\n]*static\s+([A-Za-z_]\w*(?:<[^<>]*>)?(?:::\w+)*)\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*;"
+            };
 
-            foreach (Match match in functionMatches)
+            HashSet<string> addedFunctions = new HashSet<string>();
+
+            foreach (string pattern in functionPatterns)
             {
-                FunctionInfo function = new FunctionInfo
+                MatchCollection functionMatches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+                foreach (Match match in functionMatches)
                 {
-                    ReturnType = match.Groups[1].Value.Trim(),
-                    Name = match.Groups[2].Value
-                };
-                classInfo.Functions.Add(function);
+                    string returnType = match.Groups[1].Value.Trim();
+                    string name = match.Groups[2].Value.Trim();
+
+                    if (!addedFunctions.Contains(name) && 
+                        !string.IsNullOrEmpty(returnType) && 
+                        !string.IsNullOrEmpty(name) &&
+                        IsValidIdentifier(name) &&
+                        IsValidTypeIdentifier(returnType))
+                    {
+                        FunctionInfo function = new FunctionInfo
+                        {
+                            ReturnType = returnType,
+                            Name = name
+                        };
+                        classInfo.Functions.Add(function);
+                        addedFunctions.Add(name);
+                        logger.Debug($"    找到函数 {function.ReturnType} {function.Name}()");
+                    }
+                }
             }
         }
 
@@ -292,7 +316,9 @@ namespace NutHeaderTools
             writer.WriteLine();
             writer.WriteLine("#pragma once");
             writer.WriteLine();
-            writer.WriteLine("#include <cstddef>  // for size_t");
+            writer.WriteLine("#include <cstddef>   // for size_t, offsetof");
+            writer.WriteLine("#include <typeinfo>  // for std::type_info");
+            writer.WriteLine("#include <any>       // for std::any");
             writer.WriteLine();
 
             // 检查是否需要包含反射系统头文件
@@ -309,6 +335,13 @@ namespace NutHeaderTools
 
             writer.WriteLine("namespace NLib");
             writer.WriteLine("{");
+            writer.WriteLine();
+
+            // 前向声明所有类
+            foreach (ClassInfo classInfo in headerInfo.Classes)
+            {
+                writer.WriteLine($"class {classInfo.Name};");
+            }
             writer.WriteLine();
 
             foreach (ClassInfo classInfo in headerInfo.Classes)
@@ -442,28 +475,60 @@ namespace NutHeaderTools
             {
                 // 生成GENERATED_BODY实现
                 writer.WriteLine($"// {classInfo.Name} GENERATED_BODY 实现");
-                writer.WriteLine($"template<>");
-                writer.WriteLine($"const char* {classInfo.Name}::GetStaticTypeName() {{");
+                
+                // 生成静态成员变量定义
+                writer.WriteLine($"bool {classInfo.Name}::bReflectionRegistered = false;");
+                writer.WriteLine();
+                
+                // 实现GetStaticTypeName
+                writer.WriteLine($"const char* {classInfo.Name}::GetStaticTypeName()");
+                writer.WriteLine("{");
                 writer.WriteLine($"    return \"{classInfo.Name}\";");
                 writer.WriteLine("}");
                 writer.WriteLine();
                 
-                writer.WriteLine($"template<>");
-                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetStaticClassReflection() {{");
+                // 实现GetStaticClassReflection
+                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetStaticClassReflection()");
+                writer.WriteLine("{");
                 writer.WriteLine($"    return &{classInfo.Name}_ClassReflection;");
                 writer.WriteLine("}");
                 writer.WriteLine();
                 
-                // 注册反射信息
+                // 实现GetClassReflection
+                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetClassReflection() const");
+                writer.WriteLine("{");
+                writer.WriteLine($"    return &{classInfo.Name}_ClassReflection;");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                
+                // 实现CreateDefaultObject
+                writer.WriteLine($"NObject* {classInfo.Name}::CreateDefaultObject()");
+                writer.WriteLine("{");
+                writer.WriteLine($"    return new {classInfo.Name}();");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                
+                // 实现RegisterReflection
+                writer.WriteLine($"void {classInfo.Name}::RegisterReflection()");
+                writer.WriteLine("{");
+                writer.WriteLine("    if (!bReflectionRegistered)");
+                writer.WriteLine("    {");
+                writer.WriteLine("        auto& Registry = CReflectionRegistry::GetInstance();");
+                writer.WriteLine($"        Registry.RegisterClass(&{classInfo.Name}_ClassReflection);");
+                writer.WriteLine("        bReflectionRegistered = true;");
+                writer.WriteLine("    }");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                
+                // 自动注册（通过静态初始化）
                 writer.WriteLine($"// 自动注册 {classInfo.Name} 到反射系统");
                 writer.WriteLine("namespace {");
-                writer.WriteLine($"    struct {classInfo.Name}ReflectionRegistrar {{");
-                writer.WriteLine($"        {classInfo.Name}ReflectionRegistrar() {{");
-                writer.WriteLine("            auto& Registry = CReflectionRegistry::GetInstance();");
-                writer.WriteLine($"            Registry.RegisterClass(&{classInfo.Name}_ClassReflection);");
+                writer.WriteLine($"    struct {classInfo.Name}AutoRegistrar {{");
+                writer.WriteLine($"        {classInfo.Name}AutoRegistrar() {{");
+                writer.WriteLine($"            {classInfo.Name}::RegisterReflection();");
                 writer.WriteLine("        }");
                 writer.WriteLine("    };");
-                writer.WriteLine($"    static {classInfo.Name}ReflectionRegistrar {classInfo.Name}_registrar_;");
+                writer.WriteLine($"    static {classInfo.Name}AutoRegistrar {classInfo.Name}_auto_registrar;");
                 writer.WriteLine("}");
             }
             writer.WriteLine();
@@ -481,6 +546,75 @@ namespace NutHeaderTools
             // 检查是否为已知的抽象类
             var abstractClasses = new[] { "NContainer" };
             return abstractClasses.Contains(className);
+        }
+
+        /// <summary>
+        /// 验证是否为有效的C++标识符
+        /// </summary>
+        private static bool IsValidIdentifier(string identifier)
+        {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+                
+            // C++标识符规则：以字母或下划线开头，后跟字母、数字或下划线
+            return Regex.IsMatch(identifier, @"^[A-Za-z_][A-Za-z0-9_]*$");
+        }
+
+        /// <summary>
+        /// 验证是否为有效的C++类型标识符（包括模板和命名空间）
+        /// </summary>
+        private static bool IsValidTypeIdentifier(string typeIdentifier)
+        {
+            if (string.IsNullOrEmpty(typeIdentifier))
+                return false;
+                
+            // 支持：基本类型、模板类型、命名空间类型
+            return Regex.IsMatch(typeIdentifier, @"^[A-Za-z_][A-Za-z0-9_]*(?:(?:<[^<>]*>)|(?:::[A-Za-z_][A-Za-z0-9_]*))*$");
+        }
+
+        /// <summary>
+        /// 扫描所有Build.cs文件
+        /// </summary>
+        private async Task ScanBuildFilesAsync()
+        {
+            try
+            {
+                var discoveredTargets = await BuildTargetDiscovery.DiscoverBuildTargetsAsync();
+                buildTargets.AddRange(discoveredTargets);
+                
+                logger.Info($"找到 {buildTargets.Count} 个构建目标:");
+                foreach (var target in buildTargets)
+                {
+                    logger.Info($"  ✓ {target.Name} ({target.TargetType}) - {Path.GetRelativePath(".", target.BuildFilePath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"扫描构建文件失败: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+
+        /// <summary>
+        /// 处理所有构建目标
+        /// </summary>
+        private void ProcessBuildTargets()
+        {
+            foreach (var buildInfo in buildTargets)
+            {
+                logger.Info($"🔍 处理构建目标: {buildInfo.Name}");
+
+                if (Directory.Exists(buildInfo.SourcesDirectory))
+                {
+                    logger.Debug($"    扫描源目录: {buildInfo.SourcesDirectory}");
+                    ProcessDirectory(buildInfo.SourcesDirectory);
+                }
+                else
+                {
+                    logger.Warning($"    源目录不存在: {buildInfo.SourcesDirectory}");
+                }
+            }
         }
     }
 
@@ -517,4 +651,5 @@ namespace NutHeaderTools
         public string Parameters { get; set; } = "";
         public string Attributes { get; set; } = "";
     }
+
 }

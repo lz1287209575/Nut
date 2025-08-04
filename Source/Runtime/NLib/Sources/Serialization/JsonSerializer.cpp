@@ -6,7 +6,7 @@ namespace NLib
 {
 // === CJsonSerializationArchive 实现 ===
 
-CJsonSerializationArchive::CJsonSerializationArchive(TSharedPtr<CStream> InStream,
+CJsonSerializationArchive::CJsonSerializationArchive(TSharedPtr<NStream> InStream,
                                                      const SSerializationContext& InContext)
     : CSerializationArchive(InStream, InContext)
 {}

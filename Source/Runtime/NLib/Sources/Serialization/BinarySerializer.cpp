@@ -9,7 +9,7 @@ namespace NLib
 {
 // === CBinarySerializationArchive 实现 ===
 
-CBinarySerializationArchive::CBinarySerializationArchive(TSharedPtr<CStream> InStream,
+CBinarySerializationArchive::CBinarySerializationArchive(TSharedPtr<NStream> InStream,
                                                          const SSerializationContext& InContext)
     : CSerializationArchive(InStream, InContext)
 {}

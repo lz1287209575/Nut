@@ -1,0 +1,67 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "NutEngine-1.0",
+  "Category": "GameServer",
+  "Description": "Nut Engine - 跨平台高性能游戏服务器微服务框架",
+  "Company": "Nut Engine Team",
+  "Copyright": "Copyright © 2024 Nut Engine Team",
+  
+  "Modules": [
+    {
+      "Name": "NLib",
+      "Type": "CoreLib",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "LuaForge",
+      "Type": "CoreLib",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "PlayerService",
+      "Type": "Executable",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "ServiceAllocate",
+      "Type": "Executable",
+      "LoadingPhase": "Default"
+    }
+  ],
+  
+  "Plugins": [
+    {
+      "Name": "spdlog",
+      "Enabled": true,
+      "Path": "ThirdParty/spdlog",
+      "SupportedTargetPlatforms": ["Win64", "Linux", "Mac"]
+    },
+    {
+      "Name": "tcmalloc",
+      "Enabled": true,
+      "Path": "ThirdParty/tcmalloc",
+      "SupportedTargetPlatforms": ["Linux", "Mac"]
+    }
+  ],
+  
+  "TargetPlatforms": [
+    "Win64",
+    "Linux", 
+    "Mac"
+  ],
+  
+  "Paths": {
+    "Build": "Binary",
+    "Intermediate": "Intermediate",
+    "ProjectFiles": "ProjectFiles"
+  },
+  
+  "AdditionalPluginDirectories": [
+    "ThirdParty"
+  ],
+  
+  "AdditionalRootDirectories": [
+    "Source/Runtime",
+    "Source/Programs"
+  ]
+}

@@ -6,9 +6,10 @@
 #include "Core/SmartPointers.h"
 #include "IO/Stream.h"
 #include "Logging/LogCategory.h"
-#include "Serializer.generate.h"
 
 #include <type_traits>
+
+#include "Serializer.generate.h"
 
 namespace NLib
 {
@@ -184,7 +185,7 @@ class NSerializationArchive : public NObject
 public:
 	// === 构造函数 ===
 
-	explicit NSerializationArchive(TSharedPtr<CStream> InStream, const SSerializationContext& InContext);
+	explicit NSerializationArchive(TSharedPtr<NStream> InStream, const SSerializationContext& InContext);
 	virtual ~NSerializationArchive() = default;
 
 public:
@@ -194,7 +195,7 @@ public:
 	{
 		return Context;
 	}
-	TSharedPtr<CStream> GetStream() const
+	TSharedPtr<NStream> GetStream() const
 	{
 		return Stream;
 	}
@@ -447,7 +448,7 @@ protected:
 	}
 
 protected:
-	TSharedPtr<CStream> Stream;
+	TSharedPtr<NStream> Stream;
 	SSerializationContext Context;
 };
 
@@ -460,18 +461,18 @@ public:
 	/**
 	 * @brief 创建序列化档案
 	 */
-	static TSharedPtr<NSerializationArchive> CreateArchive(TSharedPtr<CStream> Stream,
+	static TSharedPtr<NSerializationArchive> CreateArchive(TSharedPtr<NStream> Stream,
 	                                                       const SSerializationContext& Context);
 
 	/**
 	 * @brief 创建二进制序列化档案
 	 */
-	static TSharedPtr<NSerializationArchive> CreateBinaryArchive(TSharedPtr<CStream> Stream, ESerializationMode Mode);
+	static TSharedPtr<NSerializationArchive> CreateBinaryArchive(TSharedPtr<NStream> Stream, ESerializationMode Mode);
 
 	/**
 	 * @brief 创建JSON序列化档案
 	 */
-	static TSharedPtr<NSerializationArchive> CreateJsonArchive(TSharedPtr<CStream> Stream,
+	static TSharedPtr<NSerializationArchive> CreateJsonArchive(TSharedPtr<NStream> Stream,
 	                                                           ESerializationMode Mode,
 	                                                           bool bPrettyPrint = false);
 };

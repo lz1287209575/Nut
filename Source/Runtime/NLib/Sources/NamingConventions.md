@@ -13,7 +13,7 @@ NLib采用统一的大驼峰命名规范（PascalCase），并通过前缀来区
 
 #### 类 (Classes)
 - **NObject派生类**: `N***` (例: `NPlayer`, `NGameInstance`, `NNetworkManager`)
-- **普通类**: `C***` (例: `CLogger`, `CFileSystem`, `CConfig`)
+- **普通类**: `C***` (例: `CLogger`, `NFileSystem`, `CConfig`)
 - **接口**: `I***` (例: `ISerializable`, `INetworkHandler`, `IRenderable`)
 - **结构体**: `S***` (例: `SPlayerData`, `SGameConfig`, `SNetworkPacket`)
 - **模板类**: `T***` (例: `TArray`, `TMap`, `TSharedPtr`)

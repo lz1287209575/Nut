@@ -15,6 +15,7 @@
 #include "LuaEngine.h"
 #include "Macros/ReflectionMacros.h"
 #include "ScriptBindingLoader.h"
+
 #include "ScriptSystemExample.generate.h"
 
 namespace NLib::Examples

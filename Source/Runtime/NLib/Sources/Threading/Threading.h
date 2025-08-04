@@ -5,9 +5,9 @@
  * @brief NLib线程系统库主头文件
  *
  * 提供完整的多线程编程功能：
- * - 线程管理（CThread, IRunnable）
+ * - 线程管理（NThread, IRunnable）
  * - 任务系统（TTask, TFuture, TPromise）
- * - 线程池（CThreadPool）
+ * - 线程池（NThreadPool）
  * - 异步操作（CAsync）
  * - 线程安全容器
  */
@@ -198,9 +198,9 @@ public:
 		SThreadingMemoryInfo Info;
 
 		// 粗略估算内存使用
-		Info.ThreadMemoryUsage = Info.TotalThreads * (sizeof(CThread) + 8192); // 假设每线程8KB堆栈
+		Info.ThreadMemoryUsage = Info.TotalThreads * (sizeof(NThread) + 8192); // 假设每线程8KB堆栈
 		Info.TaskMemoryUsage = Info.TotalTasks * sizeof(TTask<void>);
-		Info.ThreadPoolMemoryUsage = Info.TotalThreadPools * sizeof(CThreadPool);
+		Info.ThreadPoolMemoryUsage = Info.TotalThreadPools * sizeof(NThreadPool);
 		Info.TotalMemoryUsage = Info.ThreadMemoryUsage + Info.TaskMemoryUsage + Info.ThreadPoolMemoryUsage;
 
 		return Info;
@@ -412,7 +412,7 @@ public:
 		int32_t TotalCount = EndIndex - StartIndex;
 		int32_t ChunkSize = (TotalCount + CoroutineCount - 1) / CoroutineCount;
 
-		TArray<TSharedPtr<CCoroutine>, CMemoryManager> Coroutines;
+		TArray<TSharedPtr<NCoroutine>, CMemoryManager> Coroutines;
 		Coroutines.Reserve(CoroutineCount);
 
 		for (uint32_t i = 0; i < CoroutineCount; ++i)
@@ -448,7 +448,7 @@ public:
 		}
 
 		// 等待所有协程完成
-		CCoroutineUtils::WaitAll(Coroutines);
+		NCoroutineUtils::WaitAll(Coroutines);
 	}
 
 	/**
@@ -470,7 +470,7 @@ public:
 		int32_t TotalCount = Container.Size();
 		int32_t ChunkSize = (TotalCount + CoroutineCount - 1) / CoroutineCount;
 
-		TArray<TSharedPtr<CCoroutine>, CMemoryManager> Coroutines;
+		TArray<TSharedPtr<NCoroutine>, CMemoryManager> Coroutines;
 		Coroutines.Reserve(CoroutineCount);
 
 		for (uint32_t i = 0; i < CoroutineCount; ++i)
@@ -506,7 +506,7 @@ public:
 		}
 
 		// 等待所有协程完成
-		CCoroutineUtils::WaitAll(Coroutines);
+		NCoroutineUtils::WaitAll(Coroutines);
 	}
 
 public:
@@ -577,7 +577,7 @@ public:
 /**
  * @brief 获取全局默认线程池
  */
-inline TSharedPtr<CThreadPool> GetDefaultThreadPool()
+inline TSharedPtr<NThreadPool> GetDefaultThreadPool()
 {
 	return CAsync::GetDefaultThreadPool();
 }
@@ -585,7 +585,7 @@ inline TSharedPtr<CThreadPool> GetDefaultThreadPool()
 /**
  * @brief 设置全局默认线程池
  */
-inline void SetDefaultThreadPool(TSharedPtr<CThreadPool> ThreadPool)
+inline void SetDefaultThreadPool(TSharedPtr<NThreadPool> ThreadPool)
 {
 	CAsync::SetDefaultThreadPool(ThreadPool);
 }

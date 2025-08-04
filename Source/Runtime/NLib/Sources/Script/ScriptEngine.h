@@ -8,6 +8,7 @@
 #include "Core/TString.h"
 #include "Delegate/Delegate.h"
 #include "Memory/Memory.h"
+
 #include "ScriptEngine.generate.h"
 
 namespace NLib

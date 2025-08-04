@@ -11,32 +11,32 @@ namespace NLib
 {
 // === 构造函数 ===
 
-CPath::CPath()
+NPath::NPath()
 {}
 
-CPath::CPath(const TString& InPath)
+NPath::NPath(const TString& InPath)
     : PathString(InPath)
 {
 	Normalize();
 }
 
-CPath::CPath(const char* InPath)
+NPath::NPath(const char* InPath)
     : PathString(InPath ? InPath : "")
 {
 	Normalize();
 }
 
-CPath::CPath(const CPath& Other)
+NPath::NPath(const NPath& Other)
     : PathString(Other.PathString)
 {}
 
-CPath::CPath(CPath&& Other) noexcept
+NPath::NPath(NPath&& Other) noexcept
     : PathString(std::move(Other.PathString))
 {}
 
 // === 赋值操作符 ===
 
-CPath& CPath::operator=(const CPath& Other)
+NPath& NPath::operator=(const NPath& Other)
 {
 	if (this != &Other)
 	{
@@ -45,7 +45,7 @@ CPath& CPath::operator=(const CPath& Other)
 	return *this;
 }
 
-CPath& CPath::operator=(CPath&& Other) noexcept
+NPath& NPath::operator=(NPath&& Other) noexcept
 {
 	if (this != &Other)
 	{
@@ -54,14 +54,14 @@ CPath& CPath::operator=(CPath&& Other) noexcept
 	return *this;
 }
 
-CPath& CPath::operator=(const TString& InPath)
+NPath& NPath::operator=(const TString& InPath)
 {
 	PathString = InPath;
 	Normalize();
 	return *this;
 }
 
-CPath& CPath::operator=(const char* InPath)
+NPath& NPath::operator=(const char* InPath)
 {
 	PathString = InPath ? InPath : "";
 	Normalize();
@@ -70,50 +70,50 @@ CPath& CPath::operator=(const char* InPath)
 
 // === 比较操作符 ===
 
-bool CPath::operator==(const CPath& Other) const
+bool NPath::operator==(const NPath& Other) const
 {
 	return PathString == Other.PathString;
 }
 
-bool CPath::operator!=(const CPath& Other) const
+bool NPath::operator!=(const NPath& Other) const
 {
 	return PathString != Other.PathString;
 }
 
-bool CPath::operator<(const CPath& Other) const
+bool NPath::operator<(const NPath& Other) const
 {
 	return PathString < Other.PathString;
 }
 
 // === 路径拼接操作符 ===
 
-CPath CPath::operator/(const CPath& Other) const
+NPath NPath::operator/(const NPath& Other) const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	Result /= Other;
 	return Result;
 }
 
-CPath CPath::operator/(const TString& Other) const
+NPath NPath::operator/(const TString& Other) const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	Result /= Other;
 	return Result;
 }
 
-CPath CPath::operator/(const char* Other) const
+NPath NPath::operator/(const char* Other) const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	Result /= Other;
 	return Result;
 }
 
-CPath& CPath::operator/=(const CPath& Other)
+NPath& NPath::operator/=(const NPath& Other)
 {
 	return *this /= Other.PathString;
 }
 
-CPath& CPath::operator/=(const TString& Other)
+NPath& NPath::operator/=(const TString& Other)
 {
 	if (Other.IsEmpty())
 	{
@@ -141,14 +141,14 @@ CPath& CPath::operator/=(const TString& Other)
 	return *this;
 }
 
-CPath& CPath::operator/=(const char* Other)
+NPath& NPath::operator/=(const char* Other)
 {
 	return *this /= TString(Other ? Other : "");
 }
 
 // === 路径解析 ===
 
-TString CPath::GetFileName() const
+TString NPath::GetFileName() const
 {
 	if (PathString.IsEmpty())
 	{
@@ -175,7 +175,7 @@ TString CPath::GetFileName() const
 	}
 }
 
-TString CPath::GetFileNameWithoutExtension() const
+TString NPath::GetFileNameWithoutExtension() const
 {
 	TString FileName = GetFileName();
 	int32_t DotIndex = FileName.LastIndexOf('.');
@@ -188,7 +188,7 @@ TString CPath::GetFileNameWithoutExtension() const
 	return FileName;
 }
 
-TString CPath::GetExtension() const
+TString NPath::GetExtension() const
 {
 	TString FileName = GetFileName();
 	int32_t DotIndex = FileName.LastIndexOf('.');
@@ -201,17 +201,17 @@ TString CPath::GetExtension() const
 	return TString();
 }
 
-CPath CPath::GetDirectoryName() const
+NPath NPath::GetDirectoryName() const
 {
 	if (PathString.IsEmpty())
 	{
-		return CPath();
+		return NPath();
 	}
 
 	try
 	{
 		std::filesystem::path StdPath = ToStdPath();
-		return CPath(StdPath.parent_path().string().c_str());
+		return NPath(StdPath.parent_path().string().c_str());
 	}
 	catch (...)
 	{
@@ -221,24 +221,24 @@ CPath CPath::GetDirectoryName() const
 
 		if (LastSeparator > 0)
 		{
-			return CPath(PathString.Substring(0, LastSeparator));
+			return NPath(PathString.Substring(0, LastSeparator));
 		}
 
-		return CPath();
+		return NPath();
 	}
 }
 
-CPath CPath::GetRoot() const
+NPath NPath::GetRoot() const
 {
 	if (PathString.IsEmpty())
 	{
-		return CPath();
+		return NPath();
 	}
 
 	try
 	{
 		std::filesystem::path StdPath = ToStdPath();
-		return CPath(StdPath.root_path().string().c_str());
+		return NPath(StdPath.root_path().string().c_str());
 	}
 	catch (...)
 	{
@@ -246,27 +246,27 @@ CPath CPath::GetRoot() const
 		// Windows: 查找盘符
 		if (PathString.Length() >= 2 && PathString[1] == FPathConstants::VolumeSeparator)
 		{
-			return CPath(PathString.Substring(0, 2) + FPathConstants::DirectorySeparatorString);
+			return NPath(PathString.Substring(0, 2) + FPathConstants::DirectorySeparatorString);
 		}
 #endif
 		// Unix: 根目录是 /
 		if (PathString.StartsWith(FPathConstants::DirectorySeparatorString))
 		{
-			return CPath(FPathConstants::DirectorySeparatorString);
+			return NPath(FPathConstants::DirectorySeparatorString);
 		}
 
-		return CPath();
+		return NPath();
 	}
 }
 
-TArray<TString, CMemoryManager> CPath::GetComponents() const
+TArray<TString, CMemoryManager> NPath::GetComponents() const
 {
 	return SplitPath();
 }
 
 // === 路径操作 ===
 
-CPath& CPath::Normalize()
+NPath& NPath::Normalize()
 {
 	if (PathString.IsEmpty())
 	{
@@ -329,13 +329,13 @@ CPath& CPath::Normalize()
 	return *this;
 }
 
-CPath CPath::GetNormalized() const
+NPath NPath::GetNormalized() const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	return Result.Normalize();
 }
 
-CPath& CPath::MakeAbsolute()
+NPath& NPath::MakeAbsolute()
 {
 	if (!IsAbsolute())
 	{
@@ -345,13 +345,13 @@ CPath& CPath::MakeAbsolute()
 	return *this;
 }
 
-CPath CPath::GetAbsolute() const
+NPath NPath::GetAbsolute() const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	return Result.MakeAbsolute();
 }
 
-CPath CPath::GetRelative(const CPath& BasePath) const
+NPath NPath::GetRelative(const NPath& BasePath) const
 {
 	try
 	{
@@ -359,13 +359,13 @@ CPath CPath::GetRelative(const CPath& BasePath) const
 		std::filesystem::path BaseStdPath = BasePath.ToStdPath();
 
 		auto RelativePath = std::filesystem::relative(ThisPath, BaseStdPath);
-		return CPath(RelativePath.string().c_str());
+		return NPath(RelativePath.string().c_str());
 	}
 	catch (...)
 	{
 		// 手动计算相对路径
-		CPath AbsThis = GetAbsolute();
-		CPath AbsBase = BasePath.GetAbsolute();
+		NPath AbsThis = GetAbsolute();
+		NPath AbsBase = BasePath.GetAbsolute();
 
 		auto ThisComponents = AbsThis.GetComponents();
 		auto BaseComponents = AbsBase.GetComponents();
@@ -387,7 +387,7 @@ CPath CPath::GetRelative(const CPath& BasePath) const
 		}
 
 		// 构建相对路径
-		CPath Result;
+		NPath Result;
 
 		// 添加回退路径
 		for (int32_t i = CommonPrefix; i < BaseComponents.Size(); ++i)
@@ -405,24 +405,24 @@ CPath CPath::GetRelative(const CPath& BasePath) const
 	}
 }
 
-CPath& CPath::ChangeExtension(const TString& NewExtension)
+NPath& NPath::ChangeExtension(const TString& NewExtension)
 {
 	TString FileName = GetFileNameWithoutExtension();
-	CPath Directory = GetDirectoryName();
+	NPath Directory = GetDirectoryName();
 
 	PathString = (Directory / (FileName + NewExtension)).ToString();
 	return *this;
 }
 
-CPath CPath::WithExtension(const TString& NewExtension) const
+NPath NPath::WithExtension(const TString& NewExtension) const
 {
-	CPath Result(*this);
+	NPath Result(*this);
 	return Result.ChangeExtension(NewExtension);
 }
 
 // === 路径检查 ===
 
-bool CPath::IsAbsolute() const
+bool NPath::IsAbsolute() const
 {
 	if (PathString.IsEmpty())
 	{
@@ -447,23 +447,23 @@ bool CPath::IsAbsolute() const
 	}
 }
 
-bool CPath::IsRelative() const
+bool NPath::IsRelative() const
 {
 	return !IsAbsolute();
 }
 
-bool CPath::IsFileName() const
+bool NPath::IsFileName() const
 {
 	return !PathString.Contains(FPathConstants::DirectorySeparatorString) &&
 	       !PathString.Contains(FPathConstants::AltDirectorySeparatorString);
 }
 
-bool CPath::IsValid() const
+bool NPath::IsValid() const
 {
 	return !PathString.IsEmpty() && !HasInvalidCharacters();
 }
 
-bool CPath::HasInvalidCharacters() const
+bool NPath::HasInvalidCharacters() const
 {
 	for (int32_t i = 0; i < PathString.Length(); ++i)
 	{
@@ -477,24 +477,24 @@ bool CPath::HasInvalidCharacters() const
 
 // === 静态工具方法 ===
 
-CPath CPath::GetCurrentDirectory()
+NPath NPath::GetCurrentDirectory()
 {
 	try
 	{
-		return CPath(std::filesystem::current_path().string().c_str());
+		return NPath(std::filesystem::current_path().string().c_str());
 	}
 	catch (...)
 	{
 		NLOG_IO(Error, "Failed to get current directory");
-		return CPath(".");
+		return NPath(".");
 	}
 }
 
-CPath CPath::GetTempDirectory()
+NPath NPath::GetTempDirectory()
 {
 	try
 	{
-		return CPath(std::filesystem::temp_directory_path().string().c_str());
+		return NPath(std::filesystem::temp_directory_path().string().c_str());
 	}
 	catch (...)
 	{
@@ -509,11 +509,11 @@ CPath CPath::GetTempDirectory()
 		if (!TempDir)
 			TempDir = "/tmp";
 #endif
-		return CPath(TempDir);
+		return NPath(TempDir);
 	}
 }
 
-CPath CPath::GetUserDirectory()
+NPath NPath::GetUserDirectory()
 {
 #if defined(_WIN32) || defined(_WIN64)
 	const char* UserDir = std::getenv("USERPROFILE");
@@ -522,10 +522,10 @@ CPath CPath::GetUserDirectory()
 #else
 	const char* UserDir = std::getenv("HOME");
 #endif
-	return CPath(UserDir ? UserDir : "");
+	return NPath(UserDir ? UserDir : "");
 }
 
-CPath CPath::GetApplicationDirectory()
+NPath NPath::GetApplicationDirectory()
 {
 	try
 	{
@@ -536,7 +536,7 @@ CPath CPath::GetApplicationDirectory()
 #elif defined(__linux__)
 		// Linux实现
 		std::filesystem::path ExePath = std::filesystem::canonical("/proc/self/exe");
-		return CPath(ExePath.parent_path().string().c_str());
+		return NPath(ExePath.parent_path().string().c_str());
 #else
 		// 其他平台，返回当前目录
 		return GetCurrentDirectory();
@@ -548,12 +548,12 @@ CPath CPath::GetApplicationDirectory()
 	}
 }
 
-bool CPath::IsSeparator(char Ch)
+bool NPath::IsSeparator(char Ch)
 {
 	return Ch == FPathConstants::DirectorySeparator || Ch == FPathConstants::AltDirectorySeparator;
 }
 
-bool CPath::IsInvalidPathChar(char Ch)
+bool NPath::IsInvalidPathChar(char Ch)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows无效字符
@@ -564,7 +564,7 @@ bool CPath::IsInvalidPathChar(char Ch)
 #endif
 }
 
-TString CPath::NormalizeSeparators(const TString& Path)
+TString NPath::NormalizeSeparators(const TString& Path)
 {
 	TString Result = Path;
 
@@ -580,12 +580,12 @@ TString CPath::NormalizeSeparators(const TString& Path)
 	return Result;
 }
 
-CPath CPath::GetCommonPrefix(const CPath& Path1, const CPath& Path2)
+NPath NPath::GetCommonPrefix(const NPath& Path1, const NPath& Path2)
 {
 	auto Components1 = Path1.GetComponents();
 	auto Components2 = Path2.GetComponents();
 
-	CPath CommonPath;
+	NPath CommonPath;
 	int32_t MinSize = std::min(Components1.Size(), Components2.Size());
 
 	for (int32_t i = 0; i < MinSize; ++i)
@@ -605,7 +605,7 @@ CPath CPath::GetCommonPrefix(const CPath& Path1, const CPath& Path2)
 
 // === 内部实现 ===
 
-TArray<TString, CMemoryManager> CPath::SplitPath() const
+TArray<TString, CMemoryManager> NPath::SplitPath() const
 {
 	TArray<TString, CMemoryManager> Components;
 
@@ -649,12 +649,12 @@ TArray<TString, CMemoryManager> CPath::SplitPath() const
 	return Components;
 }
 
-void CPath::FromStdPath(const std::filesystem::path& StdPath)
+void NPath::FromStdPath(const std::filesystem::path& StdPath)
 {
 	PathString = TString(StdPath.string().c_str());
 }
 
-std::filesystem::path CPath::ToStdPath() const
+std::filesystem::path NPath::ToStdPath() const
 {
 	return std::filesystem::path(PathString.GetData());
 }

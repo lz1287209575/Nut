@@ -135,9 +135,9 @@ void CScriptBindingRegistry::GenerateAllBindings(const TString& OutputDirectory)
 	NLOG_SCRIPT(Info, "Generating script bindings to directory: {}", OutputDirectory.GetData());
 
 	// 确保输出目录存在
-	if (!CFileSystem::DirectoryExists(OutputDirectory))
+	if (!NFileSystem::DirectoryExists(OutputDirectory))
 	{
-		CFileSystem::CreateDirectories(OutputDirectory);
+		NFileSystem::CreateDirectories(OutputDirectory);
 	}
 
 	for (const auto& GeneratorPair : Generators)
@@ -168,8 +168,8 @@ void CScriptBindingRegistry::GenerateAllBindings(const TString& OutputDirectory)
 				break;
 			}
 
-			TString FilePath = CPath::Combine(OutputDirectory, FileName);
-			auto WriteResult = CFileSystem::WriteFileAsString(FilePath, BindingCode);
+			TString FilePath = NPath::Combine(OutputDirectory, FileName);
+			auto WriteResult = NFileSystem::WriteFileAsString(FilePath, BindingCode);
 
 			if (WriteResult.IsSuccess())
 			{

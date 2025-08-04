@@ -461,7 +461,7 @@ SScriptExecutionResult CScriptManager::ExecuteFile(EScriptLanguage Language,
                                                    const SScriptConfig& Config)
 {
 	// 检查文件是否存在
-	if (!CFileSystem::FileExists(FilePath))
+	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              TString(TEXT("Script file not found: ")) + FilePath);

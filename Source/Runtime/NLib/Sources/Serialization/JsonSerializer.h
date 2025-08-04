@@ -19,7 +19,7 @@ class CJsonSerializationArchive : public CSerializationArchive
 public:
 	// === 构造函数 ===
 
-	explicit CJsonSerializationArchive(TSharedPtr<CStream> InStream, const SSerializationContext& InContext);
+	explicit CJsonSerializationArchive(TSharedPtr<NStream> InStream, const SSerializationContext& InContext);
 	~CJsonSerializationArchive() override = default;
 
 public:
@@ -206,7 +206,7 @@ public:
 	 * @brief 序列化对象到JSON流
 	 */
 	template <typename T>
-	static SSerializationResult SerializeToStream(const T& Object, TSharedPtr<CStream> Stream, bool bPrettyPrint = true)
+	static SSerializationResult SerializeToStream(const T& Object, TSharedPtr<NStream> Stream, bool bPrettyPrint = true)
 	{
 		SSerializationContext Context(ESerializationMode::Serialize, ESerializationFormat::JSON);
 		if (bPrettyPrint)
@@ -236,7 +236,7 @@ public:
 	 * @brief 从JSON流反序列化对象
 	 */
 	template <typename T>
-	static SSerializationResult DeserializeFromStream(T& Object, TSharedPtr<CStream> Stream)
+	static SSerializationResult DeserializeFromStream(T& Object, TSharedPtr<NStream> Stream)
 	{
 		SSerializationContext Context(ESerializationMode::Deserialize, ESerializationFormat::JSON);
 
@@ -262,7 +262,7 @@ public:
 	template <typename T>
 	static TString SerializeToString(const T& Object, bool bPrettyPrint = true)
 	{
-		auto MemoryStream = MakeShared<CMemoryStream>();
+		auto MemoryStream = MakeShared<NMemoryStream>();
 		auto Result = SerializeToStream(Object, MemoryStream, bPrettyPrint);
 
 		if (Result.bSuccess)
@@ -283,7 +283,7 @@ public:
 	template <typename T>
 	static bool DeserializeFromString(T& Object, const TString& JsonString)
 	{
-		auto MemoryStream = MakeShared<CMemoryStream>(reinterpret_cast<const uint8_t*>(JsonString.GetData()),
+		auto MemoryStream = MakeShared<NMemoryStream>(reinterpret_cast<const uint8_t*>(JsonString.GetData()),
 		                                              JsonString.Length());
 		auto Result = DeserializeFromStream(Object, MemoryStream);
 

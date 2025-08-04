@@ -11,11 +11,11 @@
 namespace NLib
 {
 // === 静态成员初始化 ===
-CFileSystem::FOnFileWatchEvent CFileSystem::OnFileWatchEvent;
+NFileSystem::FOnFileWatchEvent NFileSystem::OnFileWatchEvent;
 
 // === 文件存在性检查 ===
 
-bool CFileSystem::Exists(const CPath& Path)
+bool NFileSystem::Exists(const NPath& Path)
 {
 	try
 	{
@@ -27,7 +27,7 @@ bool CFileSystem::Exists(const CPath& Path)
 	}
 }
 
-bool CFileSystem::IsFile(const CPath& Path)
+bool NFileSystem::IsFile(const NPath& Path)
 {
 	try
 	{
@@ -39,7 +39,7 @@ bool CFileSystem::IsFile(const CPath& Path)
 	}
 }
 
-bool CFileSystem::IsDirectory(const CPath& Path)
+bool NFileSystem::IsDirectory(const NPath& Path)
 {
 	try
 	{
@@ -51,7 +51,7 @@ bool CFileSystem::IsDirectory(const CPath& Path)
 	}
 }
 
-bool CFileSystem::IsSymbolicLink(const CPath& Path)
+bool NFileSystem::IsSymbolicLink(const NPath& Path)
 {
 	try
 	{
@@ -63,7 +63,7 @@ bool CFileSystem::IsSymbolicLink(const CPath& Path)
 	}
 }
 
-bool CFileSystem::IsEmpty(const CPath& Path)
+bool NFileSystem::IsEmpty(const NPath& Path)
 {
 	try
 	{
@@ -77,7 +77,7 @@ bool CFileSystem::IsEmpty(const CPath& Path)
 
 // === 文件状态查询 ===
 
-SFileStatus CFileSystem::GetFileStatus(const CPath& Path)
+SFileStatus NFileSystem::GetFileStatus(const NPath& Path)
 {
 	SFileStatus Status(Path);
 
@@ -135,7 +135,7 @@ SFileStatus CFileSystem::GetFileStatus(const CPath& Path)
 	return Status;
 }
 
-uint64_t CFileSystem::GetFileSize(const CPath& Path)
+uint64_t NFileSystem::GetFileSize(const NPath& Path)
 {
 	try
 	{
@@ -147,7 +147,7 @@ uint64_t CFileSystem::GetFileSize(const CPath& Path)
 	}
 }
 
-CDateTime CFileSystem::GetLastWriteTime(const CPath& Path)
+CDateTime NFileSystem::GetLastWriteTime(const NPath& Path)
 {
 	try
 	{
@@ -163,13 +163,13 @@ CDateTime CFileSystem::GetLastWriteTime(const CPath& Path)
 	}
 }
 
-CDateTime CFileSystem::GetCreationTime(const CPath& Path)
+CDateTime NFileSystem::GetCreationTime(const NPath& Path)
 {
 	// 简化实现，大部分平台不直接支持创建时间
 	return GetLastWriteTime(Path);
 }
 
-EFilePermissions CFileSystem::GetPermissions(const CPath& Path)
+EFilePermissions NFileSystem::GetPermissions(const NPath& Path)
 {
 	try
 	{
@@ -184,7 +184,7 @@ EFilePermissions CFileSystem::GetPermissions(const CPath& Path)
 
 // === 文件和目录创建 ===
 
-SFileSystemResult CFileSystem::CreateDirectory(const CPath& Path, bool bCreateParents)
+SFileSystemResult NFileSystem::CreateDirectory(const NPath& Path, bool bCreateParents)
 {
 	try
 	{
@@ -229,7 +229,7 @@ SFileSystemResult CFileSystem::CreateDirectory(const CPath& Path, bool bCreatePa
 	}
 }
 
-SFileSystemResult CFileSystem::CreateFile(const CPath& Path, bool bOverwrite)
+SFileSystemResult NFileSystem::CreateFile(const NPath& Path, bool bOverwrite)
 {
 	try
 	{
@@ -266,7 +266,7 @@ SFileSystemResult CFileSystem::CreateFile(const CPath& Path, bool bOverwrite)
 	}
 }
 
-SFileSystemResult CFileSystem::CreateSymbolicLink(const CPath& LinkPath, const CPath& TargetPath)
+SFileSystemResult NFileSystem::CreateSymbolicLink(const NPath& LinkPath, const NPath& TargetPath)
 {
 	try
 	{
@@ -285,7 +285,7 @@ SFileSystemResult CFileSystem::CreateSymbolicLink(const CPath& LinkPath, const C
 	}
 }
 
-SFileSystemResult CFileSystem::CreateHardLink(const CPath& LinkPath, const CPath& TargetPath)
+SFileSystemResult NFileSystem::CreateHardLink(const NPath& LinkPath, const NPath& TargetPath)
 {
 	try
 	{
@@ -303,7 +303,7 @@ SFileSystemResult CFileSystem::CreateHardLink(const CPath& LinkPath, const CPath
 
 // === 文件和目录删除 ===
 
-SFileSystemResult CFileSystem::DeleteFile(const CPath& Path)
+SFileSystemResult NFileSystem::DeleteFile(const NPath& Path)
 {
 	try
 	{
@@ -337,7 +337,7 @@ SFileSystemResult CFileSystem::DeleteFile(const CPath& Path)
 	}
 }
 
-SFileSystemResult CFileSystem::DeleteDirectory(const CPath& Path, bool bRecursive)
+SFileSystemResult NFileSystem::DeleteDirectory(const NPath& Path, bool bRecursive)
 {
 	try
 	{
@@ -384,7 +384,7 @@ SFileSystemResult CFileSystem::DeleteDirectory(const CPath& Path, bool bRecursiv
 	}
 }
 
-SFileSystemResult CFileSystem::Delete(const CPath& Path, bool bRecursive)
+SFileSystemResult NFileSystem::Delete(const NPath& Path, bool bRecursive)
 {
 	if (IsDirectory(Path))
 	{
@@ -398,7 +398,7 @@ SFileSystemResult CFileSystem::Delete(const CPath& Path, bool bRecursive)
 
 // === 文件和目录移动/重命名 ===
 
-SFileSystemResult CFileSystem::Move(const CPath& SourcePath, const CPath& DestinationPath)
+SFileSystemResult NFileSystem::Move(const NPath& SourcePath, const NPath& DestinationPath)
 {
 	try
 	{
@@ -429,15 +429,15 @@ SFileSystemResult CFileSystem::Move(const CPath& SourcePath, const CPath& Destin
 	}
 }
 
-SFileSystemResult CFileSystem::Rename(const CPath& Path, const TString& NewName)
+SFileSystemResult NFileSystem::Rename(const NPath& Path, const TString& NewName)
 {
-	CPath NewPath = Path.GetDirectoryName() / NewName;
+	NPath NewPath = Path.GetDirectoryName() / NewName;
 	return Move(Path, NewPath);
 }
 
 // === 文件和目录复制 ===
 
-SFileSystemResult CFileSystem::CopyFile(const CPath& SourcePath, const CPath& DestinationPath, EFileCopyOptions Options)
+SFileSystemResult NFileSystem::CopyFile(const NPath& SourcePath, const NPath& DestinationPath, EFileCopyOptions Options)
 {
 	try
 	{
@@ -475,8 +475,8 @@ SFileSystemResult CFileSystem::CopyFile(const CPath& SourcePath, const CPath& De
 	}
 }
 
-SFileSystemResult CFileSystem::CopyDirectory(const CPath& SourcePath,
-                                             const CPath& DestinationPath,
+SFileSystemResult NFileSystem::CopyDirectory(const NPath& SourcePath,
+                                             const NPath& DestinationPath,
                                              EFileCopyOptions Options)
 {
 	try
@@ -513,10 +513,10 @@ SFileSystemResult CFileSystem::CopyDirectory(const CPath& SourcePath,
 
 // === 目录遍历 ===
 
-TArray<CPath, CMemoryManager> CFileSystem::ListDirectory(const CPath& DirectoryPath,
+TArray<NPath, CMemoryManager> NFileSystem::ListDirectory(const NPath& DirectoryPath,
                                                          const SDirectoryIterationOptions& Options)
 {
-	TArray<CPath, CMemoryManager> Results;
+	TArray<NPath, CMemoryManager> Results;
 
 	try
 	{
@@ -535,7 +535,7 @@ TArray<CPath, CMemoryManager> CFileSystem::ListDirectory(const CPath& DirectoryP
 		{
 			for (const auto& Entry : std::filesystem::directory_iterator(StdPath))
 			{
-				CPath EntryPath(Entry.path().string().c_str());
+				NPath EntryPath(Entry.path().string().c_str());
 
 				// 检查文件类型过滤
 				bool bShouldInclude = false;
@@ -583,7 +583,7 @@ TArray<CPath, CMemoryManager> CFileSystem::ListDirectory(const CPath& DirectoryP
 	return Results;
 }
 
-TArray<CPath, CMemoryManager> CFileSystem::FindFiles(const CPath& DirectoryPath,
+TArray<NPath, CMemoryManager> NFileSystem::FindFiles(const NPath& DirectoryPath,
                                                      const TString& Pattern,
                                                      bool bRecursive)
 {
@@ -596,7 +596,7 @@ TArray<CPath, CMemoryManager> CFileSystem::FindFiles(const CPath& DirectoryPath,
 	return ListDirectory(DirectoryPath, Options);
 }
 
-TArray<CPath, CMemoryManager> CFileSystem::FindDirectories(const CPath& DirectoryPath,
+TArray<NPath, CMemoryManager> NFileSystem::FindDirectories(const NPath& DirectoryPath,
                                                            const TString& Pattern,
                                                            bool bRecursive)
 {
@@ -611,7 +611,7 @@ TArray<CPath, CMemoryManager> CFileSystem::FindDirectories(const CPath& Director
 
 // === 文件权限和属性 ===
 
-SFileSystemResult CFileSystem::SetPermissions(const CPath& Path, EFilePermissions Permissions)
+SFileSystemResult NFileSystem::SetPermissions(const NPath& Path, EFilePermissions Permissions)
 {
 	try
 	{
@@ -630,7 +630,7 @@ SFileSystemResult CFileSystem::SetPermissions(const CPath& Path, EFilePermission
 	}
 }
 
-SFileSystemResult CFileSystem::SetReadOnly(const CPath& Path, bool bReadOnly)
+SFileSystemResult NFileSystem::SetReadOnly(const NPath& Path, bool bReadOnly)
 {
 	auto CurrentPermissions = GetPermissions(Path);
 
@@ -652,7 +652,7 @@ SFileSystemResult CFileSystem::SetReadOnly(const CPath& Path, bool bReadOnly)
 	return SetPermissions(Path, CurrentPermissions);
 }
 
-SFileSystemResult CFileSystem::SetHidden(const CPath& Path, bool bHidden)
+SFileSystemResult NFileSystem::SetHidden(const NPath& Path, bool bHidden)
 {
 	// 在Unix系统上，隐藏文件通过文件名前缀.来实现
 	// 这里提供基本实现
@@ -661,7 +661,7 @@ SFileSystemResult CFileSystem::SetHidden(const CPath& Path, bool bHidden)
 		TString FileName = Path.GetFileName();
 		if (!FileName.StartsWith("."))
 		{
-			CPath NewPath = Path.GetDirectoryName() / ("." + FileName);
+			NPath NewPath = Path.GetDirectoryName() / ("." + FileName);
 			return Move(Path, NewPath);
 		}
 	}
@@ -670,7 +670,7 @@ SFileSystemResult CFileSystem::SetHidden(const CPath& Path, bool bHidden)
 		TString FileName = Path.GetFileName();
 		if (FileName.StartsWith("."))
 		{
-			CPath NewPath = Path.GetDirectoryName() / FileName.Substring(1);
+			NPath NewPath = Path.GetDirectoryName() / FileName.Substring(1);
 			return Move(Path, NewPath);
 		}
 	}
@@ -678,7 +678,7 @@ SFileSystemResult CFileSystem::SetHidden(const CPath& Path, bool bHidden)
 	return SFileSystemResult(true);
 }
 
-SFileSystemResult CFileSystem::SetFileTime(const CPath& Path,
+SFileSystemResult NFileSystem::SetFileTime(const NPath& Path,
                                            const CDateTime& LastWriteTime,
                                            const CDateTime& LastAccessTime)
 {
@@ -704,40 +704,40 @@ SFileSystemResult CFileSystem::SetFileTime(const CPath& Path,
 
 // === 符号链接操作 ===
 
-CPath CFileSystem::ReadSymbolicLink(const CPath& LinkPath)
+NPath NFileSystem::ReadSymbolicLink(const NPath& LinkPath)
 {
 	try
 	{
 		auto Target = std::filesystem::read_symlink(LinkPath.ToStdPath());
-		return CPath(Target.string().c_str());
+		return NPath(Target.string().c_str());
 	}
 	catch (...)
 	{
-		return CPath();
+		return NPath();
 	}
 }
 
-CPath CFileSystem::ResolveSymbolicLink(const CPath& LinkPath)
+NPath NFileSystem::ResolveSymbolicLink(const NPath& LinkPath)
 {
 	try
 	{
 		auto Canonical = std::filesystem::canonical(LinkPath.ToStdPath());
-		return CPath(Canonical.string().c_str());
+		return NPath(Canonical.string().c_str());
 	}
 	catch (...)
 	{
-		return CPath();
+		return NPath();
 	}
 }
 
 // === 路径操作 ===
 
-CPath CFileSystem::GetAbsolutePath(const CPath& Path)
+NPath NFileSystem::GetAbsolutePath(const NPath& Path)
 {
 	try
 	{
 		auto Absolute = std::filesystem::absolute(Path.ToStdPath());
-		return CPath(Absolute.string().c_str());
+		return NPath(Absolute.string().c_str());
 	}
 	catch (...)
 	{
@@ -745,17 +745,17 @@ CPath CFileSystem::GetAbsolutePath(const CPath& Path)
 	}
 }
 
-CPath CFileSystem::GetRelativePath(const CPath& Path, const CPath& BasePath)
+NPath NFileSystem::GetRelativePath(const NPath& Path, const NPath& BasePath)
 {
 	return Path.GetRelative(BasePath);
 }
 
-CPath CFileSystem::CanonicalizePath(const CPath& Path)
+NPath NFileSystem::CanonicalizePath(const NPath& Path)
 {
 	try
 	{
 		auto Canonical = std::filesystem::canonical(Path.ToStdPath());
-		return CPath(Canonical.string().c_str());
+		return NPath(Canonical.string().c_str());
 	}
 	catch (...)
 	{
@@ -765,7 +765,7 @@ CPath CFileSystem::CanonicalizePath(const CPath& Path)
 
 // === 磁盘空间查询 ===
 
-CFileSystem::SDiskSpaceInfo CFileSystem::GetDiskSpaceInfo(const CPath& Path)
+NFileSystem::SDiskSpaceInfo NFileSystem::GetDiskSpaceInfo(const NPath& Path)
 {
 	SDiskSpaceInfo Info;
 
@@ -786,7 +786,7 @@ CFileSystem::SDiskSpaceInfo CFileSystem::GetDiskSpaceInfo(const CPath& Path)
 
 // === 临时文件操作 ===
 
-CPath CFileSystem::CreateTempFile(const TString& Prefix, const TString& Extension)
+NPath NFileSystem::CreateTempFile(const TString& Prefix, const TString& Extension)
 {
 	try
 	{
@@ -798,7 +798,7 @@ CPath CFileSystem::CreateTempFile(const TString& Prefix, const TString& Extensio
 		std::uniform_int_distribution<> dis(1000, 9999);
 
 		TString FileName = Prefix + TString::FromInt(dis(gen)) + Extension;
-		CPath TempFile = TempDir / FileName;
+		NPath TempFile = TempDir / FileName;
 
 		// 确保文件名唯一
 		int32_t Counter = 0;
@@ -820,10 +820,10 @@ CPath CFileSystem::CreateTempFile(const TString& Prefix, const TString& Extensio
 		NLOG_IO(Error, "Failed to create temp file: {}", e.what());
 	}
 
-	return CPath();
+	return NPath();
 }
 
-CPath CFileSystem::CreateTempDirectory(const TString& Prefix)
+NPath NFileSystem::CreateTempDirectory(const TString& Prefix)
 {
 	try
 	{
@@ -835,7 +835,7 @@ CPath CFileSystem::CreateTempDirectory(const TString& Prefix)
 		std::uniform_int_distribution<> dis(1000, 9999);
 
 		TString DirName = Prefix + TString::FromInt(dis(gen));
-		CPath TempSubDir = TempDir / DirName;
+		NPath TempSubDir = TempDir / DirName;
 
 		// 确保目录名唯一
 		int32_t Counter = 0;
@@ -857,12 +857,12 @@ CPath CFileSystem::CreateTempDirectory(const TString& Prefix)
 		NLOG_IO(Error, "Failed to create temp directory: {}", e.what());
 	}
 
-	return CPath();
+	return NPath();
 }
 
 // === 文件内容快速操作 ===
 
-TString CFileSystem::ReadAllText(const CPath& Path)
+TString NFileSystem::ReadAllText(const NPath& Path)
 {
 	try
 	{
@@ -883,7 +883,7 @@ TString CFileSystem::ReadAllText(const CPath& Path)
 	}
 }
 
-TArray<uint8_t, CMemoryManager> CFileSystem::ReadAllBytes(const CPath& Path)
+TArray<uint8_t, CMemoryManager> NFileSystem::ReadAllBytes(const NPath& Path)
 {
 	TArray<uint8_t, CMemoryManager> Data;
 
@@ -915,7 +915,7 @@ TArray<uint8_t, CMemoryManager> CFileSystem::ReadAllBytes(const CPath& Path)
 	return Data;
 }
 
-SFileSystemResult CFileSystem::WriteAllText(const CPath& Path, const TString& Content, bool bOverwrite)
+SFileSystemResult NFileSystem::WriteAllText(const NPath& Path, const TString& Content, bool bOverwrite)
 {
 	try
 	{
@@ -955,7 +955,7 @@ SFileSystemResult CFileSystem::WriteAllText(const CPath& Path, const TString& Co
 	}
 }
 
-SFileSystemResult CFileSystem::WriteAllBytes(const CPath& Path,
+SFileSystemResult NFileSystem::WriteAllBytes(const NPath& Path,
                                              const TArray<uint8_t, CMemoryManager>& Data,
                                              bool bOverwrite)
 {
@@ -1001,7 +1001,7 @@ SFileSystemResult CFileSystem::WriteAllBytes(const CPath& Path,
 	}
 }
 
-SFileSystemResult CFileSystem::AppendAllText(const CPath& Path, const TString& Content)
+SFileSystemResult NFileSystem::AppendAllText(const NPath& Path, const TString& Content)
 {
 	try
 	{
@@ -1038,7 +1038,7 @@ SFileSystemResult CFileSystem::AppendAllText(const CPath& Path, const TString& C
 
 // === 文件监控 ===
 
-bool CFileSystem::StartWatchingDirectory(const CPath& DirectoryPath, bool bRecursive)
+bool NFileSystem::StartWatchingDirectory(const NPath& DirectoryPath, bool bRecursive)
 {
 	// 文件监控功能的实现比较复杂，这里提供基础框架
 	// 实际实现需要使用平台特定的API（如inotify、ReadDirectoryChangesW等）
@@ -1049,14 +1049,14 @@ bool CFileSystem::StartWatchingDirectory(const CPath& DirectoryPath, bool bRecur
 	return true;
 }
 
-void CFileSystem::StopWatchingDirectory(const CPath& DirectoryPath)
+void NFileSystem::StopWatchingDirectory(const NPath& DirectoryPath)
 {
 	NLOG_IO(Info, "Stopped watching directory: {}", DirectoryPath.GetData());
 
 	// TODO: 实现文件监控停止
 }
 
-void CFileSystem::StopAllWatching()
+void NFileSystem::StopAllWatching()
 {
 	NLOG_IO(Info, "Stopped all file watching");
 
@@ -1065,7 +1065,7 @@ void CFileSystem::StopAllWatching()
 
 // === 工具函数 ===
 
-bool CFileSystem::MatchPattern(const TString& FileName, const TString& Pattern)
+bool NFileSystem::MatchPattern(const TString& FileName, const TString& Pattern)
 {
 	if (Pattern.IsEmpty())
 	{
@@ -1091,7 +1091,7 @@ bool CFileSystem::MatchPattern(const TString& FileName, const TString& Pattern)
 	}
 }
 
-uint64_t CFileSystem::CalculateDirectorySize(const CPath& DirectoryPath, bool bRecursive)
+uint64_t NFileSystem::CalculateDirectorySize(const NPath& DirectoryPath, bool bRecursive)
 {
 	uint64_t TotalSize = 0;
 
@@ -1133,7 +1133,7 @@ uint64_t CFileSystem::CalculateDirectorySize(const CPath& DirectoryPath, bool bR
 	return TotalSize;
 }
 
-TString CFileSystem::CalculateChecksum(const CPath& Path, const TString& Algorithm)
+TString NFileSystem::CalculateChecksum(const NPath& Path, const TString& Algorithm)
 {
 	// 简化实现，实际应该使用专门的哈希库
 	NLOG_IO(Warning, "Checksum calculation not implemented yet for: {}", Path.GetData());
@@ -1142,7 +1142,7 @@ TString CFileSystem::CalculateChecksum(const CPath& Path, const TString& Algorit
 
 // === 内部实现 ===
 
-EFileType CFileSystem::ConvertFileType(const std::filesystem::file_status& Status)
+EFileType NFileSystem::ConvertFileType(const std::filesystem::file_status& Status)
 {
 	auto Type = Status.type();
 
@@ -1167,7 +1167,7 @@ EFileType CFileSystem::ConvertFileType(const std::filesystem::file_status& Statu
 	}
 }
 
-EFilePermissions CFileSystem::ConvertPermissions(std::filesystem::perms Perms)
+EFilePermissions NFileSystem::ConvertPermissions(std::filesystem::perms Perms)
 {
 	uint32_t Result = 0;
 
@@ -1197,7 +1197,7 @@ EFilePermissions CFileSystem::ConvertPermissions(std::filesystem::perms Perms)
 	return static_cast<EFilePermissions>(Result);
 }
 
-std::filesystem::perms CFileSystem::ConvertToStdPermissions(EFilePermissions Permissions)
+std::filesystem::perms NFileSystem::ConvertToStdPermissions(EFilePermissions Permissions)
 {
 	std::filesystem::perms Result = std::filesystem::perms::none;
 
@@ -1227,7 +1227,7 @@ std::filesystem::perms CFileSystem::ConvertToStdPermissions(EFilePermissions Per
 	return Result;
 }
 
-std::filesystem::copy_options CFileSystem::ConvertCopyOptions(EFileCopyOptions Options)
+std::filesystem::copy_options NFileSystem::ConvertCopyOptions(EFileCopyOptions Options)
 {
 	std::filesystem::copy_options Result = std::filesystem::copy_options::none;
 
@@ -1247,14 +1247,14 @@ std::filesystem::copy_options CFileSystem::ConvertCopyOptions(EFileCopyOptions O
 	return Result;
 }
 
-SFileSystemResult CFileSystem::CreateErrorResult(const std::exception& Exception)
+SFileSystemResult NFileSystem::CreateErrorResult(const std::exception& Exception)
 {
 	return SFileSystemResult(false, TString(Exception.what()));
 }
 
-void CFileSystem::ListDirectoryRecursive(const CPath& DirectoryPath,
+void NFileSystem::ListDirectoryRecursive(const NPath& DirectoryPath,
                                          const SDirectoryIterationOptions& Options,
-                                         TArray<CPath, CMemoryManager>& OutPaths,
+                                         TArray<NPath, CMemoryManager>& OutPaths,
                                          int32_t CurrentDepth)
 {
 	if (Options.MaxDepth >= 0 && CurrentDepth >= Options.MaxDepth)
@@ -1268,7 +1268,7 @@ void CFileSystem::ListDirectoryRecursive(const CPath& DirectoryPath,
 
 		for (const auto& Entry : std::filesystem::directory_iterator(StdPath))
 		{
-			CPath EntryPath(Entry.path().string().c_str());
+			NPath EntryPath(Entry.path().string().c_str());
 
 			// 检查文件类型过滤
 			bool bShouldInclude = false;

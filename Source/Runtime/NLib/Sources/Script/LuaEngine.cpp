@@ -733,14 +733,14 @@ SScriptExecutionResult CLuaScriptEngine::CompileFile(const TString& FilePath, co
 	// Lua是解释型语言，通常不需要预编译
 	// 这里可以实现语法检查
 
-	if (!CFileSystem::FileExists(FilePath))
+	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              TString(TEXT("Script file not found: ")) + FilePath);
 	}
 
 	// 读取文件内容进行语法检查
-	auto FileContent = CFileSystem::ReadFileAsString(FilePath);
+	auto FileContent = NFileSystem::ReadFileAsString(FilePath);
 	if (!FileContent.IsSuccess())
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument, TEXT("Failed to read script file"));
@@ -797,14 +797,14 @@ SScriptExecutionResult CLuaScriptModule::Load(const TString& ModulePath)
 		return SScriptExecutionResult(EScriptResult::Success);
 	}
 
-	if (!CFileSystem::FileExists(ModulePath))
+	if (!NFileSystem::FileExists(ModulePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              TString(TEXT("Module file not found: ")) + ModulePath);
 	}
 
 	// 读取模块文件
-	auto FileContent = CFileSystem::ReadFileAsString(ModulePath);
+	auto FileContent = NFileSystem::ReadFileAsString(ModulePath);
 	if (!FileContent.IsSuccess())
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument, TEXT("Failed to read module file"));
@@ -952,13 +952,13 @@ SScriptExecutionResult CLuaScriptModule::ExecuteString(const TString& Code)
 
 SScriptExecutionResult CLuaScriptModule::ExecuteFile(const TString& FilePath)
 {
-	if (!CFileSystem::FileExists(FilePath))
+	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              TString(TEXT("Script file not found: ")) + FilePath);
 	}
 
-	auto FileContent = CFileSystem::ReadFileAsString(FilePath);
+	auto FileContent = NFileSystem::ReadFileAsString(FilePath);
 	if (!FileContent.IsSuccess())
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument, TEXT("Failed to read script file"));
@@ -1200,13 +1200,13 @@ SScriptExecutionResult CLuaScriptContext::ExecuteString(const TString& Code, con
 
 SScriptExecutionResult CLuaScriptContext::ExecuteFile(const TString& FilePath, const TString& ModuleName)
 {
-	if (!CFileSystem::FileExists(FilePath))
+	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              TString(TEXT("Script file not found: ")) + FilePath);
 	}
 
-	auto FileContent = CFileSystem::ReadFileAsString(FilePath);
+	auto FileContent = NFileSystem::ReadFileAsString(FilePath);
 	if (!FileContent.IsSuccess())
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument, TEXT("Failed to read script file"));

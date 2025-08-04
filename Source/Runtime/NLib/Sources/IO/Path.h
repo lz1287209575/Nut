@@ -5,9 +5,10 @@
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Logging/LogCategory.h"
-#include "Path.generate.h"
 
 #include <filesystem>
+
+#include "Path.generate.h"
 
 namespace NLib
 {

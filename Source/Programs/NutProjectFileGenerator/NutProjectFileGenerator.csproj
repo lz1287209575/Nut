@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>NutProjectFileGenerator</RootNamespace>
+    <AssemblyTitle>NutProjectFileGenerator</AssemblyTitle>
+    <AssemblyDescription>Nut Engine Project File Generator - 项目文件生成工具</AssemblyDescription>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <Company>Nut Engine Team</Company>
+    <Product>Nut Engine</Product>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NutBuildSystem/NutBuildSystem.csproj" />
+  </ItemGroup>
+</Project>

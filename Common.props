@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <NutProjectRoot>\Users\fusionrise\Desktop\Nut</NutProjectRoot>
+    <NutThirdParty>\Users\fusionrise\Desktop\Nut\ThirdParty</NutThirdParty>
+    <NutBinary>\Users\fusionrise\Desktop\Nut\Binary</NutBinary>
+    <NutIntermediate>\Users\fusionrise\Desktop\Nut\Intermediate</NutIntermediate>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemDefinitionGroup />
+  <ItemGroup />
+</Project>

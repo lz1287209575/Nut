@@ -17,10 +17,10 @@ namespace NLib
 /**
  * @brief 协程同步原语 - 信号量
  */
-class CCoroutineSemaphore
+class NCoroutineSemaphore
 {
 public:
-	explicit CCoroutineSemaphore(uint32_t InitialCount = 1)
+	explicit NCoroutineSemaphore(uint32_t InitialCount = 1)
 	    : Count(InitialCount),
 	      MaxCount(InitialCount)
 	{}
@@ -87,10 +87,10 @@ private:
 /**
  * @brief 协程同步原语 - 互斥锁
  */
-class CCoroutineMutex
+class NCoroutineMutex
 {
 public:
-	CCoroutineMutex()
+	NCoroutineMutex()
 	    : bIsLocked(false),
 	      OwnerCoroutineId(INVALID_COROUTINE_ID)
 	{}
@@ -166,15 +166,15 @@ private:
 /**
  * @brief 协程同步原语 - 条件变量
  */
-class CCoroutineConditionVariable
+class NCoroutineConditionVariable
 {
 public:
-	CCoroutineConditionVariable() = default;
+	NCoroutineConditionVariable() = default;
 
 	/**
 	 * @brief 等待条件变量
 	 */
-	void Wait(CCoroutineMutex& Mutex)
+	void Wait(NCoroutineMutex& Mutex)
 	{
 		Mutex.Unlock();
 
@@ -191,7 +191,7 @@ public:
 	/**
 	 * @brief 带超时的等待
 	 */
-	bool WaitFor(CCoroutineMutex& Mutex, const CTimespan& Timeout)
+	bool WaitFor(NCoroutineMutex& Mutex, const CTimespan& Timeout)
 	{
 		Mutex.Unlock();
 
@@ -469,17 +469,17 @@ private:
 /**
  * @brief 协程池 - 管理一组协程
  */
-class CCoroutinePool
+class NCoroutinePool
 {
 public:
-	explicit CCoroutinePool(uint32_t PoolSize = 8)
+	explicit NCoroutinePool(uint32_t PoolSize = 8)
 	    : MaxPoolSize(PoolSize),
 	      bIsRunning(false)
 	{
 		WorkerCoroutines.Reserve(MaxPoolSize);
 	}
 
-	~CCoroutinePool()
+	~NCoroutinePool()
 	{
 		Shutdown();
 	}
@@ -611,14 +611,14 @@ private:
 private:
 	uint32_t MaxPoolSize;
 	std::atomic<bool> bIsRunning;
-	TArray<TSharedPtr<CCoroutine>, CMemoryManager> WorkerCoroutines;
+	TArray<TSharedPtr<NCoroutine>, CMemoryManager> WorkerCoroutines;
 	TCoroutineChannel<PoolTask> TaskChannel;
 };
 
 /**
  * @brief 协程工具类
  */
-class CCoroutineUtils
+class NCoroutineUtils
 {
 public:
 	// === 批量操作 ===
@@ -626,7 +626,7 @@ public:
 	/**
 	 * @brief 等待所有协程完成
 	 */
-	static void WaitAll(const TArray<TSharedPtr<CCoroutine>, CMemoryManager>& Coroutines)
+	static void WaitAll(const TArray<TSharedPtr<NCoroutine>, CMemoryManager>& Coroutines)
 	{
 		CoroutineWaitFor(
 		    [&Coroutines]() {
@@ -645,9 +645,9 @@ public:
 	/**
 	 * @brief 等待任意一个协程完成
 	 */
-	static TSharedPtr<CCoroutine> WaitAny(const TArray<TSharedPtr<CCoroutine>, CMemoryManager>& Coroutines)
+	static TSharedPtr<NCoroutine> WaitAny(const TArray<TSharedPtr<NCoroutine>, CMemoryManager>& Coroutines)
 	{
-		TSharedPtr<CCoroutine> CompletedCoroutine = nullptr;
+		TSharedPtr<NCoroutine> CompletedCoroutine = nullptr;
 
 		CoroutineWaitFor(
 		    [&Coroutines, &CompletedCoroutine]() {
@@ -672,7 +672,7 @@ public:
 	template <typename... TFuncs>
 	static void ParallelRun(TFuncs&&... Functions)
 	{
-		TArray<TSharedPtr<CCoroutine>, CMemoryManager> Coroutines;
+		TArray<TSharedPtr<NCoroutine>, CMemoryManager> Coroutines;
 		int32_t Index = 0;
 
 		auto CreateCoroutine = [&Coroutines, &Index](auto&& Function) {
@@ -715,7 +715,7 @@ public:
 		Result.YieldsPerCoroutine = YieldsPerCoroutine;
 
 		CClock TestClock;
-		TArray<TSharedPtr<CCoroutine>, CMemoryManager> TestCoroutines;
+		TArray<TSharedPtr<NCoroutine>, CMemoryManager> TestCoroutines;
 		TestCoroutines.Reserve(CoroutineCount);
 
 		// 创建测试协程
@@ -804,14 +804,14 @@ public:
 #define COROUTINE_YIELD() NLib::CoroutineYield()
 
 // === 类型别名 ===
-using CoroutineUtils = CCoroutineUtils;
-using CoroutineSemaphore = CCoroutineSemaphore;
-using CoroutineMutex = CCoroutineMutex;
-using CoroutineConditionVariable = CCoroutineConditionVariable;
+using CoroutineUtils = NCoroutineUtils;
+using CoroutineSemaphore = NCoroutineSemaphore;
+using CoroutineMutex = NCoroutineMutex;
+using CoroutineConditionVariable = NCoroutineConditionVariable;
 
 template <typename T>
 using CoroutineChannel = TCoroutineChannel<T>;
 
-using CoroutinePool = CCoroutinePool;
+using CoroutinePool = NCoroutinePool;
 
 } // namespace NLib
