@@ -13,9 +13,11 @@
 
 
 /* Increments 'L->top.p', checking for stack overflows */
-#define api_incr_top(L)	{L->top.p++; \
-			 api_check(L, L->top.p <= L->ci->top.p, \
-					"stack overflow");}
+#define api_incr_top(L)                                                                                                \
+	{                                                                                                                  \
+		L->top.p++;                                                                                                    \
+		api_check(L, L->top.p <= L->ci->top.p, "stack overflow");                                                      \
+	}
 
 
 /*
@@ -23,15 +25,15 @@
 ** stack space to accommodate all results. In this case, this macro
 ** increases its stack space ('L->ci->top.p').
 */
-#define adjustresults(L,nres) \
-    { if ((nres) <= LUA_MULTRET && L->ci->top.p < L->top.p) \
-	L->ci->top.p = L->top.p; }
+#define adjustresults(L, nres)                                                                                         \
+	{                                                                                                                  \
+		if ((nres) <= LUA_MULTRET && L->ci->top.p < L->top.p)                                                          \
+			L->ci->top.p = L->top.p;                                                                                   \
+	}
 
 
 /* Ensure the stack has at least 'n' elements */
-#define api_checknelems(L,n) \
-	api_check(L, (n) < (L->top.p - L->ci->func.p), \
-			  "not enough elements in the stack")
+#define api_checknelems(L, n) api_check(L, (n) < (L->top.p - L->ci->func.p), "not enough elements in the stack")
 
 
 /*
@@ -43,10 +45,10 @@
 ** variables to be closed, have an extra check.
 */
 
-#define hastocloseCfunc(n)	((n) < LUA_MULTRET)
+#define hastocloseCfunc(n) ((n) < LUA_MULTRET)
 
 /* Map [-1, inf) (range of 'nresults') into (-inf, -2] */
-#define codeNresults(n)		(-(n) - 3)
-#define decodeNresults(n)	(-(n) - 3)
+#define codeNresults(n) (-(n) - 3)
+#define decodeNresults(n) (-(n) - 3)
 
 #endif

@@ -302,7 +302,8 @@ namespace NutHeaderTools
             if (needsReflectionInclude)
             {
                 writer.WriteLine("// 包含反射系统头文件");
-                writer.WriteLine("#include \"Reflection/NObjectReflection.h\"");
+                writer.WriteLine("#include \"Reflection/ReflectionStructures.h\"");
+                writer.WriteLine("#include \"Reflection/ReflectionRegistry.h\"");
                 writer.WriteLine();
             }
 
@@ -325,37 +326,104 @@ namespace NutHeaderTools
             writer.WriteLine($"// === {classInfo.Name} 反射信息 ===");
             writer.WriteLine();
 
-            // 生成类型信息结构
-            writer.WriteLine($"struct {classInfo.Name}TypeInfo");
-            writer.WriteLine("{");
-            writer.WriteLine($"    static constexpr const char* ClassName = \"{classInfo.Name}\";");
-            writer.WriteLine($"    static constexpr const char* BaseClassName = \"{classInfo.BaseClass}\";");
-            writer.WriteLine($"    static constexpr size_t PropertyCount = {classInfo.Properties.Count};");
-            writer.WriteLine($"    static constexpr size_t FunctionCount = {classInfo.Functions.Count};");
-            writer.WriteLine("};");
-            writer.WriteLine();
-
-            // 生成属性访问器
+            // 生成属性反射数组
             if (classInfo.Properties.Count > 0)
             {
-                writer.WriteLine($"// {classInfo.Name} 属性访问器");
-                foreach (PropertyInfo property in classInfo.Properties)
+                writer.WriteLine($"// {classInfo.Name} 属性反射数组");
+                writer.WriteLine($"static const SPropertyReflection {classInfo.Name}_Properties[] = {{");
+                
+                for (int i = 0; i < classInfo.Properties.Count; i++)
                 {
-                    writer.WriteLine($"// Property: {property.Type} {property.Name}");
+                    PropertyInfo property = classInfo.Properties[i];
+                    writer.WriteLine("    {");
+                    writer.WriteLine($"        \"{property.Name}\",           // Name");
+                    writer.WriteLine($"        \"{property.Type}\",           // TypeName");
+                    writer.WriteLine($"        offsetof({classInfo.Name}, {property.Name}), // Offset");
+                    writer.WriteLine($"        sizeof({property.Type}),      // Size");
+                    writer.WriteLine($"        &typeid({property.Type}),     // TypeInfo");
+                    writer.WriteLine("        EPropertyFlags::None,         // Flags");
+                    writer.WriteLine("        nullptr,                      // Category");
+                    writer.WriteLine("        nullptr,                      // DisplayName");
+                    writer.WriteLine("        nullptr,                      // ToolTip");
+                    writer.WriteLine("        std::any{},                   // DefaultValue");
+                    writer.WriteLine("        nullptr,                      // Getter");
+                    writer.WriteLine("        nullptr                       // Setter");
+                    writer.Write("    }");
+                    if (i < classInfo.Properties.Count - 1)
+                        writer.WriteLine(",");
+                    else
+                        writer.WriteLine();
                 }
+                writer.WriteLine("};");
                 writer.WriteLine();
             }
 
-            // 生成函数调用器
+            // 生成函数反射数组
             if (classInfo.Functions.Count > 0)
             {
-                writer.WriteLine($"// {classInfo.Name} 函数调用器");
-                foreach (FunctionInfo function in classInfo.Functions)
+                writer.WriteLine($"// {classInfo.Name} 函数反射数组");
+                writer.WriteLine($"static const SFunctionReflection {classInfo.Name}_Functions[] = {{");
+                
+                for (int i = 0; i < classInfo.Functions.Count; i++)
                 {
-                    writer.WriteLine($"// Function: {function.ReturnType} {function.Name}()");
+                    FunctionInfo function = classInfo.Functions[i];
+                    writer.WriteLine("    {");
+                    writer.WriteLine($"        \"{function.Name}\",          // Name");
+                    writer.WriteLine($"        \"{function.ReturnType}\",    // ReturnTypeName");
+                    writer.WriteLine($"        &typeid({function.ReturnType}), // ReturnTypeInfo");
+                    writer.WriteLine("        EFunctionFlags::None,         // Flags");
+                    writer.WriteLine("        nullptr,                      // Category");
+                    writer.WriteLine("        nullptr,                      // DisplayName");
+                    writer.WriteLine("        nullptr,                      // ToolTip");
+                    writer.WriteLine("        {},                           // Parameters");
+                    writer.WriteLine("        nullptr                       // Invoker");
+                    writer.Write("    }");
+                    if (i < classInfo.Functions.Count - 1)
+                        writer.WriteLine(",");
+                    else
+                        writer.WriteLine();
                 }
+                writer.WriteLine("};");
                 writer.WriteLine();
             }
+
+            // 生成类反射结构
+            writer.WriteLine($"// {classInfo.Name} 类反射结构");
+            writer.WriteLine($"static const SClassReflection {classInfo.Name}_ClassReflection = {{");
+            writer.WriteLine($"    \"{classInfo.Name}\",              // Name");
+            writer.WriteLine($"    \"{classInfo.BaseClass}\",         // BaseClassName");
+            writer.WriteLine($"    sizeof({classInfo.Name}),          // Size");
+            writer.WriteLine($"    &typeid({classInfo.Name}),         // TypeInfo");
+            writer.WriteLine("    EClassFlags::None,                 // Flags");
+            writer.WriteLine("    nullptr,                           // Category");
+            writer.WriteLine("    nullptr,                           // DisplayName");
+            writer.WriteLine("    nullptr,                           // ToolTip");
+            
+            if (classInfo.Properties.Count > 0)
+            {
+                writer.WriteLine($"    {classInfo.Name}_Properties,       // Properties");
+                writer.WriteLine($"    {classInfo.Properties.Count},        // PropertyCount");
+            }
+            else
+            {
+                writer.WriteLine("    nullptr,                           // Properties");
+                writer.WriteLine("    0,                                 // PropertyCount");
+            }
+            
+            if (classInfo.Functions.Count > 0)
+            {
+                writer.WriteLine($"    {classInfo.Name}_Functions,        // Functions");
+                writer.WriteLine($"    {classInfo.Functions.Count},         // FunctionCount");
+            }
+            else
+            {
+                writer.WriteLine("    nullptr,                           // Functions");
+                writer.WriteLine("    0,                                 // FunctionCount");
+            }
+            
+            writer.WriteLine("    nullptr                            // Constructor");
+            writer.WriteLine("};");
+            writer.WriteLine();
 
             // 检查是否为模板类或抽象类
             bool isTemplateClass = IsTemplateClass(classInfo.Name);
@@ -372,9 +440,31 @@ namespace NutHeaderTools
             }
             else
             {
+                // 生成GENERATED_BODY实现
+                writer.WriteLine($"// {classInfo.Name} GENERATED_BODY 实现");
+                writer.WriteLine($"template<>");
+                writer.WriteLine($"const char* {classInfo.Name}::GetStaticTypeName() {{");
+                writer.WriteLine($"    return \"{classInfo.Name}\";");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                
+                writer.WriteLine($"template<>");
+                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetStaticClassReflection() {{");
+                writer.WriteLine($"    return &{classInfo.Name}_ClassReflection;");
+                writer.WriteLine("}");
+                writer.WriteLine();
+                
                 // 注册反射信息
-                writer.WriteLine($"// 注册 {classInfo.Name} 到反射系统");
-                writer.WriteLine($"REGISTER_NCLASS_REFLECTION({classInfo.Name});");
+                writer.WriteLine($"// 自动注册 {classInfo.Name} 到反射系统");
+                writer.WriteLine("namespace {");
+                writer.WriteLine($"    struct {classInfo.Name}ReflectionRegistrar {{");
+                writer.WriteLine($"        {classInfo.Name}ReflectionRegistrar() {{");
+                writer.WriteLine("            auto& Registry = CReflectionRegistry::GetInstance();");
+                writer.WriteLine($"            Registry.RegisterClass(&{classInfo.Name}_ClassReflection);");
+                writer.WriteLine("        }");
+                writer.WriteLine("    };");
+                writer.WriteLine($"    static {classInfo.Name}ReflectionRegistrar {classInfo.Name}_registrar_;");
+                writer.WriteLine("}");
             }
             writer.WriteLine();
         }
