@@ -288,13 +288,8 @@ namespace NutProjectFileGenerator.Generators
                 {
                     sb.AppendLine($"  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{config}|{platform}'\" Label=\"Configuration\">");
                     
-                    var configurationType = project.Type switch
-                    {
-                        ProjectType.Executable => "Application",
-                        ProjectType.StaticLibrary => "StaticLibrary",
-                        ProjectType.DynamicLibrary => "DynamicLibrary",
-                        _ => "Application"
-                    };
+                    // 使用Makefile项目类型，让Visual Studio调用外部构建工具
+                    var configurationType = "Makefile";
                     
                     sb.AppendLine($"    <ConfigurationType>{configurationType}</ConfigurationType>");
                     sb.AppendLine("    <UseDebugLibraries>" + (config == "Debug" ? "true" : "false") + "</UseDebugLibraries>");
@@ -312,6 +307,11 @@ namespace NutProjectFileGenerator.Generators
                     
                     sb.AppendLine("    <WholeProgramOptimization>" + (config == "Release" ? "true" : "false") + "</WholeProgramOptimization>");
                     sb.AppendLine("    <CharacterSet>Unicode</CharacterSet>");
+                    
+                    // 禁用标准构建过程，使用自定义构建
+                    sb.AppendLine("    <NMakeBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeBuildCommandLine>");
+                    sb.AppendLine("    <NMakeCleanCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; clean --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeCleanCommandLine>");
+                    sb.AppendLine("    <NMakeReBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; rebuild --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeReBuildCommandLine>");
                     sb.AppendLine("  </PropertyGroup>");
                 }
             }
@@ -478,6 +478,22 @@ namespace NutProjectFileGenerator.Generators
             sb.AppendLine("  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />");
             sb.AppendLine("  <ImportGroup Label=\"ExtensionTargets\">");
             sb.AppendLine("  </ImportGroup>");
+
+            // 重写构建目标使用NutBuildTools
+            sb.AppendLine("  <!-- Override build targets to use NutBuildTools -->");
+            sb.AppendLine("  <Target Name=\"CoreBuild\">");
+            sb.AppendLine("    <Message Text=\"Building $(ProjectName) using NutBuildTools...\" Importance=\"high\" />");
+            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)\" ");
+            sb.AppendLine("          WorkingDirectory=\"$(SolutionDir)\" ");
+            sb.AppendLine("          ContinueOnError=\"false\" />");
+            sb.AppendLine("  </Target>");
+            sb.AppendLine("");
+            sb.AppendLine("  <Target Name=\"CoreClean\">");
+            sb.AppendLine("    <Message Text=\"Cleaning $(ProjectName) using NutBuildTools...\" Importance=\"high\" />");
+            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; clean --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)\" ");
+            sb.AppendLine("          WorkingDirectory=\"$(SolutionDir)\" ");
+            sb.AppendLine("          ContinueOnError=\"false\" />");
+            sb.AppendLine("  </Target>");
 
             sb.AppendLine("</Project>");
 
