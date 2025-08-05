@@ -1,4 +1,4 @@
-using NutBuildTools.BuildSystem;
+using NutBuildSystem.BuildTargets;
 using System.Collections.Generic;
 
 /// <summary>

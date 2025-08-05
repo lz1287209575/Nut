@@ -10,35 +10,55 @@ namespace NutProjectFileGenerator.Generators
     {
         public override string Name => "VisualStudio";
 
-        public override string Description => "Generate Visual Studio solution and project files (.sln, .vcxproj)";
+        public override string Description => "Generate Visual Studio solution and project files (.sln, .vcxproj) compatible with Rider and other IDEs";
 
-        public override List<string> SupportedPlatforms => new() { "Windows" };
+        public override List<string> SupportedPlatforms => new() { "Windows", "Linux", "MacOS" };
 
         private readonly Dictionary<string, string> projectGuids = new();
+        private readonly Dictionary<string, string> solutionFolderGuids = new();
         private readonly string solutionGuid = Guid.NewGuid().ToString("B").ToUpper();
 
         public override bool CanGenerate()
         {
-            return OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("FORCE_VS_GEN") == "1";
+            // .sln 文件可以在任何平台上生成，因为它们是纯文本格式
+            // Rider 和其他跨平台 IDE 都支持 .sln 文件
+            return true;
         }
 
         public override async Task<bool> GenerateAsync(SolutionInfo solutionInfo, string outputDirectory)
         {
             try
             {
+                // 根据平台过滤项目列表
+                var filteredProjects = FilterProjectsByPlatform(solutionInfo.Projects);
+
                 // 为每个项目生成GUID
-                foreach (var project in solutionInfo.Projects)
+                foreach (var project in filteredProjects)
                 {
                     projectGuids[project.Name] = Guid.NewGuid().ToString("B").ToUpper();
                 }
 
+                // 为解决方案文件夹生成GUID
+                var solutionFolders = GetSolutionFolders(filteredProjects, solutionInfo.SolutionRoot);
+                foreach (var folderName in solutionFolders.Keys)
+                {
+                    solutionFolderGuids[folderName] = Guid.NewGuid().ToString("B").ToUpper();
+                }
+
                 // 生成解决方案文件
-                await GenerateSolutionFileAsync(solutionInfo, outputDirectory);
+                await GenerateSolutionFileAsync(solutionInfo, outputDirectory, filteredProjects);
 
                 // 为每个项目生成项目文件
-                foreach (var project in solutionInfo.Projects)
+                foreach (var project in filteredProjects)
                 {
-                    await GenerateProjectFileAsync(project, solutionInfo, outputDirectory);
+                    if (IsCSharpProject(project.Type))
+                    {
+                        await GenerateCSharpProjectFileAsync(project, solutionInfo, outputDirectory);
+                    }
+                    else
+                    {
+                        await GenerateProjectFileAsync(project, solutionInfo, outputDirectory);
+                    }
                 }
 
                 // 生成属性文件
@@ -65,8 +85,14 @@ namespace NutProjectFileGenerator.Generators
 
             foreach (var project in solutionInfo.Projects)
             {
-                files.Add(Path.Combine(outputDirectory, $"{project.Name}.vcxproj"));
-                files.Add(Path.Combine(outputDirectory, $"{project.Name}.vcxproj.filters"));
+                var projectFileName = GetProjectFileName(project);
+                files.Add(Path.Combine(outputDirectory, projectFileName));
+                
+                // 只有C++项目需要.filters文件
+                if (!IsCSharpProject(project.Type))
+                {
+                    files.Add(Path.Combine(outputDirectory, $"{project.Name}.vcxproj.filters"));
+                }
             }
 
             return files;
@@ -75,7 +101,7 @@ namespace NutProjectFileGenerator.Generators
         /// <summary>
         /// 生成解决方案文件 (.sln)
         /// </summary>
-        private async Task GenerateSolutionFileAsync(SolutionInfo solutionInfo, string outputDirectory)
+        private async Task GenerateSolutionFileAsync(SolutionInfo solutionInfo, string outputDirectory, List<ProjectInfo> projects)
         {
             var sb = new StringBuilder();
 
@@ -85,20 +111,31 @@ namespace NutProjectFileGenerator.Generators
             sb.AppendLine("VisualStudioVersion = 17.0.31903.59");
             sb.AppendLine("MinimumVisualStudioVersion = 10.0.40219.1");
 
+            // 生成解决方案文件夹
+            var solutionFolders = GetSolutionFolders(projects, solutionInfo.SolutionRoot);
+            var solutionFolderGuid = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
+
+            foreach (var folderName in solutionFolders.Keys)
+            {
+                var folderGuid = solutionFolderGuids[folderName];
+                sb.AppendLine($"Project(\"{solutionFolderGuid}\") = \"{folderName}\", \"{folderName}\", \"{folderGuid}\"");
+                sb.AppendLine("EndProject");
+            }
+
             // 项目声明
-            foreach (var project in solutionInfo.Projects)
+            foreach (var project in projects)
             {
                 var projectTypeGuid = GetProjectTypeGuid(project.Type);
                 var projectGuid = projectGuids[project.Name];
-                var projectPath = $"{project.Name}.vcxproj";
+                var projectPath = GetProjectFilePath(project, solutionInfo.SolutionRoot, outputDirectory);
 
                 sb.AppendLine($"Project(\"{projectTypeGuid}\") = \"{project.Name}\", \"{projectPath}\", \"{projectGuid}\"");
                 sb.AppendLine("EndProject");
             }
 
-            // 解决方案文件夹（可选）
-            var solutionFolderGuid = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
-            sb.AppendLine($"Project(\"{solutionFolderGuid}\") = \"Solution Items\", \"Solution Items\", \"{Guid.NewGuid().ToString("B").ToUpper()}\"");
+            // Solution Items 文件夹（用于属性文件）
+            var solutionItemsGuid = Guid.NewGuid().ToString("B").ToUpper();
+            sb.AppendLine($"Project(\"{solutionFolderGuid}\") = \"Solution Items\", \"Solution Items\", \"{solutionItemsGuid}\"");
             sb.AppendLine("\tProjectSection(SolutionItems) = preProject");
             sb.AppendLine("\t\tCommon.props = Common.props");
             sb.AppendLine("\t\tDebug.props = Debug.props");
@@ -111,24 +148,46 @@ namespace NutProjectFileGenerator.Generators
             
             // 解决方案配置平台
             sb.AppendLine("\tGlobalSection(SolutionConfigurationPlatforms) = preSolution");
-            foreach (var config in solutionInfo.Projects.SelectMany(p => p.SupportedConfigurations).Distinct())
+            foreach (var config in projects.SelectMany(p => p.SupportedConfigurations).Distinct())
             {
                 sb.AppendLine($"\t\t{config}|x64 = {config}|x64");
-                sb.AppendLine($"\t\t{config}|Win32 = {config}|Win32");
+                sb.AppendLine($"\t\t{config}|ARM64 = {config}|ARM64");
+                if (OperatingSystem.IsWindows())
+                {
+                    sb.AppendLine($"\t\t{config}|Win32 = {config}|Win32");
+                }
             }
             sb.AppendLine("\tEndGlobalSection");
 
             // 项目配置平台
             sb.AppendLine("\tGlobalSection(ProjectConfigurationPlatforms) = postSolution");
-            foreach (var project in solutionInfo.Projects)
+            foreach (var project in projects)
             {
                 var projectGuid = projectGuids[project.Name];
                 foreach (var config in project.SupportedConfigurations)
                 {
                     sb.AppendLine($"\t\t{projectGuid}.{config}|x64.ActiveCfg = {config}|x64");
                     sb.AppendLine($"\t\t{projectGuid}.{config}|x64.Build.0 = {config}|x64");
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.ActiveCfg = {config}|Win32");
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.Build.0 = {config}|Win32");
+                    sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.ActiveCfg = {config}|ARM64");
+                    sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.Build.0 = {config}|ARM64");
+                    if (OperatingSystem.IsWindows())
+                    {
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.ActiveCfg = {config}|Win32");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.Build.0 = {config}|Win32");
+                    }
+                }
+            }
+            sb.AppendLine("\tEndGlobalSection");
+
+            // 嵌套项目（解决方案文件夹层次结构）
+            sb.AppendLine("\tGlobalSection(NestedProjects) = preSolution");
+            foreach (var folder in solutionFolders)
+            {
+                var folderGuid = solutionFolderGuids[folder.Key];
+                foreach (var project in folder.Value)
+                {
+                    var projectGuid = projectGuids[project.Name];
+                    sb.AppendLine($"\t\t{projectGuid} = {folderGuid}");
                 }
             }
             sb.AppendLine("\tEndGlobalSection");
@@ -164,14 +223,26 @@ namespace NutProjectFileGenerator.Generators
             sb.AppendLine("  <ItemGroup Label=\"ProjectConfigurations\">");
             foreach (var config in project.SupportedConfigurations)
             {
-                sb.AppendLine($"    <ProjectConfiguration Include=\"{config}|Win32\">");
-                sb.AppendLine($"      <Configuration>{config}</Configuration>");
-                sb.AppendLine("      <Platform>Win32</Platform>");
-                sb.AppendLine("    </ProjectConfiguration>");
+                // x64 平台（所有系统）
                 sb.AppendLine($"    <ProjectConfiguration Include=\"{config}|x64\">");
                 sb.AppendLine($"      <Configuration>{config}</Configuration>");
                 sb.AppendLine("      <Platform>x64</Platform>");
                 sb.AppendLine("    </ProjectConfiguration>");
+                
+                // ARM64 平台（Mac M1/M2，ARM Linux）
+                sb.AppendLine($"    <ProjectConfiguration Include=\"{config}|ARM64\">");
+                sb.AppendLine($"      <Configuration>{config}</Configuration>");
+                sb.AppendLine("      <Platform>ARM64</Platform>");
+                sb.AppendLine("    </ProjectConfiguration>");
+                
+                // Win32 平台（仅 Windows）
+                if (OperatingSystem.IsWindows())
+                {
+                    sb.AppendLine($"    <ProjectConfiguration Include=\"{config}|Win32\">");
+                    sb.AppendLine($"      <Configuration>{config}</Configuration>");
+                    sb.AppendLine("      <Platform>Win32</Platform>");
+                    sb.AppendLine("    </ProjectConfiguration>");
+                }
             }
             sb.AppendLine("  </ItemGroup>");
 
@@ -190,7 +261,13 @@ namespace NutProjectFileGenerator.Generators
             // 配置属性
             foreach (var config in project.SupportedConfigurations)
             {
-                foreach (var platform in new[] { "Win32", "x64" })
+                var platforms = new List<string> { "x64", "ARM64" };
+                if (OperatingSystem.IsWindows())
+                {
+                    platforms.Add("Win32");
+                }
+
+                foreach (var platform in platforms)
                 {
                     sb.AppendLine($"  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{config}|{platform}'\" Label=\"Configuration\">");
                     
@@ -204,7 +281,18 @@ namespace NutProjectFileGenerator.Generators
                     
                     sb.AppendLine($"    <ConfigurationType>{configurationType}</ConfigurationType>");
                     sb.AppendLine("    <UseDebugLibraries>" + (config == "Debug" ? "true" : "false") + "</UseDebugLibraries>");
-                    sb.AppendLine("    <PlatformToolset>v143</PlatformToolset>");
+                    
+                    // 使用更通用的平台工具集设置
+                    if (OperatingSystem.IsWindows())
+                    {
+                        sb.AppendLine("    <PlatformToolset>v143</PlatformToolset>");
+                    }
+                    else
+                    {
+                        // 为 Unix 系统提供更好的兼容性
+                        sb.AppendLine("    <PlatformToolset>ClangCL</PlatformToolset>");
+                    }
+                    
                     sb.AppendLine("    <WholeProgramOptimization>" + (config == "Release" ? "true" : "false") + "</WholeProgramOptimization>");
                     sb.AppendLine("    <CharacterSet>Unicode</CharacterSet>");
                     sb.AppendLine("  </PropertyGroup>");
@@ -222,7 +310,13 @@ namespace NutProjectFileGenerator.Generators
 
             foreach (var config in project.SupportedConfigurations)
             {
-                foreach (var platform in new[] { "Win32", "x64" })
+                var platforms = new List<string> { "x64", "ARM64" };
+                if (OperatingSystem.IsWindows())
+                {
+                    platforms.Add("Win32");
+                }
+
+                foreach (var platform in platforms)
                 {
                     sb.AppendLine($"  <ImportGroup Label=\"PropertySheets\" Condition=\"'$(Configuration)|$(Platform)'=='{config}|{platform}'\">");
                     sb.AppendLine("    <Import Project=\"$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />");
@@ -237,7 +331,13 @@ namespace NutProjectFileGenerator.Generators
             // 配置特定属性
             foreach (var config in project.SupportedConfigurations)
             {
-                foreach (var platform in new[] { "Win32", "x64" })
+                var platforms = new List<string> { "x64", "ARM64" };
+                if (OperatingSystem.IsWindows())
+                {
+                    platforms.Add("Win32");
+                }
+
+                foreach (var platform in platforms)
                 {
                     sb.AppendLine($"  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{config}|{platform}'\">");
                     
@@ -254,7 +354,13 @@ namespace NutProjectFileGenerator.Generators
             // 编译和链接选项
             foreach (var config in project.SupportedConfigurations)
             {
-                foreach (var platform in new[] { "Win32", "x64" })
+                var platforms = new List<string> { "x64", "ARM64" };
+                if (OperatingSystem.IsWindows())
+                {
+                    platforms.Add("Win32");
+                }
+
+                foreach (var platform in platforms)
                 {
                     sb.AppendLine($"  <ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='{config}|{platform}'\">");
                     sb.AppendLine("    <ClCompile>");
@@ -579,8 +685,216 @@ namespace NutProjectFileGenerator.Generators
         /// </summary>
         private static string GetProjectTypeGuid(ProjectType projectType)
         {
-            // Visual C++ 项目类型GUID
-            return "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}";
+            return projectType switch
+            {
+                ProjectType.CSharpLibrary => "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}", // C# 类库
+                ProjectType.CSharpExecutable => "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}", // C# 可执行文件
+                _ => "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" // Visual C++ 项目
+            };
+        }
+
+        /// <summary>
+        /// 判断是否为C#项目
+        /// </summary>
+        private static bool IsCSharpProject(ProjectType projectType)
+        {
+            return projectType == ProjectType.CSharpLibrary || projectType == ProjectType.CSharpExecutable;
+        }
+
+        /// <summary>
+        /// 获取项目文件名
+        /// </summary>
+        private static string GetProjectFileName(ProjectInfo project)
+        {
+            return IsCSharpProject(project.Type) ? $"{project.Name}.csproj" : $"{project.Name}.vcxproj";
+        }
+
+        /// <summary>
+        /// 获取项目文件路径（用于.sln文件中的引用）
+        /// </summary>
+        private string GetProjectFilePath(ProjectInfo project, string solutionRoot, string outputDirectory)
+        {
+            if (IsCSharpProject(project.Type))
+            {
+                // 对于C#项目，尝试找到实际的项目文件
+                var actualProjectPath = FindActualCSharpProject(project, solutionRoot);
+                if (actualProjectPath != null)
+                {
+                    // 返回相对于输出目录的路径
+                    return Path.GetRelativePath(outputDirectory, actualProjectPath).Replace('/', '\\');
+                }
+            }
+            
+            // 对于C++项目或未找到的C#项目，使用默认文件名
+            return GetProjectFileName(project);
+        }
+
+        /// <summary>
+        /// 生成C#项目文件
+        /// </summary>
+        private async Task GenerateCSharpProjectFileAsync(ProjectInfo project, SolutionInfo solutionInfo, string outputDirectory)
+        {
+            // 对于C#项目，我们创建一个简单的项目引用，指向实际的.csproj文件
+            var actualProjectPath = FindActualCSharpProject(project, solutionInfo.SolutionRoot);
+            if (actualProjectPath != null)
+            {
+                // 如果找到实际的.csproj文件，我们不需要生成新的，直接引用现有的
+                // 但我们需要确保解决方案文件引用的是正确的相对路径
+                return;
+            }
+
+            // 如果没有找到实际项目文件，生成一个基本的.csproj文件
+            var sb = new StringBuilder();
+            sb.AppendLine("<Project Sdk=\"Microsoft.NET.Sdk\">");
+            sb.AppendLine("  <PropertyGroup>");
+            sb.AppendLine("    <TargetFramework>net8.0</TargetFramework>");
+            
+            if (project.Type == ProjectType.CSharpExecutable)
+            {
+                sb.AppendLine("    <OutputType>Exe</OutputType>");
+            }
+            
+            sb.AppendLine("  </PropertyGroup>");
+            sb.AppendLine("</Project>");
+
+            var projectPath = Path.Combine(outputDirectory, $"{project.Name}.csproj");
+            await File.WriteAllTextAsync(projectPath, sb.ToString());
+        }
+
+        /// <summary>
+        /// 查找实际的C#项目文件
+        /// </summary>
+        private string? FindActualCSharpProject(ProjectInfo project, string solutionRoot)
+        {
+            // 在解决方案根目录下搜索匹配的.csproj文件
+            var csprojFiles = Directory.GetFiles(solutionRoot, $"{project.Name}.csproj", SearchOption.AllDirectories);
+            return csprojFiles.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// 根据平台过滤项目列表
+        /// </summary>
+        private List<ProjectInfo> FilterProjectsByPlatform(List<ProjectInfo> projects)
+        {
+            // 在非Windows平台下，只保留C#项目
+            if (!OperatingSystem.IsWindows())
+            {
+                return projects.Where(p => IsCSharpProject(p.Type)).ToList();
+            }
+            
+            // Windows平台保留所有项目
+            return projects;
+        }
+
+        /// <summary>
+        /// 获取解决方案文件夹结构
+        /// </summary>
+        private Dictionary<string, List<ProjectInfo>> GetSolutionFolders(List<ProjectInfo> projects, string solutionRoot)
+        {
+            var solutionFolders = new Dictionary<string, List<ProjectInfo>>();
+
+            foreach (var project in projects)
+            {
+                string folderName = DetermineSolutionFolder(project, solutionRoot);
+                
+                if (!solutionFolders.ContainsKey(folderName))
+                {
+                    solutionFolders[folderName] = new List<ProjectInfo>();
+                }
+                
+                solutionFolders[folderName].Add(project);
+            }
+
+            return solutionFolders;
+        }
+
+        /// <summary>
+        /// 基于Source目录结构确定项目应该放在哪个解决方案文件夹中
+        /// </summary>
+        private string DetermineSolutionFolder(ProjectInfo project, string solutionRoot)
+        {
+            // 对于C#项目，查找实际的项目文件路径
+            if (IsCSharpProject(project.Type))
+            {
+                var actualProjectPath = FindActualCSharpProject(project, solutionRoot);
+                if (actualProjectPath != null)
+                {
+                    return GetFolderFromPath(actualProjectPath, solutionRoot);
+                }
+            }
+
+            // 对于C++项目，尝试通过项目名称在Source目录中找到对应的文件夹
+            var sourceDir = Path.Combine(solutionRoot, "Source");
+            if (Directory.Exists(sourceDir))
+            {
+                // 递归搜索包含项目名称的目录
+                var projectDir = FindProjectDirectory(sourceDir, project.Name);
+                if (projectDir != null)
+                {
+                    return GetFolderFromPath(projectDir, solutionRoot);
+                }
+            }
+
+            // 如果找不到，返回默认文件夹
+            return "Other";
+        }
+
+        /// <summary>
+        /// 在指定目录中递归查找包含项目名称的目录
+        /// </summary>
+        private string? FindProjectDirectory(string searchDir, string projectName)
+        {
+            try
+            {
+                // 检查当前目录是否包含项目相关文件
+                var buildFiles = Directory.GetFiles(searchDir, $"{projectName}.Build.cs", SearchOption.AllDirectories);
+                if (buildFiles.Any())
+                {
+                    return Path.GetDirectoryName(buildFiles.First());
+                }
+
+                // 检查是否有同名目录
+                var directories = Directory.GetDirectories(searchDir, "*", SearchOption.AllDirectories);
+                var matchingDir = directories.FirstOrDefault(d => Path.GetFileName(d).Equals(projectName, StringComparison.OrdinalIgnoreCase));
+                if (matchingDir != null)
+                {
+                    return matchingDir;
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 从文件路径提取解决方案文件夹名称
+        /// </summary>
+        private string GetFolderFromPath(string fullPath, string solutionRoot)
+        {
+            try
+            {
+                var relativePath = Path.GetRelativePath(solutionRoot, fullPath);
+                var pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                
+                // 跳过第一个"Source"部分，直接使用子目录名称
+                if (pathParts.Length > 1 && pathParts[0] == "Source")
+                {
+                    // 只返回Source下的第一级目录名称
+                    if (pathParts.Length >= 2)
+                    {
+                        return pathParts[1]; // 例如：Runtime, Programs
+                    }
+                }
+                
+                return "Other";
+            }
+            catch
+            {
+                return "Other";
+            }
         }
     }
 }

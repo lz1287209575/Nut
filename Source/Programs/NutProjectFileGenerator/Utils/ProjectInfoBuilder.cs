@@ -99,6 +99,17 @@ namespace NutProjectFileGenerator.Utils
                 logger.Error($"发现模块时出错: {ex.Message}");
             }
 
+            // 发现 C# 项目
+            try
+            {
+                var csharpProjects = await DiscoverCSharpProjectsAsync(projectRoot, logger);
+                solutionInfo.Projects.AddRange(csharpProjects);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"发现C#项目时出错: {ex.Message}");
+            }
+
             // 如果没有发现任何项目，创建默认项目
             if (solutionInfo.Projects.Count == 0)
             {
@@ -478,6 +489,90 @@ namespace NutProjectFileGenerator.Utils
             {
                 var generatedFiles = Directory.GetFiles(generatedSourceDir, "*.generate.h", SearchOption.AllDirectories);
                 projectInfo.HeaderFiles.AddRange(generatedFiles);
+            }
+        }
+
+        /// <summary>
+        /// 发现C#项目
+        /// </summary>
+        /// <param name="projectRoot">项目根目录</param>
+        /// <param name="logger">日志记录器</param>
+        /// <returns>C#项目列表</returns>
+        private static async Task<List<ProjectInfo>> DiscoverCSharpProjectsAsync(string projectRoot, ILogger logger)
+        {
+            var csharpProjects = new List<ProjectInfo>();
+            
+            // 搜索所有.csproj文件
+            var csprojFiles = Directory.GetFiles(projectRoot, "*.csproj", SearchOption.AllDirectories);
+            
+            foreach (var csprojFile in csprojFiles)
+            {
+                try
+                {
+                    var projectInfo = await ParseCSharpProjectAsync(csprojFile, projectRoot, logger);
+                    if (projectInfo != null)
+                    {
+                        csharpProjects.Add(projectInfo);
+                        logger.Debug($"发现C#项目: {projectInfo.Name}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning($"解析C#项目文件失败 {csprojFile}: {ex.Message}");
+                }
+            }
+            
+            logger.Info($"发现 {csharpProjects.Count} 个C#项目");
+            return csharpProjects;
+        }
+
+        /// <summary>
+        /// 解析C#项目文件
+        /// </summary>
+        /// <param name="csprojPath">csproj文件路径</param>
+        /// <param name="projectRoot">项目根目录</param>
+        /// <param name="logger">日志记录器</param>
+        /// <returns>项目信息</returns>
+        private static async Task<ProjectInfo?> ParseCSharpProjectAsync(string csprojPath, string projectRoot, ILogger logger)
+        {
+            try
+            {
+                var content = await File.ReadAllTextAsync(csprojPath);
+                var projectDir = Path.GetDirectoryName(csprojPath) ?? "";
+                var projectName = Path.GetFileNameWithoutExtension(csprojPath);
+                
+                var projectInfo = new ProjectInfo
+                {
+                    Name = projectName,
+                    ProjectRoot = projectRoot,
+                    OutputName = projectName,
+                    OutputDirectory = Path.Combine(projectRoot, "Binary", projectName)
+                };
+
+                // 确定项目类型（通过OutputType）
+                if (content.Contains("<OutputType>Exe</OutputType>"))
+                {
+                    projectInfo.Type = ProjectType.CSharpExecutable;
+                }
+                else
+                {
+                    projectInfo.Type = ProjectType.CSharpLibrary;
+                }
+
+                // 收集源文件
+                var sourceFiles = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                    .Where(f => !f.Contains("/bin/") && !f.Contains("/obj/") && !f.Contains("\\bin\\") && !f.Contains("\\obj\\"))
+                    .ToList();
+                
+                projectInfo.SourceFiles.AddRange(sourceFiles);
+
+                logger.Debug($"C#项目 {projectName}: {projectInfo.Type}, {sourceFiles.Count} 个源文件");
+                return projectInfo;
+            }
+            catch (Exception ex)
+            {
+                logger.Warning($"解析C#项目文件失败 {csprojPath}: {ex.Message}");
+                return null;
             }
         }
 

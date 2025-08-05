@@ -106,7 +106,17 @@ namespace NutProjectFileGenerator.Models
         /// <summary>
         /// 头文件库
         /// </summary>
-        HeaderOnly
+        HeaderOnly,
+
+        /// <summary>
+        /// C# 类库
+        /// </summary>
+        CSharpLibrary,
+
+        /// <summary>
+        /// C# 可执行文件
+        /// </summary>
+        CSharpExecutable
     }
 
     /// <summary>
