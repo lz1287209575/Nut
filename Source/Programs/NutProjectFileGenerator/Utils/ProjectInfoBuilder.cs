@@ -221,6 +221,9 @@ namespace NutProjectFileGenerator.Utils
                     projectInfo.IncludeDirectories.Add(module.SourcesPath);
                 }
 
+                // 添加Meta和Config文件
+                await CollectProjectMetaFiles(projectInfo, module.ModulePath);
+
                 // 如果有构建目标信息，应用配置
                 if (module.BuildTarget != null)
                 {
@@ -414,6 +417,9 @@ namespace NutProjectFileGenerator.Utils
                     await CollectSourceFiles(projectInfo, buildTargetInfo.SourcesDirectory);
                 }
 
+                // 添加Meta和Config文件
+                await CollectProjectMetaFiles(projectInfo, buildTargetInfo.BaseDirectory);
+
                 // 设置包含目录
                 projectInfo.IncludeDirectories.Add(buildTargetInfo.SourcesDirectory);
                 
@@ -489,6 +495,74 @@ namespace NutProjectFileGenerator.Utils
             {
                 var generatedFiles = Directory.GetFiles(generatedSourceDir, "*.generate.h", SearchOption.AllDirectories);
                 projectInfo.HeaderFiles.AddRange(generatedFiles);
+            }
+        }
+
+        /// <summary>
+        /// 收集项目的Meta和Config文件
+        /// </summary>
+        /// <param name="projectInfo">项目信息</param>
+        /// <param name="projectPath">项目路径</param>
+        private static async Task CollectProjectMetaFiles(ProjectInfo projectInfo, string projectPath)
+        {
+            // 收集Meta目录下的文件
+            var metaDirectory = Path.Combine(projectPath, "Meta");
+            if (Directory.Exists(metaDirectory))
+            {
+                var metaFiles = Directory.GetFiles(metaDirectory, "*", SearchOption.AllDirectories);
+                foreach (var file in metaFiles)
+                {
+                    // 将Meta文件添加到HeaderFiles中，这样它们会显示在项目中
+                    if (!projectInfo.HeaderFiles.Contains(file))
+                    {
+                        projectInfo.HeaderFiles.Add(file);
+                    }
+                }
+            }
+
+            // 收集Config目录下的文件
+            var configDirectory = Path.Combine(projectPath, "Config");
+            if (Directory.Exists(configDirectory))
+            {
+                var configFiles = Directory.GetFiles(configDirectory, "*", SearchOption.AllDirectories);
+                foreach (var file in configFiles)
+                {
+                    // 将Config文件添加到HeaderFiles中，这样它们会显示在项目中
+                    if (!projectInfo.HeaderFiles.Contains(file))
+                    {
+                        projectInfo.HeaderFiles.Add(file);
+                    }
+                }
+            }
+
+            // 收集Configs目录下的文件（兼容性）
+            var configsDirectory = Path.Combine(projectPath, "Configs");
+            if (Directory.Exists(configsDirectory))
+            {
+                var configsFiles = Directory.GetFiles(configsDirectory, "*", SearchOption.AllDirectories);
+                foreach (var file in configsFiles)
+                {
+                    // 将Configs文件添加到HeaderFiles中，这样它们会显示在项目中
+                    if (!projectInfo.HeaderFiles.Contains(file))
+                    {
+                        projectInfo.HeaderFiles.Add(file);
+                    }
+                }
+            }
+
+            // 收集Protos目录下的文件
+            var protosDirectory = Path.Combine(projectPath, "Protos");
+            if (Directory.Exists(protosDirectory))
+            {
+                var protoFiles = Directory.GetFiles(protosDirectory, "*", SearchOption.AllDirectories);
+                foreach (var file in protoFiles)
+                {
+                    // 将Proto文件添加到HeaderFiles中，这样它们会显示在项目中
+                    if (!projectInfo.HeaderFiles.Contains(file))
+                    {
+                        projectInfo.HeaderFiles.Add(file);
+                    }
+                }
             }
         }
 
