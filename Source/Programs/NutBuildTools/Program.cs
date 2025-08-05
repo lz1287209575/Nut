@@ -354,6 +354,82 @@ namespace NutBuildTools
         }
 
         /// <summary>
+        /// 从 ModuleInfo 创建 NutTarget
+        /// </summary>
+        private NutTarget? CreateNutTargetFromModule(ModuleInfo module, string platform, string configuration)
+        {
+            try
+            {
+                NutTarget target;
+                
+                // 根据模块类型创建相应的 NutTarget
+                switch (module.Type.ToLower())
+                {
+                    case "executable":
+                    case "corelib":
+                        target = new NutExecutableTarget();
+                        break;
+                    case "staticlibrary":
+                        target = new NutStaticLibraryTarget();
+                        break;
+                    default:
+                        logger.Warning($"未知的模块类型: {module.Type}，使用默认可执行目标");
+                        target = new NutExecutableTarget();
+                        break;
+                }
+
+                // 设置基本属性
+                target.Name = module.Name;
+                target.Platform = platform;
+                target.Configuration = configuration;
+                target.OutputName = module.Name;
+
+                // 添加源文件目录
+                if (Directory.Exists(module.SourcesPath))
+                {
+                    target.Sources.Add(module.SourcesPath);
+                    target.IncludeDirs.Add(module.SourcesPath);
+                }
+
+                // 如果有构建目标信息，应用其配置
+                if (module.BuildTarget != null)
+                {
+                    // 直接应用构建目标的配置
+                    target.Sources.AddRange(module.BuildTarget.Sources ?? new List<string>());
+                    target.IncludeDirs.AddRange(module.BuildTarget.IncludeDirs ?? new List<string>());
+                    target.Dependencies.AddRange(module.BuildTarget.Dependencies ?? new List<string>());
+                    
+                    if (!string.IsNullOrEmpty(module.BuildTarget.OutputName))
+                    {
+                        target.OutputName = module.BuildTarget.OutputName;
+                    }
+                }
+
+                // 添加第三方库包含目录
+                var projectRoot = FindProjectRoot();
+                var thirdPartyPath = Path.Combine(projectRoot, "ThirdParty");
+                if (Directory.Exists(thirdPartyPath))
+                {
+                    var spdlogInclude = Path.Combine(thirdPartyPath, "spdlog", "include");
+                    var tcmallocInclude = Path.Combine(thirdPartyPath, "tcmalloc", "include");
+                    
+                    if (Directory.Exists(spdlogInclude))
+                        target.IncludeDirs.Add(spdlogInclude);
+                    if (Directory.Exists(tcmallocInclude))
+                        target.IncludeDirs.Add(tcmallocInclude);
+                }
+
+                return target;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"创建构建目标失败: {ex.Message}");
+                return null;
+            }
+        }
+
+
+        /// <summary>
         /// 过滤要构建的目标模块
         /// </summary>
         private List<ModuleInfo> FilterTargetModules(List<ModuleInfo> modules, string? targetName)
@@ -393,12 +469,24 @@ namespace NutBuildTools
                     return false;
                 }
 
-                // TODO: 实现实际的构建逻辑 
-                // 这里需要根据Meta文件中的构建配置来执行实际编译
-                logger.Info($"  TODO: 实现 {module.Name} 的实际构建逻辑");
+                // 从 ModuleInfo 创建 NutTarget 并执行实际构建
+                var nutTarget = CreateNutTargetFromModule(module, platform, configuration);
+                if (nutTarget == null)
+                {
+                    logger.Error($"无法为模块 {module.Name} 创建构建目标");
+                    return false;
+                }
 
-                // 目前只是模拟构建成功
-                await Task.Delay(100); // 模拟构建时间
+                // 使用 NutBuilder 执行实际构建
+                var builder = new NutBuilder();
+                
+                if (clean)
+                {
+                    await builder.CleanAsync(nutTarget);
+                }
+                
+                await builder.BuildAsync(nutTarget);
+                logger.Info($"✅ 模块 {module.Name} 构建完成");
                 return true;
             }
             catch (Exception ex)
