@@ -312,6 +312,24 @@ namespace NutProjectFileGenerator.Generators
                     sb.AppendLine("    <NMakeBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeBuildCommandLine>");
                     sb.AppendLine("    <NMakeCleanCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --clean</NMakeCleanCommandLine>");
                     sb.AppendLine("    <NMakeReBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --rebuild</NMakeReBuildCommandLine>");
+                    
+                    // 为Makefile项目配置IntelliSense包含目录
+                    var allIncludeDirs = project.IncludeDirectories.Concat(solutionInfo.GlobalIncludeDirectories).Distinct();
+                    var includePathsForIntellisense = string.Join(";", allIncludeDirs.Select(dir => GetRelativePath(outputDirectory, dir)));
+                    sb.AppendLine($"    <NMakeIncludeSearchPath>{includePathsForIntellisense}</NMakeIncludeSearchPath>");
+                    
+                    // 添加预处理器定义用于IntelliSense
+                    var allDefines = project.PreprocessorDefinitions.Concat(solutionInfo.GlobalPreprocessorDefinitions).Distinct();
+                    if (config == "Debug")
+                    {
+                        allDefines = allDefines.Concat(new[] { "_DEBUG" });
+                    }
+                    else
+                    {
+                        allDefines = allDefines.Concat(new[] { "NDEBUG" });
+                    }
+                    var definesForIntellisense = string.Join(";", allDefines);
+                    sb.AppendLine($"    <NMakePreprocessorDefinitions>{definesForIntellisense}</NMakePreprocessorDefinitions>");
                     sb.AppendLine("  </PropertyGroup>");
                 }
             }
