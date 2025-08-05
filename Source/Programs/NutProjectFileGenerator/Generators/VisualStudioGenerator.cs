@@ -166,14 +166,31 @@ namespace NutProjectFileGenerator.Generators
                 var projectGuid = projectGuids[project.Name];
                 foreach (var config in project.SupportedConfigurations)
                 {
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|x64.ActiveCfg = {config}|x64");
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|x64.Build.0 = {config}|x64");
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.ActiveCfg = {config}|ARM64");
-                    sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.Build.0 = {config}|ARM64");
-                    if (OperatingSystem.IsWindows())
+                    if (IsCSharpProject(project.Type))
                     {
-                        sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.ActiveCfg = {config}|Win32");
-                        sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.Build.0 = {config}|Win32");
+                        // C#项目使用AnyCPU配置
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|x64.ActiveCfg = {config}|AnyCPU");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|x64.Build.0 = {config}|AnyCPU");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.ActiveCfg = {config}|AnyCPU");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.Build.0 = {config}|AnyCPU");
+                        if (OperatingSystem.IsWindows())
+                        {
+                            sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.ActiveCfg = {config}|AnyCPU");
+                            sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.Build.0 = {config}|AnyCPU");
+                        }
+                    }
+                    else
+                    {
+                        // C++项目使用对应的平台配置
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|x64.ActiveCfg = {config}|x64");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|x64.Build.0 = {config}|x64");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.ActiveCfg = {config}|ARM64");
+                        sb.AppendLine($"\t\t{projectGuid}.{config}|ARM64.Build.0 = {config}|ARM64");
+                        if (OperatingSystem.IsWindows())
+                        {
+                            sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.ActiveCfg = {config}|Win32");
+                            sb.AppendLine($"\t\t{projectGuid}.{config}|Win32.Build.0 = {config}|Win32");
+                        }
                     }
                 }
             }
