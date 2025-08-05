@@ -921,7 +921,7 @@ namespace NutProjectFileGenerator.Generators
         }
 
         /// <summary>
-        /// 获取筛选器路径，从Source目录开始（包含Meta、Config、Sources等）
+        /// 获取筛选器路径，显示项目内部的相对路径（Sources、Meta、Config等）
         /// </summary>
         private string GetFilterPath(string filePath)
         {
@@ -930,40 +930,47 @@ namespace NutProjectFileGenerator.Generators
                 // 标准化路径分隔符
                 var normalizedPath = filePath.Replace('/', '\\');
                 
-                // 查找Source目录的位置（注意是Source不是Sources）
-                var sourceIndex = normalizedPath.LastIndexOf("\\Source\\", StringComparison.OrdinalIgnoreCase);
-                if (sourceIndex == -1)
+                // 查找常见的项目子目录（Sources、Meta、Config、Protos等）
+                var projectDirs = new[] { "Sources", "Meta", "Config", "Protos", "Configs" };
+                
+                foreach (var dir in projectDirs)
                 {
-                    sourceIndex = normalizedPath.LastIndexOf("Source\\", StringComparison.OrdinalIgnoreCase);
-                    if (sourceIndex == -1)
+                    var dirPattern = $"\\{dir}\\";
+                    var dirIndex = normalizedPath.LastIndexOf(dirPattern, StringComparison.OrdinalIgnoreCase);
+                    if (dirIndex != -1)
                     {
-                        // 如果没有找到Source目录，返回空字符串
-                        return "";
+                        // 找到目录，提取从该目录开始的路径
+                        var startIndex = normalizedPath.IndexOf(dir, dirIndex, StringComparison.OrdinalIgnoreCase);
+                        if (startIndex != -1)
+                        {
+                            var relativePath = normalizedPath.Substring(startIndex);
+                            
+                            // 获取目录部分，去掉文件名
+                            var directoryPath = Path.GetDirectoryName(relativePath);
+                            
+                            // 如果就是在根目录（如Sources），返回该目录名
+                            if (string.Equals(directoryPath, dir, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return dir;
+                            }
+                            
+                            return directoryPath ?? "";
+                        }
                     }
                 }
                 
-                // 提取从Source开始的路径
-                var startIndex = normalizedPath.IndexOf("Source", sourceIndex, StringComparison.OrdinalIgnoreCase);
-                if (startIndex == -1) return "";
-                
-                var sourcePath = normalizedPath.Substring(startIndex);
-                
-                // 获取目录部分，去掉文件名
-                var directoryPath = Path.GetDirectoryName(sourcePath);
-                
-                // 如果就是在Source根目录，返回空字符串
-                if (string.Equals(directoryPath, "Source", StringComparison.OrdinalIgnoreCase))
+                // 如果没有找到标准项目目录，尝试查找文件直接在这些目录中的情况
+                foreach (var dir in projectDirs)
                 {
-                    return "";
+                    if (normalizedPath.EndsWith($"\\{dir}", StringComparison.OrdinalIgnoreCase) ||
+                        normalizedPath.Contains($"\\{dir}\\"))
+                    {
+                        return dir;
+                    }
                 }
                 
-                // 去掉"Source\"前缀
-                if (directoryPath?.StartsWith("Source\\", StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    return directoryPath.Substring("Source\\".Length);
-                }
-                
-                return directoryPath ?? "";
+                // 都没找到，返回空字符串
+                return "";
             }
             catch
             {
