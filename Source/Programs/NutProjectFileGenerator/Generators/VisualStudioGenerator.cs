@@ -921,7 +921,7 @@ namespace NutProjectFileGenerator.Generators
         }
 
         /// <summary>
-        /// 获取筛选器路径，从Sources目录开始
+        /// 获取筛选器路径，从Source目录开始（包含Meta、Config、Sources等）
         /// </summary>
         private string GetFilterPath(string filePath)
         {
@@ -930,37 +930,37 @@ namespace NutProjectFileGenerator.Generators
                 // 标准化路径分隔符
                 var normalizedPath = filePath.Replace('/', '\\');
                 
-                // 查找Sources目录的位置
-                var sourcesIndex = normalizedPath.LastIndexOf("\\Sources\\", StringComparison.OrdinalIgnoreCase);
-                if (sourcesIndex == -1)
+                // 查找Source目录的位置（注意是Source不是Sources）
+                var sourceIndex = normalizedPath.LastIndexOf("\\Source\\", StringComparison.OrdinalIgnoreCase);
+                if (sourceIndex == -1)
                 {
-                    sourcesIndex = normalizedPath.LastIndexOf("Sources\\", StringComparison.OrdinalIgnoreCase);
-                    if (sourcesIndex == -1)
+                    sourceIndex = normalizedPath.LastIndexOf("Source\\", StringComparison.OrdinalIgnoreCase);
+                    if (sourceIndex == -1)
                     {
-                        // 如果没有找到Sources目录，使用文件名作为筛选器
-                        return Path.GetDirectoryName(Path.GetFileName(filePath)) ?? "";
+                        // 如果没有找到Source目录，返回空字符串
+                        return "";
                     }
                 }
                 
-                // 提取从Sources开始的路径
-                var startIndex = normalizedPath.IndexOf("Sources", sourcesIndex, StringComparison.OrdinalIgnoreCase);
+                // 提取从Source开始的路径
+                var startIndex = normalizedPath.IndexOf("Source", sourceIndex, StringComparison.OrdinalIgnoreCase);
                 if (startIndex == -1) return "";
                 
-                var sourcesPath = normalizedPath.Substring(startIndex);
+                var sourcePath = normalizedPath.Substring(startIndex);
                 
                 // 获取目录部分，去掉文件名
-                var directoryPath = Path.GetDirectoryName(sourcesPath);
+                var directoryPath = Path.GetDirectoryName(sourcePath);
                 
-                // 如果就是在Sources根目录，返回空字符串
-                if (string.Equals(directoryPath, "Sources", StringComparison.OrdinalIgnoreCase))
+                // 如果就是在Source根目录，返回空字符串
+                if (string.Equals(directoryPath, "Source", StringComparison.OrdinalIgnoreCase))
                 {
                     return "";
                 }
                 
-                // 去掉"Sources\"前缀
-                if (directoryPath?.StartsWith("Sources\\", StringComparison.OrdinalIgnoreCase) == true)
+                // 去掉"Source\"前缀
+                if (directoryPath?.StartsWith("Source\\", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    return directoryPath.Substring("Sources\\".Length);
+                    return directoryPath.Substring("Source\\".Length);
                 }
                 
                 return directoryPath ?? "";
