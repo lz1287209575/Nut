@@ -309,9 +309,9 @@ namespace NutProjectFileGenerator.Generators
                     sb.AppendLine("    <CharacterSet>Unicode</CharacterSet>");
                     
                     // 禁用标准构建过程，使用自定义构建
-                    sb.AppendLine("    <NMakeBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeBuildCommandLine>");
-                    sb.AppendLine("    <NMakeCleanCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; clean --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeCleanCommandLine>");
-                    sb.AppendLine("    <NMakeReBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; rebuild --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeReBuildCommandLine>");
+                    sb.AppendLine("    <NMakeBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeBuildCommandLine>");
+                    sb.AppendLine("    <NMakeCleanCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --clean</NMakeCleanCommandLine>");
+                    sb.AppendLine("    <NMakeReBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --rebuild</NMakeReBuildCommandLine>");
                     sb.AppendLine("  </PropertyGroup>");
                 }
             }
@@ -483,14 +483,14 @@ namespace NutProjectFileGenerator.Generators
             sb.AppendLine("  <!-- Override build targets to use NutBuildTools -->");
             sb.AppendLine("  <Target Name=\"CoreBuild\">");
             sb.AppendLine("    <Message Text=\"Building $(ProjectName) using NutBuildTools...\" Importance=\"high\" />");
-            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)\" ");
+            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform)\" ");
             sb.AppendLine("          WorkingDirectory=\"$(SolutionDir)\" ");
             sb.AppendLine("          ContinueOnError=\"false\" />");
             sb.AppendLine("  </Target>");
             sb.AppendLine("");
             sb.AppendLine("  <Target Name=\"CoreClean\">");
             sb.AppendLine("    <Message Text=\"Cleaning $(ProjectName) using NutBuildTools...\" Importance=\"high\" />");
-            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; clean --project $(ProjectName) --configuration $(Configuration) --platform $(Platform)\" ");
+            sb.AppendLine("    <Exec Command=\"dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --clean\" ");
             sb.AppendLine("          WorkingDirectory=\"$(SolutionDir)\" ");
             sb.AppendLine("          ContinueOnError=\"false\" />");
             sb.AppendLine("  </Target>");
