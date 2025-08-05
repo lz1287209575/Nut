@@ -3,6 +3,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using System.CommandLine.Invocation;
 using System.Reflection;
+using System.Linq;
 
 namespace NutBuildSystem.CommandLine
 {
@@ -90,6 +91,36 @@ namespace NutBuildSystem.CommandLine
         }
 
         /// <summary>
+        /// 为指定的子命令设置处理程序
+        /// </summary>
+        /// <param name="commandName">子命令名称</param>
+        /// <param name="handler">处理程序</param>
+        public CommandLineBuilder SetHandlerForSubCommand(string commandName, Func<CommandContext, Task<int>> handler)
+        {
+            var command = commands.FirstOrDefault(c => c.Name == commandName);
+            if (command == null)
+            {
+                throw new InvalidOperationException($"Command '{commandName}' not found. Make sure to add the command before setting its handler.");
+            }
+
+            command.SetHandler(async (InvocationContext context) =>
+            {
+                var commandContext = CreateCommandContext(context);
+                try
+                {
+                    var result = await handler(commandContext);
+                    context.ExitCode = result;
+                }
+                finally
+                {
+                    commandContext.Dispose();
+                }
+            });
+
+            return this;
+        }
+
+        /// <summary>
         /// 构建命令行解析器
         /// </summary>
         public Parser Build()
@@ -124,6 +155,7 @@ namespace NutBuildSystem.CommandLine
             var noColor = parseResult.GetValueForOption(CommonOptions.NoColor);
 
             // 设置命令上下文
+            commandContext.ParseResult = parseResult;
             commandContext.IsVerbose = verbose;
             commandContext.IsQuiet = quiet;
             commandContext.NoColor = noColor;

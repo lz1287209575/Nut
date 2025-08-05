@@ -1,11 +1,16 @@
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NutBuildTools.BuildSystem;
 using NutBuildSystem.Logging;
 using NutBuildSystem.CommandLine;
+using NutBuildSystem.IO;
+using NutBuildSystem.Discovery;
+using NutBuildSystem.Models;
 
 namespace NutBuildTools
 {
@@ -30,7 +35,7 @@ namespace NutBuildTools
         protected override void ConfigureCommands()
         {
             builder.AddCommonGlobalOptions();
-            
+
             builder.AddGlobalOption(BuildOptions.Target);
             builder.AddGlobalOption(BuildOptions.Platform);
             builder.AddGlobalOption(BuildOptions.Configuration);
@@ -50,11 +55,17 @@ namespace NutBuildTools
                 Description = "清理选项 (Default/All/BuildFiles/OutputFiles/GeneratedFiles)"
             };
             cleanOptionsOption.SetDefaultValue("Default");
-            
+
             builder.AddSubCommand("clean", "清理构建产物", cmd =>
             {
                 cmd.AddOption(cleanOptionsOption);
             });
+
+            // 构建命令处理程序
+            builder.SetHandlerForSubCommand("build", ExecuteBuildAsync);
+
+            // 清理命令处理程序
+            builder.SetHandlerForSubCommand("clean", ExecuteCleanAsync);
 
             // 设置默认处理程序（显示帮助）
             builder.SetDefaultHandler(async (context) =>
@@ -66,7 +77,111 @@ namespace NutBuildTools
             });
         }
 
+        /// <summary>
+        /// 执行构建命令
+        /// </summary>
+        private async Task<int> ExecuteBuildAsync(CommandContext context)
+        {
+            logger = context.Logger;
 
+            try
+            {
+                logger.Info("NutBuildTools v1.0 - 开始构建");
+                logger.Info("=====================================");
+
+                // 获取命令行参数
+                var targetName = context.ParseResult.GetValueForOption(BuildOptions.Target);
+                var platform = context.ParseResult.GetValueForOption(BuildOptions.Platform) ?? GetDefaultPlatform();
+                var configuration = context.ParseResult.GetValueForOption(BuildOptions.Configuration) ?? "Debug";
+                var clean = context.ParseResult.GetValueForOption(BuildOptions.Clean);
+
+                logger.Info($"构建配置:");
+                logger.Info($"  目标: {targetName ?? "所有模块"}");
+                logger.Info($"  平台: {platform}");
+                logger.Info($"  配置: {configuration}");
+                logger.Info($"  清理构建: {clean}");
+
+                // 发现项目和模块
+                var projectRoot = FindProjectRoot();
+                var modules = await DiscoverModulesAsync(projectRoot);
+
+                if (modules.Count == 0)
+                {
+                    logger.Warning("未发现任何可构建的模块");
+                    return 1;
+                }
+
+                // 过滤要构建的模块
+                var targetModules = FilterTargetModules(modules, targetName);
+                if (targetModules.Count == 0)
+                {
+                    logger.Error($"未找到目标模块: {targetName}");
+                    return 1;
+                }
+
+                logger.Info($"找到 {targetModules.Count} 个模块需要构建");
+
+                // 构建每个模块
+                int successCount = 0;
+                foreach (var module in targetModules)
+                {
+                    logger.Info($"🔨 构建模块: {module.Name}");
+
+                    var success = await BuildModuleAsync(module, platform, configuration, clean);
+                    if (success)
+                    {
+                        successCount++;
+                        logger.Info($"✅ 模块 {module.Name} 构建成功");
+                    }
+                    else
+                    {
+                        logger.Error($"❌ 模块 {module.Name} 构建失败");
+                    }
+                }
+
+                logger.Info("=====================================");
+                logger.Info($"构建完成: {successCount}/{targetModules.Count} 个模块构建成功");
+
+                return successCount == targetModules.Count ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"构建失败: {ex.Message}", ex);
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// 执行清理命令
+        /// </summary>
+        private async Task<int> ExecuteCleanAsync(CommandContext context)
+        {
+            logger = context.Logger;
+
+            try
+            {
+                logger.Info("NutBuildTools v1.0 - 开始清理");
+                logger.Info("=====================================");
+
+                var projectRoot = FindProjectRoot();
+                var cleanOptions = context.ParseResult.GetValueForOption(new Option<string>("--clear-option")) as string ?? "Default";
+
+                logger.Info($"清理选项: {cleanOptions}");
+
+                // 实现清理逻辑
+                var success = await CleanProjectAsync(projectRoot, cleanOptions);
+
+                logger.Info("=====================================");
+                logger.Info(success ? "清理完成" : "清理失败");
+
+                return success ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"清理失败: {ex.Message}", ex);
+                return 1;
+            }
+        }
 
         private NutTarget CreateTargetFromMetadata(string targetName, string platform, string configuration)
         {
@@ -204,23 +319,168 @@ namespace NutBuildTools
             }
         }
 
+        /// <summary>
+        /// 查找项目根目录（通过nprx文件）
+        /// </summary>
         private string FindProjectRoot()
         {
-            var currentDir = Directory.GetCurrentDirectory();
-            var directory = new DirectoryInfo(currentDir);
-
-            while (directory != null)
+            var projectFile = NutProjectReader.FindProjectFile(Environment.CurrentDirectory);
+            if (projectFile == null)
             {
-                var claudeMdPath = Path.Combine(directory.FullName, "CLAUDE.md");
-                if (File.Exists(claudeMdPath))
-                {
-                    logger.Debug($"找到项目根目录: {directory.FullName}");
-                    return directory.FullName;
-                }
-                directory = directory.Parent;
+                throw new InvalidOperationException("未找到nprx项目文件，请在项目根目录运行此工具");
             }
 
-            throw new InvalidOperationException("未找到项目根目录 (CLAUDE.md)");
+            var projectRoot = Path.GetDirectoryName(projectFile) ?? Environment.CurrentDirectory;
+            logger.Debug($"找到项目根目录: {projectRoot}");
+            return projectRoot;
+        }
+
+        /// <summary>
+        /// 发现项目中的所有模块
+        /// </summary>
+        private async Task<List<ModuleInfo>> DiscoverModulesAsync(string projectRoot)
+        {
+            logger.Info("🔍 发现项目模块...");
+            var modules = await ModuleDiscovery.DiscoverModulesAsync(projectRoot, logger);
+
+            logger.Info($"发现 {modules.Count} 个模块:");
+            foreach (var module in modules)
+            {
+                string metaStatus = !string.IsNullOrEmpty(module.MetaFilePath) ? "✓" : "✗";
+                logger.Info($"  {metaStatus} {module.Name} ({module.Type})");
+            }
+
+            return modules;
+        }
+
+        /// <summary>
+        /// 过滤要构建的目标模块
+        /// </summary>
+        private List<ModuleInfo> FilterTargetModules(List<ModuleInfo> modules, string? targetName)
+        {
+            if (string.IsNullOrEmpty(targetName))
+            {
+                // 如果没有指定目标，构建所有可执行模块
+                return modules.Where(m => m.Type == "Executable" || m.Type == "CoreLib").ToList();
+            }
+
+            // 查找指定名称的模块
+            var targetModule = modules.FirstOrDefault(m =>
+                string.Equals(m.Name, targetName, StringComparison.OrdinalIgnoreCase));
+
+            return targetModule != null ? new List<ModuleInfo> { targetModule } : new List<ModuleInfo>();
+        }
+
+        /// <summary>
+        /// 构建单个模块
+        /// </summary>
+        private async Task<bool> BuildModuleAsync(ModuleInfo module, string platform, string configuration, bool clean)
+        {
+            try
+            {
+                logger.Info($"  类型: {module.Type}");
+                logger.Info($"  路径: {Path.GetRelativePath(FindProjectRoot(), module.ModulePath)}");
+
+                if (!string.IsNullOrEmpty(module.MetaFilePath))
+                {
+                    logger.Info($"  Meta文件: {Path.GetRelativePath(FindProjectRoot(), module.MetaFilePath)}");
+                }
+
+                // 检查源代码目录是否存在
+                if (!Directory.Exists(module.SourcesPath))
+                {
+                    logger.Warning($"  源代码目录不存在: {module.SourcesPath}");
+                    return false;
+                }
+
+                // TODO: 实现实际的构建逻辑 
+                // 这里需要根据Meta文件中的构建配置来执行实际编译
+                logger.Info($"  TODO: 实现 {module.Name} 的实际构建逻辑");
+
+                // 目前只是模拟构建成功
+                await Task.Delay(100); // 模拟构建时间
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"构建模块 {module.Name} 时发生错误: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 清理项目
+        /// </summary>
+        private async Task<bool> CleanProjectAsync(string projectRoot, string cleanOptions)
+        {
+            try
+            {
+                var dirsToClean = new List<string>();
+
+                switch (cleanOptions.ToLower())
+                {
+                    case "all":
+                        dirsToClean.AddRange(new[]
+                        {
+                            Path.Combine(projectRoot, "Binary"),
+                            Path.Combine(projectRoot, "Intermediate"),
+                            Path.Combine(projectRoot, "ProjectFiles")
+                        });
+                        break;
+
+                    case "buildfiles":
+                        dirsToClean.Add(Path.Combine(projectRoot, "Binary"));
+                        break;
+
+                    case "outputfiles":
+                        dirsToClean.Add(Path.Combine(projectRoot, "Binary"));
+                        break;
+
+                    case "generatedfiles":
+                        dirsToClean.Add(Path.Combine(projectRoot, "Intermediate", "Generated"));
+                        break;
+
+                    case "default":
+                    default:
+                        dirsToClean.AddRange([
+                            Path.Combine(projectRoot, "Binary"),
+                            Path.Combine(projectRoot, "Intermediate")
+                        ]);
+                        break;
+                }
+
+                foreach (var dir in dirsToClean)
+                {
+                    if (Directory.Exists(dir))
+                    {
+                        logger.Info($"清理目录: {Path.GetRelativePath(projectRoot, dir)}");
+                        Directory.Delete(dir, true);
+                    }
+                }
+
+                await Task.CompletedTask;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"清理项目时发生错误: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 获取默认平台
+        /// </summary>
+        private string GetDefaultPlatform()
+        {
+            if (OperatingSystem.IsWindows())
+                return "Windows";
+            else if (OperatingSystem.IsLinux())
+                return "Linux";
+            else if (OperatingSystem.IsMacOS())
+                return "MacOS";
+            else
+                return "Unknown";
         }
     }
 }

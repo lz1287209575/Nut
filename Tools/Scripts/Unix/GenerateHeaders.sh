@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h         显示此帮助信息"
             echo ""
             echo "说明:"
-            echo "  该脚本使用Meta模式自动发现所有构建目标并生成对应的.generate.h文件"
+            echo "  该脚本使用nprx项目文件自动发现所有模块并生成对应的.generate.h文件"
             echo ""
             echo "示例:"
             echo "  $0                 使用默认设置运行"
@@ -87,7 +87,7 @@ echo "✅ NutHeaderTools构建成功"
 # 显示运行配置
 echo "🔧 运行配置:"
 echo "   日志级别: $LOG_LEVEL"
-echo "   Meta模式: 启用（自动发现构建目标）"
+echo "   nprx模式: 启用（自动发现模块）"
 echo "   强制重新生成: $FORCE_REGENERATE"
 echo "   详细输出: $VERBOSE_MODE"
 
@@ -107,7 +107,7 @@ fi
 # 运行代码生成
 echo ""
 echo "🔍 开始生成头文件..."
-echo "📋 使用Meta模式自动发现所有构建目标"
+echo "📋 使用nprx项目文件自动发现所有模块"
 
 if [ "$VERBOSE_MODE" = true ]; then
     echo "🚀 运行命令: dotnet run --project \"$HEADER_TOOL_PROJECT\" --configuration Release -- ${HEADER_TOOL_ARGS[*]}"

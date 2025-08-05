@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.CommandLine;
 using NutBuildSystem.Discovery;
 using NutBuildSystem.BuildTargets;
+using NutBuildSystem.IO;
 using NutBuildSystem.Logging;
 using NutBuildSystem.CommandLine;
 
@@ -15,15 +16,15 @@ namespace NutHeaderTools
     /// <summary>
     /// NutHeaderTools - Nut引擎的代码生成工具
     /// 类似UE的UnrealHeaderTool，用于解析NCLASS宏并生成.generate.h文件
-    /// 支持读取Build.cs文件来确定要处理的源文件
+    /// 使用nprx项目文件和Meta文件来确定要处理的源文件
     /// </summary>
     class NutHeaderToolsApp : CommandLineApplication
     {
         private static readonly Dictionary<string, HeaderInfo> ProcessedHeaders = new();
-        private static readonly List<string> SourcePaths = new();
-        private readonly List<BuildTargetInfo> buildTargets = new();
+        private readonly List<ModuleInfo> modules = new();
         private int generatedFileCount = 0;
         private ILogger logger = LoggerFactory.Default;
+        private string projectRoot = string.Empty;
 
         public NutHeaderToolsApp() : base("NutHeaderTools - Nut Engine Code Generator")
         {
@@ -73,11 +74,20 @@ namespace NutHeaderTools
 
         private async Task ProcessAllHeadersAsync()
         {
-            // 这里需要根据实际的命令行参数来决定是否使用Meta文件
-            // 暂时使用Meta模式作为默认
-            logger.Info("🔍 扫描Meta构建文件...");
-            await ScanBuildFilesAsync();
-            ProcessBuildTargets();
+            // 定位项目根目录
+            projectRoot = FindProjectRootFromNprx();
+            if (string.IsNullOrEmpty(projectRoot))
+            {
+                logger.Error("无法找到.nprx项目文件，请在项目根目录运行此工具");
+                throw new InvalidOperationException("No .nprx project file found");
+            }
+
+            logger.Info($"📁 项目根目录: {projectRoot}");
+            logger.Info("🔍 发现模块和Meta文件...");
+            
+            // 使用新的模块发现逻辑
+            await DiscoverModulesAsync();
+            ProcessModules();
         }
 
         private void ProcessDirectory(string directory)
@@ -149,7 +159,7 @@ namespace NutHeaderTools
                 @"NCLASS.*?class\s+(\w+)"
             };
 
-            MatchCollection nclassMatches = null;
+            MatchCollection? nclassMatches = null;
             foreach (string pattern in patterns)
             {
                 nclassMatches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.Singleline);
@@ -159,7 +169,7 @@ namespace NutHeaderTools
 
             logger.Debug($"    最终找到 {nclassMatches?.Count ?? 0} 个NCLASS匹配");
 
-            foreach (Match match in nclassMatches)
+            foreach (Match match in nclassMatches ?? Enumerable.Empty<Match>())
             {
                 string className = match.Groups[1].Value;
                 string baseClass = match.Groups[2].Success ? match.Groups[2].Value : "NObject";
@@ -268,11 +278,67 @@ namespace NutHeaderTools
             }
         }
 
-        private static string GetGenerateFilePath(string headerPath)
+        /// <summary>
+        /// 通过nprx文件定位项目根目录
+        /// </summary>
+        private string FindProjectRootFromNprx()
         {
-            // 获取项目根目录（从当前工作目录开始，向上查找包含Source目录的位置）
-            string projectRoot = FindProjectRoot(headerPath);
-            
+            return NutProjectReader.FindProjectFile(Environment.CurrentDirectory) != null 
+                ? Path.GetDirectoryName(NutProjectReader.FindProjectFile(Environment.CurrentDirectory)) ?? Environment.CurrentDirectory
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// 发现项目中的所有模块
+        /// </summary>
+        private async Task DiscoverModulesAsync()
+        {
+            try
+            {
+                var discoveredModules = await ModuleDiscovery.DiscoverModulesAsync(projectRoot, logger);
+                modules.AddRange(discoveredModules);
+                
+                logger.Info($"找到 {modules.Count} 个模块:");
+                foreach (var module in modules)
+                {
+                    string metaStatus = !string.IsNullOrEmpty(module.MetaFilePath) ? "✓" : "✗";
+                    logger.Info($"  {metaStatus} {module.Name} ({module.Type}) - {Path.GetRelativePath(projectRoot, module.ModulePath)}");
+                    if (!string.IsNullOrEmpty(module.MetaFilePath))
+                    {
+                        logger.Debug($"    Meta文件: {Path.GetRelativePath(projectRoot, module.MetaFilePath)}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"发现模块失败: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 处理所有模块
+        /// </summary>
+        private void ProcessModules()
+        {
+            foreach (var module in modules)
+            {
+                logger.Info($"🔍 处理模块: {module.Name}");
+
+                if (Directory.Exists(module.SourcesPath))
+                {
+                    logger.Debug($"    扫描源目录: {module.SourcesPath}");
+                    ProcessDirectory(module.SourcesPath);
+                }
+                else
+                {
+                    logger.Warning($"    源目录不存在: {module.SourcesPath}");
+                }
+            }
+        }
+
+        private string GetGenerateFilePath(string headerPath)
+        {
             // 构建相对于Source目录的路径
             string sourcePath = Path.Combine(projectRoot, "Source");
             string relativePath = Path.GetRelativePath(sourcePath, headerPath);
@@ -280,30 +346,12 @@ namespace NutHeaderTools
             // 生成文件放在 Intermediate/Generated 目录下，保持相同的子目录结构
             string intermediateRoot = Path.Combine(projectRoot, "Intermediate", "Generated");
             string fileName = Path.GetFileNameWithoutExtension(headerPath);
-            string relativeDir = Path.GetDirectoryName(relativePath);
+            string relativeDir = Path.GetDirectoryName(relativePath) ?? "";
             
             string generateDir = Path.Combine(intermediateRoot, relativeDir);
             Directory.CreateDirectory(generateDir); // 确保目录存在
             
             return Path.Combine(generateDir, $"{fileName}.generate.h");
-        }
-
-        private static string FindProjectRoot(string headerPath)
-        {
-            string currentDir = Path.GetDirectoryName(headerPath);
-            
-            while (currentDir != null)
-            {
-                // 查找包含Source目录的根目录
-                if (Directory.Exists(Path.Combine(currentDir, "Source")))
-                {
-                    return currentDir;
-                }
-                currentDir = Directory.GetParent(currentDir)?.FullName;
-            }
-            
-            // 如果找不到，使用当前工作目录
-            return Directory.GetCurrentDirectory();
         }
 
         private static void GenerateCodeFile(string outputPath, HeaderInfo headerInfo)
@@ -572,50 +620,6 @@ namespace NutHeaderTools
             return Regex.IsMatch(typeIdentifier, @"^[A-Za-z_][A-Za-z0-9_]*(?:(?:<[^<>]*>)|(?:::[A-Za-z_][A-Za-z0-9_]*))*$");
         }
 
-        /// <summary>
-        /// 扫描所有Build.cs文件
-        /// </summary>
-        private async Task ScanBuildFilesAsync()
-        {
-            try
-            {
-                var discoveredTargets = await BuildTargetDiscovery.DiscoverBuildTargetsAsync();
-                buildTargets.AddRange(discoveredTargets);
-                
-                logger.Info($"找到 {buildTargets.Count} 个构建目标:");
-                foreach (var target in buildTargets)
-                {
-                    logger.Info($"  ✓ {target.Name} ({target.TargetType}) - {Path.GetRelativePath(".", target.BuildFilePath)}");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"扫描构建文件失败: {ex.Message}", ex);
-                throw;
-            }
-        }
-
-
-        /// <summary>
-        /// 处理所有构建目标
-        /// </summary>
-        private void ProcessBuildTargets()
-        {
-            foreach (var buildInfo in buildTargets)
-            {
-                logger.Info($"🔍 处理构建目标: {buildInfo.Name}");
-
-                if (Directory.Exists(buildInfo.SourcesDirectory))
-                {
-                    logger.Debug($"    扫描源目录: {buildInfo.SourcesDirectory}");
-                    ProcessDirectory(buildInfo.SourcesDirectory);
-                }
-                else
-                {
-                    logger.Warning($"    源目录不存在: {buildInfo.SourcesDirectory}");
-                }
-            }
-        }
     }
 
     // === 数据结构定义 ===

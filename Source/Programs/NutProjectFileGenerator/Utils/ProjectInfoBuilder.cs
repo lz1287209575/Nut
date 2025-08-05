@@ -28,7 +28,7 @@ namespace NutProjectFileGenerator.Utils
             
             if (nutProject != null)
             {
-                logger.Info($"Using nprx project configuration: {nutProject.Project.Name}");
+                logger.Info($"Using nprx project configuration: {nutProject.EngineAssociation}");
                 return await BuildSolutionFromNutProject(nutProject, projectRoot, logger);
             }
             
@@ -274,17 +274,8 @@ namespace NutProjectFileGenerator.Utils
                 }
             }
 
-            // 应用预处理器定义
-            if (buildTarget.PreprocessorDefinitions != null)
-            {
-                foreach (var definition in buildTarget.PreprocessorDefinitions)
-                {
-                    if (!projectInfo.PreprocessorDefinitions.Contains(definition))
-                    {
-                        projectInfo.PreprocessorDefinitions.Add(definition);
-                    }
-                }
-            }
+            // 注意：INutBuildTarget 接口暂时不包含 PreprocessorDefinitions 属性
+            // 如果需要预处理器定义，可以在具体的构建目标实现中添加
 
             // 应用依赖关系
             if (buildTarget.Dependencies != null)
@@ -359,10 +350,8 @@ namespace NutProjectFileGenerator.Utils
                         projectInfo.IncludeDirectories.AddRange(buildTarget.IncludeDirs);
                     }
 
-                    if (buildTarget.PreprocessorDefinitions != null)
-                    {
-                        projectInfo.PreprocessorDefinitions.AddRange(buildTarget.PreprocessorDefinitions);
-                    }
+                    // 注意：INutBuildTarget 接口暂时不包含 PreprocessorDefinitions 属性
+                    // 如果需要预处理器定义，可以在具体的构建目标实现中添加
 
                     if (buildTarget.Dependencies != null)
                     {

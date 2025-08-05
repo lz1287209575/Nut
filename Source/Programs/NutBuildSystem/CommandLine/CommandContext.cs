@@ -1,4 +1,5 @@
 using NutBuildSystem.Logging;
+using System.CommandLine.Parsing;
 
 namespace NutBuildSystem.CommandLine
 {
@@ -36,6 +37,11 @@ namespace NutBuildSystem.CommandLine
         /// 取消令牌
         /// </summary>
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+
+        /// <summary>
+        /// 命令行解析结果
+        /// </summary>
+        public ParseResult ParseResult { get; set; } = null!;
 
         /// <summary>
         /// 设置日志级别

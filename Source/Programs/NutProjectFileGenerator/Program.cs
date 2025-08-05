@@ -1,6 +1,7 @@
 using System.CommandLine;
 using NutBuildSystem.Logging;
 using NutBuildSystem.CommandLine;
+using NutBuildSystem.IO;
 using NutProjectFileGenerator.Generators;
 using NutProjectFileGenerator.Utils;
 
@@ -66,11 +67,11 @@ namespace NutProjectFileGenerator
 
                 try
                 {
-                    // TODO: 从 context 中获取实际的参数值
-                    var listGenerators = false; // 临时默认值
-                    var selectedGenerators = new string[0]; // 使用所有可用生成器
-                    var outputDir = (string?)null; // 临时默认值
-                    var force = true; // 临时强制覆盖以测试
+                    // 从 context 中获取实际的参数值
+                    var listGenerators = context.ParseResult.GetValueForOption(listGeneratorsOption);
+                    var selectedGenerators = context.ParseResult.GetValueForOption(generatorOption) ?? Array.Empty<string>();
+                    var outputDir = context.ParseResult.GetValueForOption(outputDirOption);
+                    var force = context.ParseResult.GetValueForOption(forceOption);
 
                     if (listGenerators)
                     {
@@ -268,25 +269,19 @@ namespace NutProjectFileGenerator
         }
 
         /// <summary>
-        /// 查找项目根目录
+        /// 查找项目根目录（通过nprx文件）
         /// </summary>
         private string FindProjectRoot()
         {
-            var currentDir = Directory.GetCurrentDirectory();
-            var directory = new DirectoryInfo(currentDir);
-
-            while (directory != null)
+            var projectFile = NutProjectReader.FindProjectFile(Environment.CurrentDirectory);
+            if (projectFile == null)
             {
-                var claudeMdPath = Path.Combine(directory.FullName, "CLAUDE.md");
-                if (File.Exists(claudeMdPath))
-                {
-                    logger.Debug($"找到项目根目录: {directory.FullName}");
-                    return directory.FullName;
-                }
-                directory = directory.Parent;
+                throw new InvalidOperationException("未找到nprx项目文件，请在项目根目录运行此工具");
             }
 
-            throw new InvalidOperationException("未找到项目根目录 (CLAUDE.md)");
+            var projectRoot = Path.GetDirectoryName(projectFile) ?? Environment.CurrentDirectory;
+            logger.Debug($"找到项目根目录: {projectRoot}");
+            return projectRoot;
         }
     }
 }
