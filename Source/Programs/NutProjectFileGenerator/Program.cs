@@ -134,7 +134,7 @@ namespace NutProjectFileGenerator
             logger.Info($"📁 项目根目录: {projectRoot}");
 
             // 设置输出目录
-            outputDir ??= projectRoot;
+            outputDir ??= Path.Combine(projectRoot, "ProjectFiles");
             logger.Info($"📁 输出目录: {outputDir}");
 
             // 构建解决方案信息
