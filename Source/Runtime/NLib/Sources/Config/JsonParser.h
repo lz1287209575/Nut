@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConfigValue.h"
-#include "Containers/TString.h"
+#include "Core/Object.h"
 #include "Logging/LogCategory.h"
 
 namespace NLib
@@ -11,30 +11,30 @@ namespace NLib
  */
 struct SJsonParseError
 {
-	TString Message;      // 错误消息
+	CString Message;      // 错误消息
 	int32_t Line = 0;     // 行号
 	int32_t Column = 0;   // 列号
 	int32_t Position = 0; // 字符位置
 
 	SJsonParseError() = default;
 
-	SJsonParseError(const TString& InMessage, int32_t InLine = 0, int32_t InColumn = 0, int32_t InPosition = 0)
+	SJsonParseError(const CString& InMessage, int32_t InLine = 0, int32_t InColumn = 0, int32_t InPosition = 0)
 	    : Message(InMessage),
 	      Line(InLine),
 	      Column(InColumn),
 	      Position(InPosition)
 	{}
 
-	TString ToString() const
+	CString ToString() const
 	{
 		if (Line > 0 && Column > 0)
 		{
-			return TString("JSON Parse Error at line ") + TString::FromInt(Line) + TString(", column ") +
-			       TString::FromInt(Column) + TString(": ") + Message;
+			return CString("JSON Parse Error at line ") + CString::FromInt(Line) + CString(", column ") +
+			       CString::FromInt(Column) + CString(": ") + Message;
 		}
 		else
 		{
-			return TString("JSON Parse Error: ") + Message;
+			return CString("JSON Parse Error: ") + Message;
 		}
 	}
 };
@@ -83,22 +83,29 @@ public:
 	 */
 	struct SParseOptions
 	{
-		bool bAllowComments = true;       // 是否允许注释
-		bool bAllowTrailingCommas = true; // 是否允许尾随逗号
-		bool bAllowUnquotedKeys = false;  // 是否允许不带引号的键
-		int32_t MaxDepth = 1000;          // 最大嵌套深度
+		bool bAllowComments;       // 是否允许注释
+		bool bAllowTrailingCommas; // 是否允许尾随逗号
+		bool bAllowUnquotedKeys;  // 是否允许不带引号的键
+		int32_t MaxDepth;          // 最大嵌套深度
+		
+		SParseOptions() 
+		    : bAllowComments(true),
+		      bAllowTrailingCommas(true),
+		      bAllowUnquotedKeys(false),
+		      MaxDepth(1000)
+		{}
 	};
 
 public:
 	/**
 	 * @brief 解析JSON字符串
 	 */
-	static SJsonParseResult Parse(const TString& JsonString, const SParseOptions& Options = SParseOptions{});
+	static SJsonParseResult Parse(const CString& JsonString, const SParseOptions& Options = SParseOptions());
 
 	/**
 	 * @brief 解析JSON文件
 	 */
-	static SJsonParseResult ParseFile(const TString& FilePath, const SParseOptions& Options = SParseOptions{});
+	static SJsonParseResult ParseFile(const CString& FilePath, const SParseOptions& Options = SParseOptions());
 
 private:
 	// === 解析器实现类 ===
@@ -106,7 +113,7 @@ private:
 	class CJsonParserImpl
 	{
 	public:
-		explicit CJsonParserImpl(const TString& InJson, const SParseOptions& InOptions);
+		explicit CJsonParserImpl(const CString& InJson, const SParseOptions& InOptions);
 
 		SJsonParseResult Parse();
 
@@ -124,7 +131,7 @@ private:
 		// === 位置跟踪 ===
 
 		void UpdatePosition(char Ch);
-		SJsonParseError CreateError(const TString& Message) const;
+		SJsonParseError CreateError(const CString& Message) const;
 
 		// === 解析方法 ===
 
@@ -136,16 +143,16 @@ private:
 		CConfigValue ParseArray();
 		CConfigValue ParseObject();
 
-		TString ParseStringLiteral();
-		TString UnescapeString(const TString& Str);
+		CString ParseStringLiteral();
+		CString UnescapeString(const CString& Str);
 
 		// === 验证方法 ===
 
 		bool ExpectChar(char Expected);
-		bool MatchKeyword(const TString& Keyword);
+		bool MatchKeyword(const CString& Keyword);
 
 	private:
-		const TString& Json;          // JSON字符串
+		const CString& Json;          // JSON字符串
 		const SParseOptions& Options; // 解析选项
 
 		int32_t Position = 0; // 当前位置
@@ -162,10 +169,17 @@ private:
  */
 struct SJsonGenerateOptions
 {
-	bool bPrettyPrint = true;    // 是否格式化输出
-	int32_t IndentSize = 2;      // 缩进大小
-	bool bSortKeys = false;      // 是否排序键
-	bool bEscapeUnicode = false; // 是否转义Unicode字符
+	bool bPrettyPrint;    // 是否格式化输出
+	int32_t IndentSize;      // 缩进大小
+	bool bSortKeys;      // 是否排序键
+	bool bEscapeUnicode; // 是否转义Unicode字符
+	
+	SJsonGenerateOptions()
+	    : bPrettyPrint(true),
+	      IndentSize(2),
+	      bSortKeys(false),
+	      bEscapeUnicode(false)
+	{}
 };
 
 /**
@@ -179,14 +193,14 @@ public:
 	/**
 	 * @brief 生成JSON字符串
 	 */
-	static TString Generate(const CConfigValue& Value, const SJsonGenerateOptions& Options = SJsonGenerateOptions{});
+	static CString Generate(const CConfigValue& Value, const SJsonGenerateOptions& Options = SJsonGenerateOptions());
 
 	/**
 	 * @brief 写入JSON文件
 	 */
 	static bool WriteToFile(const CConfigValue& Value,
-	                        const TString& FilePath,
-	                        const SJsonGenerateOptions& Options = SJsonGenerateOptions{});
+	                        const CString& FilePath,
+	                        const SJsonGenerateOptions& Options = SJsonGenerateOptions());
 
 private:
 	class CJsonGeneratorImpl
@@ -194,16 +208,16 @@ private:
 	public:
 		explicit CJsonGeneratorImpl(const SJsonGenerateOptions& InOptions);
 
-		TString Generate(const CConfigValue& Value);
+		CString Generate(const CConfigValue& Value);
 
 	private:
-		TString GenerateValue(const CConfigValue& Value, int32_t Indent = 0);
-		TString GenerateString(const TString& Str);
-		TString GenerateArray(const CConfigArray& Array, int32_t Indent = 0);
-		TString GenerateObject(const CConfigObject& Object, int32_t Indent = 0);
+		CString GenerateValue(const CConfigValue& Value, int32_t Indent = 0);
+		CString GenerateString(const CString& Str);
+		CString GenerateArray(const CConfigArray& Array, int32_t Indent = 0);
+		CString GenerateObject(const CConfigObject& Object, int32_t Indent = 0);
 
-		TString GetIndent(int32_t Level) const;
-		TString EscapeString(const TString& Str) const;
+		CString GetIndent(int32_t Level) const;
+		CString EscapeString(const CString& Str) const;
 
 	private:
 		const SJsonGenerateOptions& Options;
@@ -215,7 +229,7 @@ private:
 /**
  * @brief 解析JSON字符串的便捷函数
  */
-inline SJsonParseResult ParseJson(const TString& JsonString, bool bAllowComments = true)
+inline SJsonParseResult ParseJson(const CString& JsonString, bool bAllowComments = true)
 {
 	CJsonParser::SParseOptions Options;
 	Options.bAllowComments = bAllowComments;
@@ -225,7 +239,7 @@ inline SJsonParseResult ParseJson(const TString& JsonString, bool bAllowComments
 /**
  * @brief 解析JSON文件的便捷函数
  */
-inline SJsonParseResult ParseJsonFile(const TString& FilePath, bool bAllowComments = true)
+inline SJsonParseResult ParseJsonFile(const CString& FilePath, bool bAllowComments = true)
 {
 	CJsonParser::SParseOptions Options;
 	Options.bAllowComments = bAllowComments;
@@ -235,7 +249,7 @@ inline SJsonParseResult ParseJsonFile(const TString& FilePath, bool bAllowCommen
 /**
  * @brief 生成JSON字符串的便捷函数
  */
-inline TString ToJson(const CConfigValue& Value, bool bPrettyPrint = true)
+inline CString ToJson(const CConfigValue& Value, bool bPrettyPrint = true)
 {
 	SJsonGenerateOptions Options;
 	Options.bPrettyPrint = bPrettyPrint;
@@ -245,7 +259,7 @@ inline TString ToJson(const CConfigValue& Value, bool bPrettyPrint = true)
 /**
  * @brief 写入JSON文件的便捷函数
  */
-inline bool WriteJsonFile(const CConfigValue& Value, const TString& FilePath, bool bPrettyPrint = true)
+inline bool WriteJsonFile(const CConfigValue& Value, const CString& FilePath, bool bPrettyPrint = true)
 {
 	SJsonGenerateOptions Options;
 	Options.bPrettyPrint = bPrettyPrint;

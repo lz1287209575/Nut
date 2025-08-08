@@ -1,12 +1,13 @@
 #pragma once
 
+#include "Core/SmartPointers.h"
 #include "Logging/LogCategory.h"
-#include "TArray.h"
 #include "TContainer.h"
 
 #include <algorithm>
 #include <cstdarg>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -55,12 +56,14 @@ private:
 	/**
 	 * @brief 字符串数据结构
 	 */
-	struct SStringData
+	struct alignas(alignof(std::max_align_t)) SStringData
 	{
 		SizeType Size;                 // 字符串长度（不包含null terminator）
 		SizeType Capacity;             // 容量
 		std::atomic<int32_t> RefCount; // 引用计数（COW）
-		CharType Data[1];              // 柔性数组
+		
+		// 确保Data数组有正确的对齐
+		alignas(alignof(CharType)) CharType Data[1]; // 柔性数组
 
 		SStringData(SizeType InSize, SizeType InCapacity)
 		    : Size(InSize),
@@ -582,6 +585,15 @@ public:
 
 public:
 	// === 字符串特有操作 ===
+
+	/**
+	 * @brief 获取数据指针（公有访问）
+	 * @return 数据指针
+	 */
+	const CharType* GetData() const
+	{
+		return IsSSO() ? Storage.SSO.Buffer : Storage.Heap.Data->Data;
+	}
 
 	/**
 	 * @brief 获取C字符串指针
@@ -1262,28 +1274,164 @@ public:
 		return ConstReverseIterator(begin());
 	}
 
-protected:
-	// === BaseType虚函数实现 ===
-
-	Reference DoEmplaceBack() override
-	{
-		PushBack(CharType{});
-		return Back();
-	}
-
-private:
-	// === 内部方法 ===
-
+public:
+	// === 静态工厂方法 ===
+	
 	/**
-	 * @brief 获取默认分配器
-	 * @return 分配器引用
+	 * @brief 从整数创建字符串
 	 */
-	static AllocatorType& GetDefaultAllocator()
+	static TString FromInt(int32_t Value)
 	{
-		extern CMemoryManager& GetMemoryManager();
-		return GetMemoryManager();
+		if (Value == 0)
+			return TString("0");
+		
+		char Buffer[12]; // 足够存储 int32 最大值
+		int Index = 0;
+		bool IsNegative = Value < 0;
+		
+		// 处理 INT32_MIN 的特殊情况，避免溢出
+		uint32_t UnsignedValue;
+		if (IsNegative)
+		{
+			if (Value == INT32_MIN)
+			{
+				UnsignedValue = static_cast<uint32_t>(INT32_MAX) + 1;
+			}
+			else
+			{
+				UnsignedValue = static_cast<uint32_t>(-Value);
+			}
+		}
+		else
+		{
+			UnsignedValue = static_cast<uint32_t>(Value);
+		}
+		
+		// 逆序生成数字
+		while (UnsignedValue > 0)
+		{
+			Buffer[Index++] = '0' + (UnsignedValue % 10);
+			UnsignedValue /= 10;
+		}
+		
+		if (IsNegative)
+			Buffer[Index++] = '-';
+		
+		// 反转字符串
+		TString Result;
+		Result.Reserve(Index);
+		for (int i = Index - 1; i >= 0; --i)
+		{
+			Result.PushBack(Buffer[i]);
+		}
+		
+		return Result;
 	}
-
+	
+	/**
+	 * @brief 从64位整数创建字符串
+	 */
+	static TString FromInt64(int64_t Value)
+	{
+		if (Value == 0)
+			return TString("0");
+		
+		char Buffer[21]; // 足够存储 int64 最大值
+		int Index = 0;
+		bool IsNegative = Value < 0;
+		
+		// 处理 INT64_MIN 的特殊情况，避免溢出
+		uint64_t UnsignedValue;
+		if (IsNegative)
+		{
+			if (Value == INT64_MIN)
+			{
+				UnsignedValue = static_cast<uint64_t>(INT64_MAX) + 1;
+			}
+			else
+			{
+				UnsignedValue = static_cast<uint64_t>(-Value);
+			}
+		}
+		else
+		{
+			UnsignedValue = static_cast<uint64_t>(Value);
+		}
+		
+		// 逆序生成数字
+		while (UnsignedValue > 0)
+		{
+			Buffer[Index++] = '0' + (UnsignedValue % 10);
+			UnsignedValue /= 10;
+		}
+		
+		if (IsNegative)
+			Buffer[Index++] = '-';
+		
+		// 反转字符串
+		TString Result;
+		Result.Reserve(Index);
+		for (int i = Index - 1; i >= 0; --i)
+		{
+			Result.PushBack(Buffer[i]);
+		}
+		
+		return Result;
+	}
+	
+	/**
+	 * @brief 从单精度浮点数创建字符串
+	 */
+	static TString FromFloat(float Value)
+	{
+		// 简化实现：转为double处理
+		return FromDouble(static_cast<double>(Value));
+	}
+	
+	/**
+	 * @brief 从双精度浮点数创建字符串
+	 */
+	static TString FromDouble(double Value)
+	{
+		// 处理特殊值
+		if (Value != Value) // NaN check
+			return TString("nan");
+		if (Value > 1e308)
+			return TString("inf");
+		if (Value < -1e308)
+			return TString("-inf");
+		
+		if (Value == 0.0)
+			return TString("0.0");
+		
+		bool IsNegative = Value < 0;
+		if (IsNegative)
+			Value = -Value;
+		
+		// 分离整数部分和小数部分
+		int64_t IntegerPart = static_cast<int64_t>(Value);
+		double FractionalPart = Value - IntegerPart;
+		
+		TString Result;
+		if (IsNegative)
+			Result += "-";
+		
+		// 添加整数部分
+		Result += FromInt64(IntegerPart);
+		Result += ".";
+		
+		// 添加小数部分（保留6位精度）
+		for (int i = 0; i < 6; ++i)
+		{
+			FractionalPart *= 10;
+			int Digit = static_cast<int>(FractionalPart);
+			Result.PushBack('0' + Digit);
+			FractionalPart -= Digit;
+		}
+		
+		return Result;
+	}
+	
 	/**
 	 * @brief 计算C字符串长度
 	 * @param CStr C字符串
@@ -1304,6 +1452,37 @@ private:
 		return Length;
 	}
 
+protected:
+	// === BaseType虚函数实现 ===
+
+	Reference DoEmplaceBack() override
+	{
+		PushBack(CharType{});
+		return Back();
+	}
+
+	// 模板版本的EmplaceBack支持
+	template <typename... TArgs>
+	Reference DoEmplaceBackWithArgs(TArgs&&... Args)
+	{
+		static_assert(std::is_constructible_v<CharType, TArgs...>, "CharType must be constructible from Args");
+		PushBack(CharType(std::forward<TArgs>(Args)...));
+		return Back();
+	}
+
+private:
+	// === 内部方法 ===
+
+	/**
+	 * @brief 获取默认分配器
+	 * @return 分配器引用
+	 */
+	static AllocatorType& GetDefaultAllocator()
+	{
+		extern CMemoryManager& GetMemoryManager();
+		return GetMemoryManager();
+	}
+
 	/**
 	 * @brief 检查是否使用SSO
 	 * @return true if SSO, false otherwise
@@ -1313,14 +1492,6 @@ private:
 		return (Storage.SSO.Size & 0x80) != 0;
 	}
 
-	/**
-	 * @brief 获取数据指针（只读）
-	 * @return 数据指针
-	 */
-	const CharType* GetData() const
-	{
-		return IsSSO() ? Storage.SSO.Buffer : Storage.Heap.Data->Data;
-	}
 
 	/**
 	 * @brief 获取可变数据指针
@@ -1450,8 +1621,8 @@ private:
 };
 
 // === 类型别名 ===
+// 注意：CString 已在 Core/Object.h 中定义为 TString<char, CMemoryManager>
 
-using CString = TString<char>;
 using WString = TString<wchar_t>;
 using U8String = TString<char8_t>;
 using U16String = TString<char16_t>;

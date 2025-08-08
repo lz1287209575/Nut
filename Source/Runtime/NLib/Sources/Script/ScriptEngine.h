@@ -5,7 +5,6 @@
 #include "Containers/THashMap.h"
 #include "Core/Object.h"
 #include "Core/Result.h"
-#include "Core/TString.h"
 #include "Delegate/Delegate.h"
 #include "Memory/Memory.h"
 
@@ -98,9 +97,9 @@ struct SScriptConfig
 	uint32_t TimeoutMs = 5000;                                       // 执行超时(毫秒)
 	uint32_t MemoryLimitMB = 256;                                    // 内存限制(MB)
 	uint32_t MaxStackDepth = 1000;                                   // 最大栈深度
-	TString WorkingDirectory;                                        // 工作目录
-	TArray<TString, CMemoryManager> ModulePaths;                     // 模块搜索路径
-	THashMap<TString, TString, CMemoryManager> EnvironmentVariables; // 环境变量
+	CString WorkingDirectory;                                        // 工作目录
+	TArray<CString, CMemoryManager> ModulePaths;                     // 模块搜索路径
+	THashMap<CString, CString, CMemoryManager> EnvironmentVariables; // 环境变量
 
 	SScriptConfig() = default;
 	SScriptConfig(EScriptLanguage InLanguage)
@@ -114,10 +113,10 @@ struct SScriptConfig
 struct SScriptExecutionResult
 {
 	EScriptResult Result = EScriptResult::Success;
-	TString ErrorMessage;
+	CString ErrorMessage;
 	int32_t ErrorLine = -1;
 	int32_t ErrorColumn = -1;
-	TString StackTrace;
+	CString StackTrace;
 	NScriptValue ReturnValue;
 	uint64_t ExecutionTimeMs = 0;
 	uint64_t MemoryUsedBytes = 0;
@@ -132,7 +131,7 @@ struct SScriptExecutionResult
 	}
 
 	SScriptExecutionResult() = default;
-	SScriptExecutionResult(EScriptResult InResult, const TString& InErrorMessage = TString())
+	SScriptExecutionResult(EScriptResult InResult, const CString& InErrorMessage = CString())
 	    : Result(InResult),
 	      ErrorMessage(InErrorMessage)
 	{}
@@ -169,7 +168,7 @@ public:
 	virtual int64_t ToInt64() const = 0;
 	virtual float ToFloat() const = 0;
 	virtual double ToDouble() const = 0;
-	virtual TString ToString() const = 0;
+	virtual CString ToString() const = 0;
 
 	// 数组操作
 	virtual int32_t GetArrayLength() const = 0;
@@ -177,10 +176,10 @@ public:
 	virtual void SetArrayElement(int32_t Index, const NScriptValue& Value) = 0;
 
 	// 对象操作
-	virtual TArray<TString, CMemoryManager> GetObjectKeys() const = 0;
-	virtual NScriptValue GetObjectProperty(const TString& Key) const = 0;
-	virtual void SetObjectProperty(const TString& Key, const NScriptValue& Value) = 0;
-	virtual bool HasObjectProperty(const TString& Key) const = 0;
+	virtual TArray<CString, CMemoryManager> GetObjectKeys() const = 0;
+	virtual NScriptValue GetObjectProperty(const CString& Key) const = 0;
+	virtual void SetObjectProperty(const CString& Key, const NScriptValue& Value) = 0;
+	virtual bool HasObjectProperty(const CString& Key) const = 0;
 
 	// 函数调用
 	virtual SScriptExecutionResult CallFunction(const TArray<NScriptValue, CMemoryManager>& Args) = 0;
@@ -212,8 +211,8 @@ public:
 	virtual ~NScriptFunction() = default;
 
 	virtual SScriptExecutionResult Call(const TArray<NScriptValue, CMemoryManager>& Args) = 0;
-	virtual TString GetSignature() const = 0;
-	virtual TString GetDocumentation() const = 0;
+	virtual CString GetSignature() const = 0;
+	virtual CString GetDocumentation() const = 0;
 };
 
 /**
@@ -228,22 +227,22 @@ public:
 	NScriptModule() = default;
 	virtual ~NScriptModule() = default;
 
-	virtual TString GetName() const = 0;
-	virtual TString GetVersion() const = 0;
+	virtual CString GetName() const = 0;
+	virtual CString GetVersion() const = 0;
 	virtual EScriptLanguage GetLanguage() const = 0;
 
-	virtual SScriptExecutionResult Load(const TString& ModulePath) = 0;
+	virtual SScriptExecutionResult Load(const CString& ModulePath) = 0;
 	virtual SScriptExecutionResult Unload() = 0;
 	virtual bool IsLoaded() const = 0;
 
-	virtual NScriptValue GetGlobal(const TString& Name) const = 0;
-	virtual void SetGlobal(const TString& Name, const NScriptValue& Value) = 0;
+	virtual NScriptValue GetGlobal(const CString& Name) const = 0;
+	virtual void SetGlobal(const CString& Name, const NScriptValue& Value) = 0;
 
-	virtual SScriptExecutionResult ExecuteString(const TString& Code) = 0;
-	virtual SScriptExecutionResult ExecuteFile(const TString& FilePath) = 0;
+	virtual SScriptExecutionResult ExecuteString(const CString& Code) = 0;
+	virtual SScriptExecutionResult ExecuteFile(const CString& FilePath) = 0;
 
-	virtual void RegisterFunction(const TString& Name, TSharedPtr<NScriptFunction> Function) = 0;
-	virtual void RegisterObject(const TString& Name, const NScriptValue& Object) = 0;
+	virtual void RegisterFunction(const CString& Name, TSharedPtr<NScriptFunction> Function) = 0;
+	virtual void RegisterObject(const CString& Name, const NScriptValue& Object) = 0;
 };
 
 /**
@@ -265,26 +264,26 @@ public:
 	virtual SScriptConfig GetConfig() const = 0;
 	virtual EScriptLanguage GetLanguage() const = 0;
 
-	virtual TSharedPtr<NScriptModule> CreateModule(const TString& Name) = 0;
-	virtual TSharedPtr<NScriptModule> GetModule(const TString& Name) const = 0;
-	virtual void DestroyModule(const TString& Name) = 0;
+	virtual TSharedPtr<NScriptModule> CreateModule(const CString& Name) = 0;
+	virtual TSharedPtr<NScriptModule> GetModule(const CString& Name) const = 0;
+	virtual void DestroyModule(const CString& Name) = 0;
 
-	virtual SScriptExecutionResult ExecuteString(const TString& Code, const TString& ModuleName = TEXT("__main__")) = 0;
-	virtual SScriptExecutionResult ExecuteFile(const TString& FilePath, const TString& ModuleName = TEXT("")) = 0;
+	virtual SScriptExecutionResult ExecuteString(const CString& Code, const CString& ModuleName = TEXT("__main__")) = 0;
+	virtual SScriptExecutionResult ExecuteFile(const CString& FilePath, const CString& ModuleName = TEXT("")) = 0;
 
 	virtual void CollectGarbage() = 0;
 	virtual uint64_t GetMemoryUsage() const = 0;
 	virtual void ResetTimeout() = 0;
 
 	// 全局绑定
-	virtual void RegisterGlobalFunction(const TString& Name, TSharedPtr<NScriptFunction> Function) = 0;
-	virtual void RegisterGlobalObject(const TString& Name, const NScriptValue& Object) = 0;
-	virtual void RegisterGlobalConstant(const TString& Name, const NScriptValue& Value) = 0;
+	virtual void RegisterGlobalFunction(const CString& Name, TSharedPtr<NScriptFunction> Function) = 0;
+	virtual void RegisterGlobalObject(const CString& Name, const NScriptValue& Object) = 0;
+	virtual void RegisterGlobalConstant(const CString& Name, const NScriptValue& Value) = 0;
 
 	// 事件处理
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnScriptError,
-	                                     const TString& /*ErrorMessage*/,
-	                                     const TString& /*StackTrace*/);
+	                                     const CString& /*ErrorMessage*/,
+	                                     const CString& /*StackTrace*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnScriptTimeout, uint32_t /*TimeoutMs*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMemoryLimitExceeded, uint64_t /*MemoryUsed*/);
 
@@ -306,7 +305,7 @@ public:
 	virtual ~NScriptEngine() = default;
 
 	virtual EScriptLanguage GetLanguage() const = 0;
-	virtual TString GetVersion() const = 0;
+	virtual CString GetVersion() const = 0;
 	virtual bool IsSupported() const = 0;
 
 	virtual TSharedPtr<NScriptContext> CreateContext(const SScriptConfig& Config) = 0;
@@ -322,13 +321,13 @@ public:
 	virtual NScriptValue CreateBool(bool Value) = 0;
 	virtual NScriptValue CreateInt(int32_t Value) = 0;
 	virtual NScriptValue CreateFloat(float Value) = 0;
-	virtual NScriptValue CreateString(const TString& Value) = 0;
+	virtual NScriptValue CreateString(const CString& Value) = 0;
 	virtual NScriptValue CreateArray() = 0;
 	virtual NScriptValue CreateObject() = 0;
 
 	// 编译检查
-	virtual SScriptExecutionResult CheckSyntax(const TString& Code) = 0;
-	virtual SScriptExecutionResult CompileFile(const TString& FilePath, const TString& OutputPath = TString()) = 0;
+	virtual SScriptExecutionResult CheckSyntax(const CString& Code) = 0;
+	virtual SScriptExecutionResult CompileFile(const CString& FilePath, const CString& OutputPath = CString()) = 0;
 };
 
 // === 类型别名 ===

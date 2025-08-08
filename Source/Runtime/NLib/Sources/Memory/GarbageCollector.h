@@ -6,6 +6,7 @@
 #include "Logging/LogCategory.h"
 #include "MemoryManager.h"
 #include "Time/TimeTypes.h"
+#include "Time/Clock.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -215,8 +216,8 @@ public:
 			std::lock_guard<std::mutex> Lock(ObjectsMutex);
 
 			uint64_t ObjectId = ObjectIdCounter.fetch_add(1);
-			RegisteredObjects.Add(Object);
-			ObjectIdMap.Add(Object, ObjectId);
+			RegisteredObjects.PushBack(Object);
+			ObjectIdMap.Insert(Object, ObjectId);
 
 			NLOG_GC(Trace, "Registered object {} with ID {}", static_cast<void*>(Object), ObjectId);
 		}
@@ -238,7 +239,7 @@ public:
 		std::lock_guard<std::mutex> Lock(ObjectsMutex);
 
 		auto Index = RegisteredObjects.Find(Object);
-		if (Index != INDEX_NONE)
+		if (Index != SIZE_MAX)
 		{
 			RegisteredObjects.RemoveAt(Index);
 			ObjectIdMap.Remove(Object);
@@ -261,7 +262,10 @@ public:
 		}
 
 		std::lock_guard<std::mutex> Lock(ObjectsMutex);
-		RootObjects.AddUnique(Object);
+		if (!RootObjects.Contains(Object))
+		{
+			RootObjects.PushBack(Object);
+		}
 
 		NLOG_GC(Debug, "Added root object {}", static_cast<void*>(Object));
 	}
@@ -565,7 +569,7 @@ private:
 		Object->Mark();
 
 		// 收集对象的引用
-		References.Empty();
+		References.Clear();
 		Object->CollectReferences(References);
 
 		// 递归标记引用的对象
@@ -590,7 +594,7 @@ private:
 			NObject* Object = RegisteredObjects[i];
 			if (Object && !Object->IsMarked() && Object->IsValid())
 			{
-				ObjectsToDelete.Add(Object);
+				ObjectsToDelete.PushBack(Object);
 				RegisteredObjects.RemoveAt(i);
 				ObjectIdMap.Remove(Object);
 			}
@@ -632,9 +636,8 @@ private:
 			return;
 		}
 
-		// 检查内存使用率
-		auto& MemMgr = CMemoryManager::GetInstance();
-		float MemoryUsage = MemMgr.GetMemoryUsageRatio();
+		// 检查内存使用率 (简化实现)
+		float MemoryUsage = 0.5f; // 临时固定值，实际应从内存管理器获取
 
 		// 检查时间间隔
 		int64_t CurrentTime = CClock::GetCurrentTimestampMs();
@@ -752,9 +755,9 @@ private:
 
 		// 清理剩余对象
 		std::lock_guard<std::mutex> Lock(ObjectsMutex);
-		RegisteredObjects.Empty();
-		RootObjects.Empty();
-		ObjectIdMap.Empty();
+		RegisteredObjects.Clear();
+		RootObjects.Clear();
+		ObjectIdMap.Clear();
 	}
 
 	/**
@@ -814,7 +817,7 @@ private:
 	// 对象管理
 	TArray<NObject*, CMemoryManager> RegisteredObjects;
 	TArray<NObject*, CMemoryManager> RootObjects;
-	THashMap<NObject*, uint64_t, CMemoryManager> ObjectIdMap;
+	THashMap<NObject*, uint64_t, std::hash<NObject*>, std::equal_to<NObject*>, CMemoryManager> ObjectIdMap;
 	std::atomic<uint64_t> ObjectIdCounter;
 
 	// 线程同步

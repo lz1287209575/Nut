@@ -113,13 +113,10 @@ public:
 template <typename TResult>
 class TTask : public ITaskBase, public NObject
 {
-	GENERATED_BODY()
-
 public:
 	using FunctionType = std::function<TResult()>;
 	using ResultType = TResult;
 
-public:
 	// === 委托定义 ===
 	DECLARE_DELEGATE(FOnTaskStarted, uint64_t);
 	DECLARE_DELEGATE(FOnTaskCompleted, uint64_t, const TResult&);
@@ -144,7 +141,6 @@ public:
 
 	virtual ~TTask() = default;
 
-public:
 	// === ITaskBase接口实现 ===
 
 	void Execute() override
@@ -281,7 +277,6 @@ public:
 		       CurrentState == ETaskState::Failed;
 	}
 
-public:
 	// === 结果访问 ===
 
 	/**
@@ -358,7 +353,6 @@ public:
 		return true;
 	}
 
-public:
 	// === 任务链式操作 ===
 
 	/**
@@ -387,7 +381,6 @@ public:
 		return ContinuationTask;
 	}
 
-public:
 	// === 状态和属性 ===
 
 	/**
@@ -430,7 +423,6 @@ public:
 		TrySetState(ETaskState::Created, ETaskState::Pending);
 	}
 
-public:
 	// === 委托事件 ===
 
 	FOnTaskStarted OnTaskStarted;

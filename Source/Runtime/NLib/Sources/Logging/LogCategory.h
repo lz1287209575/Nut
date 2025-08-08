@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Logger.h"
+
 #include <memory>
 #include <mutex>
 #include <string>
@@ -8,9 +10,8 @@
 
 namespace NLib
 {
-// 前向声明
+// 前向声明 - Logger.h 已包含 ELogLevel 定义
 class NLogger;
-enum class ELogLevel : uint8_t;
 
 /**
  * @brief 日志分类类
@@ -267,6 +268,7 @@ void InitializeDefaultLogCategories();
 #define NLOG_CORE(Level, Format, ...) NLOG(NLib::LogCore, Level, Format, ##__VA_ARGS__)
 #define NLOG_MEMORY(Level, Format, ...) NLOG(NLib::LogMemory, Level, Format, ##__VA_ARGS__)
 #define NLOG_GC(Level, Format, ...) NLOG(NLib::LogGC, Level, Format, ##__VA_ARGS__)
+#define NLOG_THREADING(Level, Format, ...) NLOG(NLib::LogThreading, Level, Format, ##__VA_ARGS__)
 
 // 功能模块
 #define NLOG_NETWORK(Level, Format, ...) NLOG(NLib::LogNetwork, Level, Format, ##__VA_ARGS__)
@@ -277,3 +279,4 @@ void InitializeDefaultLogCategories();
 #define NLOG_PERF(Level, Format, ...) NLOG(NLib::LogPerformance, Level, Format, ##__VA_ARGS__)
 #define NLOG_DEBUG(Level, Format, ...) NLOG(NLib::LogDebug, Level, Format, ##__VA_ARGS__)
 #define NLOG_VERBOSE(Level, Format, ...) NLOG(NLib::LogVerbose, Level, Format, ##__VA_ARGS__)
+#define NLOG_EVENTS(Level, Format, ...) NLOG(NLib::LogEvents, Level, Format, ##__VA_ARGS__)

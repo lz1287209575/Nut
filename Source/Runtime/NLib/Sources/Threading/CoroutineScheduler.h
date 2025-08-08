@@ -78,8 +78,8 @@ struct SCoroutineSchedulerStats
 	void Reset()
 	{
 		TotalSchedulingCycles = 0;
-		TotalSchedulingTime = CTimespan::Zero();
-		AverageSchedulingTime = CTimespan::Zero();
+		TotalSchedulingTime = CTimespan::Zero;
+		AverageSchedulingTime = CTimespan::Zero;
 	}
 
 	void UpdateSchedulingTime(const CTimespan& SchedulingTime)
@@ -118,7 +118,7 @@ struct SCoroutineScheduleItem
 
 	bool IsValid() const
 	{
-		return Coroutine.IsValid() && !Coroutine->IsCompleted();
+		return Coroutine->IsValid() && !Coroutine->IsCompleted();
 	}
 
 	bool CanRun() const
@@ -208,7 +208,7 @@ public:
 		Stats = SCoroutineSchedulerStats{};
 
 		// 创建主协程
-		MainCoroutine = MakeShared<NCoroutine>(TString("MainCoroutine"));
+		MainCoroutine = MakeShared<NCoroutine>(CString("MainCoroutine"));
 		CurrentCoroutine = MainCoroutine;
 
 		// 预分配容器
@@ -269,7 +269,7 @@ public:
 	 */
 	template <typename TFunc>
 	TSharedPtr<NCoroutine> StartCoroutine(TFunc&& Function,
-	                                      const TString& Name = TString("Coroutine"),
+	                                      const CString& Name = CString("Coroutine"),
 	                                      ECoroutinePriority Priority = ECoroutinePriority::Normal,
 	                                      size_t StackSize = DEFAULT_COROUTINE_STACK_SIZE)
 	{
@@ -564,7 +564,7 @@ public:
 	/**
 	 * @brief 生成调度器报告
 	 */
-	TString GenerateReport() const
+	CString GenerateReport() const
 	{
 		std::lock_guard<std::mutex> Lock(ScheduleMutex);
 
@@ -593,17 +593,17 @@ public:
 		         Stats.AverageSchedulingTime.GetTotalMilliseconds(),
 		         Stats.TotalSchedulingTime.GetTotalMilliseconds());
 
-		return TString(Buffer);
+		return CString(Buffer);
 	}
 
 	/**
 	 * @brief 获取所有协程的调试信息
 	 */
-	TArray<TString, CMemoryManager> GetCoroutineDebugInfo() const
+	TArray<CString, CMemoryManager> GetCoroutineDebugInfo() const
 	{
 		std::lock_guard<std::mutex> Lock(ScheduleMutex);
 
-		TArray<TString, CMemoryManager> DebugInfo;
+		TArray<CString, CMemoryManager> DebugInfo;
 		DebugInfo.Reserve(ScheduleItems.Size());
 
 		for (const auto& Item : ScheduleItems)
@@ -620,7 +620,7 @@ public:
 				         static_cast<int>(Item.Priority),
 				         Item.RunCount);
 
-				DebugInfo.Add(TString(Buffer));
+				DebugInfo.Add(CString(Buffer));
 			}
 		}
 
@@ -859,46 +859,46 @@ private:
 	/**
 	 * @brief 获取策略字符串
 	 */
-	TString GetPolicyString() const
+	CString GetPolicyString() const
 	{
 		switch (Config.Policy)
 		{
 		case ECoroutineSchedulingPolicy::RoundRobin:
-			return TString("RoundRobin");
+			return CString("RoundRobin");
 		case ECoroutineSchedulingPolicy::Priority:
-			return TString("Priority");
+			return CString("Priority");
 		case ECoroutineSchedulingPolicy::Fair:
-			return TString("Fair");
+			return CString("Fair");
 		case ECoroutineSchedulingPolicy::Custom:
-			return TString("Custom");
+			return CString("Custom");
 		default:
-			return TString("Unknown");
+			return CString("Unknown");
 		}
 	}
 
 	/**
 	 * @brief 获取协程状态字符串
 	 */
-	static TString GetCoroutineStateString(ECoroutineState State)
+	static CString GetCoroutineStateString(ECoroutineState State)
 	{
 		switch (State)
 		{
 		case ECoroutineState::Created:
-			return TString("Created");
+			return CString("Created");
 		case ECoroutineState::Ready:
-			return TString("Ready");
+			return CString("Ready");
 		case ECoroutineState::Running:
-			return TString("Running");
+			return CString("Running");
 		case ECoroutineState::Suspended:
-			return TString("Suspended");
+			return CString("Suspended");
 		case ECoroutineState::Completed:
-			return TString("Completed");
+			return CString("Completed");
 		case ECoroutineState::Failed:
-			return TString("Failed");
+			return CString("Failed");
 		case ECoroutineState::Cancelled:
-			return TString("Cancelled");
+			return CString("Cancelled");
 		default:
-			return TString("Unknown");
+			return CString("Unknown");
 		}
 	}
 
@@ -949,7 +949,7 @@ inline NCoroutineScheduler& GetCoroutineScheduler()
  */
 template <typename TFunc>
 TSharedPtr<NCoroutine> StartCoroutine(TFunc&& Function,
-                                      const TString& Name = TString("Coroutine"),
+                                      const CString& Name = CString("Coroutine"),
                                       ECoroutinePriority Priority = ECoroutinePriority::Normal,
                                       size_t StackSize = DEFAULT_COROUTINE_STACK_SIZE)
 {
@@ -980,7 +980,7 @@ inline void CoroutineWait(const CTimespan& Duration)
  * @brief 等待条件满足的便捷函数
  */
 template <typename TFunc>
-void CoroutineWaitFor(TFunc&& Condition, const TString& Description = TString("Condition"))
+void CoroutineWaitFor(TFunc&& Condition, const CString& Description = CString("Condition"))
 {
 	auto CurrentCoroutine = GetCoroutineScheduler().GetCurrentCoroutine();
 	if (CurrentCoroutine.IsValid())

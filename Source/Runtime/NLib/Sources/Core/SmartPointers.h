@@ -17,6 +17,7 @@
 #include "Memory/MemoryManager.h"
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -26,7 +27,7 @@ namespace NLib
 // 前向声明
 template <typename TType>
 class TSharedPtr;
-template <typename TType>
+template <typename TType, typename TDeleter>
 class TUniquePtr;
 template <typename TType>
 class TWeakPtr;
@@ -76,7 +77,7 @@ struct SRefCountBlock
 		if (StrongRefCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
 		{
 			// 最后一个强引用，删除对象
-			if (ObjectPtr && Deleter)
+			if (ObjectPtr != nullptr && Deleter)
 			{
 				Deleter(ObjectPtr);
 				ObjectPtr = nullptr;
@@ -139,7 +140,7 @@ private:
 	// 默认删除器
 	static void DefaultDeleter(void* Ptr)
 	{
-		if (Ptr)
+		if (Ptr != nullptr)
 		{
 			// 使用内存管理器释放内存
 			extern CMemoryManager& GetMemoryManager();
@@ -184,7 +185,7 @@ protected:
 	}
 
 	// 获取引用计数块
-	SRefCountBlock* GetRefBlock() const
+	[[nodiscard]] SRefCountBlock* GetRefBlock() const
 	{
 		return RefBlock;
 	}
@@ -294,9 +295,10 @@ public:
 	 */
 	template <typename TOther>
 	TSharedPtr(const TSharedPtr<TOther>& Other,
-	           typename std::enable_if_t<std::is_convertible_v<TOther*, TType*>>* = nullptr)
+	           typename std::enable_if_t<std::is_convertible_v<TOther*, TType*>>* InFunc = nullptr)
 	    : BaseType(Other.Get(), Other.GetRefCountBlock())
 	{
+		(void)InFunc;
 		if (RefBlock)
 		{
 			RefBlock->AddStrongRef();
@@ -416,7 +418,7 @@ public:
 	 * @brief 获取引用计数
 	 * @return 当前引用计数
 	 */
-	int32_t GetRefCount() const
+	[[nodiscard]] int32_t GetRefCount() const
 	{
 		return RefBlock ? RefBlock->GetStrongRefCount() : 0;
 	}
@@ -425,7 +427,7 @@ public:
 	 * @brief 检查是否是唯一引用
 	 * @return true if unique, false otherwise
 	 */
-	bool IsUnique() const
+	[[nodiscard]] bool IsUnique() const
 	{
 		return GetRefCount() == 1;
 	}
@@ -563,25 +565,15 @@ public:
 	 * @brief 获取引用计数块（内部使用）
 	 * @return 引用计数块指针
 	 */
-	Internal::SRefCountBlock* GetRefCountBlock() const
+	[[nodiscard]] Internal::SRefCountBlock* GetRefCountBlock() const
 	{
 		return RefBlock;
 	}
 
 private:
-	// 设置shared_from_this支持
+	// 设置shared_from_this支持（声明，实现在TSharedFromThis定义之后）
 	template <typename TPtr>
-	void SetupSharedFromThis(TPtr* InPtr)
-	{
-		if constexpr (std::is_base_of_v<TSharedFromThis, TPtr>)
-		{
-			if (InPtr)
-			{
-				auto* SharedFromThis = static_cast<TSharedFromThis*>(InPtr);
-				SharedFromThis->Internal_SetWeakThis(TSharedPtr<TPtr>(*this));
-			}
-		}
-	}
+	void SetupSharedFromThis(TPtr* InPtr);
 
 	// 友元声明
 	template <typename TOther>
@@ -1218,6 +1210,22 @@ private:
 	friend class TSharedPtr;
 };
 
+// === TSharedPtr 方法实现（需要在TSharedFromThis定义后） ===
+
+template <typename TType>
+template <typename TPtr>
+void TSharedPtr<TType>::SetupSharedFromThis(TPtr* InPtr)
+{
+	if constexpr (std::is_base_of_v<TSharedFromThis, TPtr>)
+	{
+		if (InPtr)
+		{
+			auto* SharedFromThis = static_cast<TSharedFromThis*>(InPtr);
+			SharedFromThis->Internal_SetWeakThis(TSharedPtr<TPtr>(*this));
+		}
+	}
+}
+
 /**
  * @brief 非空共享引用
  *
@@ -1703,14 +1711,14 @@ bool operator!=(std::nullptr_t, const TSharedPtr<TType>& Ptr)
 }
 
 // TUniquePtr 比较操作符
-template <typename TType, typename TDeleter>
-bool operator==(std::nullptr_t, const TUniquePtr<TType, TDeleter>& Ptr)
+template <typename TType>
+bool operator==(std::nullptr_t, const TUniquePtr<TType>& Ptr)
 {
 	return Ptr == nullptr;
 }
 
-template <typename TType, typename TDeleter>
-bool operator!=(std::nullptr_t, const TUniquePtr<TType, TDeleter>& Ptr)
+template <typename TType>
+bool operator!=(std::nullptr_t, const TUniquePtr<TType>& Ptr)
 {
 	return Ptr != nullptr;
 }

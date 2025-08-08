@@ -13,12 +13,12 @@ namespace NLib
  */
 struct SPathSegment
 {
-	TString Key;
+	CString Key;
 	bool bIsArrayIndex = false;
 	size_t ArrayIndex = 0;
 
 	SPathSegment() = default;
-	SPathSegment(const TString& InKey)
+	SPathSegment(const CString& InKey)
 	    : Key(InKey)
 	{}
 	SPathSegment(size_t InIndex)
@@ -30,7 +30,7 @@ struct SPathSegment
 /**
  * @brief 解析路径字符串
  */
-static TArray<SPathSegment, CMemoryManager> ParsePath(const TString& Path)
+static TArray<SPathSegment, CMemoryManager> ParsePath(const CString& Path)
 {
 	TArray<SPathSegment, CMemoryManager> Segments;
 
@@ -41,7 +41,7 @@ static TArray<SPathSegment, CMemoryManager> ParsePath(const TString& Path)
 
 	const char* Data = Path.GetData();
 	const char* Current = Data;
-	const char* End = Data + Path.Length();
+	const char* End = Data + Path.Size();
 
 	while (Current < End)
 	{
@@ -68,8 +68,8 @@ static TArray<SPathSegment, CMemoryManager> ParsePath(const TString& Path)
 		// 提取键名
 		if (SegmentEnd > SegmentStart)
 		{
-			TString Key(SegmentStart, static_cast<int32_t>(SegmentEnd - SegmentStart));
-			Segments.Add(SPathSegment(Key));
+			CString Key(SegmentStart, static_cast<int32_t>(SegmentEnd - SegmentStart));
+			Segments.PushBack(SPathSegment(Key));
 		}
 
 		Current = SegmentEnd;
@@ -87,11 +87,11 @@ static TArray<SPathSegment, CMemoryManager> ParsePath(const TString& Path)
 
 			if (Current < End && *Current == ']')
 			{
-				TString IndexStr(IndexStart, static_cast<int32_t>(Current - IndexStart));
+				CString IndexStr(IndexStart, static_cast<int32_t>(Current - IndexStart));
 				try
 				{
 					size_t Index = static_cast<size_t>(std::stoull(IndexStr.GetData()));
-					Segments.Add(SPathSegment(Index));
+					Segments.PushBack(SPathSegment(Index));
 				}
 				catch (...)
 				{
@@ -107,7 +107,7 @@ static TArray<SPathSegment, CMemoryManager> ParsePath(const TString& Path)
 
 // === CConfigValue 路径访问实现 ===
 
-const CConfigValue& CConfigValue::GetByPath(const TString& Path) const
+const CConfigValue& CConfigValue::GetByPath(const CString& Path) const
 {
 	static CConfigValue NullValue;
 
@@ -142,7 +142,7 @@ const CConfigValue& CConfigValue::GetByPath(const TString& Path) const
 	return *Current;
 }
 
-void CConfigValue::SetByPath(const TString& Path, const CConfigValue& Val)
+void CConfigValue::SetByPath(const CString& Path, const CConfigValue& Val)
 {
 	if (Path.IsEmpty())
 	{
@@ -174,7 +174,7 @@ void CConfigValue::SetByPath(const TString& Path, const CConfigValue& Val)
 			auto& Array = Current->AsArray();
 			while (Array.Size() <= Segment.ArrayIndex)
 			{
-				Array.Add(CConfigValue());
+				Array.PushBack(CConfigValue());
 			}
 
 			Current = &Array[Segment.ArrayIndex];
@@ -187,16 +187,16 @@ void CConfigValue::SetByPath(const TString& Path, const CConfigValue& Val)
 			}
 
 			auto& Object = Current->AsObject();
-			if (!Object.Contains(Segment.Key))
+			if (!Object.Find(Segment.Key))
 			{
 				// 根据下一个分段决定创建数组还是对象
 				if (NextSegment.bIsArrayIndex)
 				{
-					Object.Add(Segment.Key, CConfigArray());
+					Object.Insert(Segment.Key, CConfigArray());
 				}
 				else
 				{
-					Object.Add(Segment.Key, CConfigObject());
+					Object.Insert(Segment.Key, CConfigObject());
 				}
 			}
 
@@ -216,7 +216,7 @@ void CConfigValue::SetByPath(const TString& Path, const CConfigValue& Val)
 		auto& Array = Current->AsArray();
 		while (Array.Size() <= LastSegment.ArrayIndex)
 		{
-			Array.Add(CConfigValue());
+			Array.PushBack(CConfigValue());
 		}
 
 		Array[LastSegment.ArrayIndex] = Val;
@@ -228,11 +228,11 @@ void CConfigValue::SetByPath(const TString& Path, const CConfigValue& Val)
 			*Current = CConfigObject();
 		}
 
-		Current->AsObject().Add(LastSegment.Key, Val);
+		Current->AsObject().Insert(LastSegment.Key, Val);
 	}
 }
 
-bool CConfigValue::HasPath(const TString& Path) const
+bool CConfigValue::HasPath(const CString& Path) const
 {
 	if (Path.IsEmpty())
 	{
@@ -267,12 +267,12 @@ bool CConfigValue::HasPath(const TString& Path) const
 
 // === JSON 序列化实现 ===
 
-static TString EscapeJsonString(const TString& Str)
+static CString EscapeJsonString(const CString& Str)
 {
-	TString Result;
-	Result.Reserve(Str.Length() * 2); // 预分配，避免频繁重分配
+	CString Result;
+	Result.Reserve(Str.Size() * 2); // 预分配，避免频繁重分配
 
-	for (int32_t i = 0; i < Str.Length(); ++i)
+	for (int32_t i = 0; i < Str.Size(); ++i)
 	{
 		char Ch = Str[i];
 		switch (Ch)
@@ -317,14 +317,14 @@ static TString EscapeJsonString(const TString& Str)
 	return Result;
 }
 
-static TString GetIndentString(int32_t Indent)
+static CString GetIndentString(int32_t Indent)
 {
 	if (Indent <= 0)
 	{
-		return TString();
+		return CString();
 	}
 
-	TString Result;
+	CString Result;
 	for (int32_t i = 0; i < Indent; ++i)
 	{
 		Result += "  ";
@@ -332,119 +332,26 @@ static TString GetIndentString(int32_t Indent)
 	return Result;
 }
 
-TString CConfigValue::ToJsonString(bool Pretty, int32_t Indent) const
+CString CConfigValue::ToJsonString(bool Pretty, int32_t Indent) const
 {
-	switch (GetType())
+	try
 	{
-	case EConfigValueType::Null:
-		return TString("null");
-
-	case EConfigValueType::Bool:
-		return AsBool() ? TString("true") : TString("false");
-
-	case EConfigValueType::Int32:
-		return TString::FromInt(AsInt32());
-
-	case EConfigValueType::Int64:
-		return TString::FromInt64(AsInt64());
-
-	case EConfigValueType::Float:
-		return TString::FromFloat(AsFloat());
-
-	case EConfigValueType::Double:
-		return TString::FromDouble(AsDouble());
-
-	case EConfigValueType::String:
-		return TString("\"") + EscapeJsonString(AsString()) + TString("\"");
-
-	case EConfigValueType::Array: {
-		const auto& Array = AsArray();
-		if (Array.IsEmpty())
-		{
-			return TString("[]");
-		}
-
-		TString Result = TString("[");
-
+		// 直接使用nlohmann::json生成
+		std::string JsonString;
 		if (Pretty)
 		{
-			Result += "\n";
-			for (int32_t i = 0; i < Array.Size(); ++i)
-			{
-				Result += GetIndentString(Indent + 1);
-				Result += Array[i].ToJsonString(Pretty, Indent + 1);
-				if (i < Array.Size() - 1)
-				{
-					Result += ",";
-				}
-				Result += "\n";
-			}
-			Result += GetIndentString(Indent);
+			JsonString = InternalJson.dump(Indent > 0 ? Indent : 2);
 		}
 		else
 		{
-			for (int32_t i = 0; i < Array.Size(); ++i)
-			{
-				Result += Array[i].ToJsonString(Pretty, Indent + 1);
-				if (i < Array.Size() - 1)
-				{
-					Result += ",";
-				}
-			}
+			JsonString = InternalJson.dump();
 		}
-
-		Result += "]";
-		return Result;
+		return CString(JsonString.c_str());
 	}
-
-	case EConfigValueType::Object: {
-		const auto& Object = AsObject();
-		if (Object.IsEmpty())
-		{
-			return TString("{}");
-		}
-
-		TString Result = TString("{");
-
-		if (Pretty)
-		{
-			Result += "\n";
-			int32_t Count = 0;
-			for (const auto& Pair : Object)
-			{
-				Result += GetIndentString(Indent + 1);
-				Result += "\"" + EscapeJsonString(Pair.Key) + "\": ";
-				Result += Pair.Value.ToJsonString(Pretty, Indent + 1);
-				if (Count < Object.Size() - 1)
-				{
-					Result += ",";
-				}
-				Result += "\n";
-				Count++;
-			}
-			Result += GetIndentString(Indent);
-		}
-		else
-		{
-			int32_t Count = 0;
-			for (const auto& Pair : Object)
-			{
-				Result += "\"" + EscapeJsonString(Pair.Key) + "\":";
-				Result += Pair.Value.ToJsonString(Pretty, Indent + 1);
-				if (Count < Object.Size() - 1)
-				{
-					Result += ",";
-				}
-				Count++;
-			}
-		}
-
-		Result += "}";
-		return Result;
-	}
-
-	default:
-		return TString("null");
+	catch (const std::exception& e)
+	{
+		NLOG_CONFIG(Error, "ToJsonString failed: {}", e.what());
+		return CString("null");
 	}
 }
 

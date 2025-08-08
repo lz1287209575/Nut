@@ -62,14 +62,14 @@ struct SStreamResult
 {
 	bool bSuccess = false;
 	int32_t BytesProcessed = 0;
-	TString ErrorMessage;
+	CString ErrorMessage;
 
 	SStreamResult() = default;
 	SStreamResult(bool bInSuccess, int32_t InBytesProcessed = 0)
 	    : bSuccess(bInSuccess),
 	      BytesProcessed(InBytesProcessed)
 	{}
-	SStreamResult(bool bInSuccess, const TString& InErrorMessage)
+	SStreamResult(bool bInSuccess, const CString& InErrorMessage)
 	    : bSuccess(bInSuccess),
 	      ErrorMessage(InErrorMessage)
 	{}

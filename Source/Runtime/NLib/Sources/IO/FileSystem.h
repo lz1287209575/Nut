@@ -4,6 +4,7 @@
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Events/Delegate.h"
+#include "Macros/ReflectionMacros.h"
 #include "Path.h"
 #include "Time/TimeTypes.h"
 
@@ -106,7 +107,7 @@ struct SDirectoryIterationOptions
 	bool bIncludeFiles = true;       // 是否包含文件
 	bool bIncludeHidden = false;     // 是否包含隐藏文件
 	bool bFollowSymlinks = false;    // 是否跟随符号链接
-	TString Pattern;                 // 文件名模式匹配（支持通配符）
+	CString Pattern;                 // 文件名模式匹配（支持通配符）
 	int32_t MaxDepth = -1;           // 最大递归深度（-1为无限制）
 
 	SDirectoryIterationOptions() = default;
@@ -135,14 +136,14 @@ ENUM_CLASS_FLAGS(EFileCopyOptions)
 struct SFileSystemResult
 {
 	bool bSuccess = false;
-	TString ErrorMessage;
+	CString ErrorMessage;
 	int32_t ErrorCode = 0;
 
 	SFileSystemResult() = default;
 	explicit SFileSystemResult(bool bInSuccess)
 	    : bSuccess(bInSuccess)
 	{}
-	SFileSystemResult(bool bInSuccess, const TString& InErrorMessage, int32_t InErrorCode = 0)
+	SFileSystemResult(bool bInSuccess, const CString& InErrorMessage, int32_t InErrorCode = 0)
 	    : bSuccess(bInSuccess),
 	      ErrorMessage(InErrorMessage),
 	      ErrorCode(InErrorCode)
@@ -153,16 +154,16 @@ struct SFileSystemResult
 		return bSuccess;
 	}
 
-	TString ToString() const
+	CString ToString() const
 	{
 		if (bSuccess)
 		{
-			return TString("Success");
+			return CString("Success");
 		}
 		else
 		{
-			return TString("Error: ") + ErrorMessage +
-			       (ErrorCode != 0 ? (TString(" (Code: ") + TString::FromInt(ErrorCode) + TString(")")) : TString());
+			return CString("Error: ") + ErrorMessage +
+			       (ErrorCode != 0 ? (CString(" (Code: ") + CString::FromInt(ErrorCode) + CString(")")) : CString());
 		}
 	}
 };
@@ -325,7 +326,7 @@ public:
 	/**
 	 * @brief 重命名文件或目录
 	 */
-	static SFileSystemResult Rename(const NPath& Path, const TString& NewName);
+	static SFileSystemResult Rename(const NPath& Path, const CString& NewName);
 
 public:
 	// === 文件和目录复制 ===
@@ -357,14 +358,14 @@ public:
 	 * @brief 查找文件
 	 */
 	static TArray<NPath, CMemoryManager> FindFiles(const NPath& DirectoryPath,
-	                                               const TString& Pattern,
+	                                               const CString& Pattern,
 	                                               bool bRecursive = false);
 
 	/**
 	 * @brief 查找目录
 	 */
 	static TArray<NPath, CMemoryManager> FindDirectories(const NPath& DirectoryPath,
-	                                                     const TString& Pattern,
+	                                                     const CString& Pattern,
 	                                                     bool bRecursive = false);
 
 public:
@@ -446,12 +447,12 @@ public:
 	/**
 	 * @brief 创建临时文件
 	 */
-	static NPath CreateTempFile(const TString& Prefix = TString("temp"), const TString& Extension = TString(".tmp"));
+	static NPath CreateTempFile(const CString& Prefix = CString("temp"), const CString& Extension = CString(".tmp"));
 
 	/**
 	 * @brief 创建临时目录
 	 */
-	static NPath CreateTempDirectory(const TString& Prefix = TString("temp"));
+	static NPath CreateTempDirectory(const CString& Prefix = CString("temp"));
 
 public:
 	// === 文件内容快速操作 ===
@@ -459,7 +460,7 @@ public:
 	/**
 	 * @brief 读取整个文件到字符串
 	 */
-	static TString ReadAllText(const NPath& Path);
+	static CString ReadAllText(const NPath& Path);
 
 	/**
 	 * @brief 读取整个文件到字节数组
@@ -469,7 +470,7 @@ public:
 	/**
 	 * @brief 写入字符串到文件
 	 */
-	static SFileSystemResult WriteAllText(const NPath& Path, const TString& Content, bool bOverwrite = true);
+	static SFileSystemResult WriteAllText(const NPath& Path, const CString& Content, bool bOverwrite = true);
 
 	/**
 	 * @brief 写入字节数组到文件
@@ -481,7 +482,7 @@ public:
 	/**
 	 * @brief 追加文本到文件
 	 */
-	static SFileSystemResult AppendAllText(const NPath& Path, const TString& Content);
+	static SFileSystemResult AppendAllText(const NPath& Path, const CString& Content);
 
 public:
 	// === 文件监控 ===
@@ -512,7 +513,7 @@ public:
 	/**
 	 * @brief 匹配文件名模式（支持*和?通配符）
 	 */
-	static bool MatchPattern(const TString& FileName, const TString& Pattern);
+	static bool MatchPattern(const CString& FileName, const CString& Pattern);
 
 	/**
 	 * @brief 计算目录大小
@@ -522,7 +523,7 @@ public:
 	/**
 	 * @brief 计算文件或目录的校验和
 	 */
-	static TString CalculateChecksum(const NPath& Path, const TString& Algorithm = TString("MD5"));
+	static CString CalculateChecksum(const NPath& Path, const CString& Algorithm = CString("MD5"));
 
 private:
 	// === 内部实现 ===

@@ -538,6 +538,141 @@ public:
 	}
 
 public:
+	// === 迭代器支持 ===
+	
+	/**
+	 * @brief 简单的迭代器实现
+	 */
+	class Iterator
+	{
+	public:
+		Iterator(SBucket* InBuckets, SizeType InBucketCount, SizeType InIndex)
+			: Buckets(InBuckets), BucketCount(InBucketCount), Index(InIndex)
+		{
+			// 跳到第一个有效元素
+			while (Index < BucketCount && !Buckets[Index].bOccupied)
+			{
+				++Index;
+			}
+		}
+		
+		PairType& operator*() { return Buckets[Index].Data; }
+		const PairType& operator*() const { return Buckets[Index].Data; }
+		PairType* operator->() { return &Buckets[Index].Data; }
+		const PairType* operator->() const { return &Buckets[Index].Data; }
+		
+		Iterator& operator++()
+		{
+			if (Index < BucketCount)
+			{
+				++Index;
+				// 跳到下一个有效元素
+				while (Index < BucketCount && !Buckets[Index].bOccupied)
+				{
+					++Index;
+				}
+			}
+			return *this;
+		}
+		
+		bool operator==(const Iterator& Other) const
+		{
+			return Index == Other.Index;
+		}
+		
+		bool operator!=(const Iterator& Other) const
+		{
+			return Index != Other.Index;
+		}
+		
+	private:
+		SBucket* Buckets;
+		SizeType BucketCount;
+		SizeType Index;
+	};
+	
+	/**
+	 * @brief 获取开始迭代器
+	 */
+	Iterator begin()
+	{
+		return Iterator(Buckets, BucketCount, 0);
+	}
+	
+	/**
+	 * @brief 获取结束迭代器
+	 */
+	Iterator end()
+	{
+		return Iterator(Buckets, BucketCount, BucketCount);
+	}
+	
+	/**
+	 * @brief 常量迭代器
+	 */
+	class ConstIterator
+	{
+	public:
+		ConstIterator(const SBucket* InBuckets, SizeType InBucketCount, SizeType InIndex)
+			: Buckets(InBuckets), BucketCount(InBucketCount), Index(InIndex)
+		{
+			// 跳到第一个有效元素
+			while (Index < BucketCount && !Buckets[Index].bOccupied)
+			{
+				++Index;
+			}
+		}
+		
+		const PairType& operator*() const { return Buckets[Index].Data; }
+		const PairType* operator->() const { return &Buckets[Index].Data; }
+		
+		ConstIterator& operator++()
+		{
+			if (Index < BucketCount)
+			{
+				++Index;
+				// 跳到下一个有效元素
+				while (Index < BucketCount && !Buckets[Index].bOccupied)
+				{
+					++Index;
+				}
+			}
+			return *this;
+		}
+		
+		bool operator==(const ConstIterator& Other) const
+		{
+			return Index == Other.Index;
+		}
+		
+		bool operator!=(const ConstIterator& Other) const
+		{
+			return Index != Other.Index;
+		}
+		
+	private:
+		const SBucket* Buckets;
+		SizeType BucketCount;
+		SizeType Index;
+	};
+
+	/**
+	 * @brief 获取开始迭代器（常量版本）
+	 */
+	ConstIterator begin() const
+	{
+		return ConstIterator(Buckets, BucketCount, 0);
+	}
+	
+	/**
+	 * @brief 获取结束迭代器（常量版本）
+	 */
+	ConstIterator end() const
+	{
+		return ConstIterator(Buckets, BucketCount, BucketCount);
+	}
+
+public:
 	// === 高级操作 ===
 
 	/**

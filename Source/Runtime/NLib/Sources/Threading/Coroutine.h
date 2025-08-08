@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Containers/TArray.h"
-#include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Events/Delegate.h"
@@ -128,8 +127,8 @@ struct SCoroutineStats
 	{
 		TotalYields = 0;
 		TotalResumes = 0;
-		TotalRunTime = CTimespan::Zero();
-		AverageRunTime = CTimespan::Zero();
+		TotalRunTime = CTimespan::Zero;
+		AverageRunTime = CTimespan::Zero;
 	}
 
 	void UpdateRunTime(const CTimespan& RunTime)
@@ -158,7 +157,7 @@ public:
 	/**
 	 * @brief 获取等待条件描述
 	 */
-	virtual TString GetDescription() const = 0;
+	virtual CString GetDescription() const = 0;
 
 	/**
 	 * @brief 在等待期间执行的回调
@@ -189,9 +188,9 @@ public:
 		return (CDateTime::Now() - StartTime) >= WaitDuration;
 	}
 
-	TString GetDescription() const override
+	CString GetDescription() const override
 	{
-		return TString("TimeWait");
+		return CString("TimeWait");
 	}
 
 private:
@@ -207,7 +206,7 @@ class CConditionWaitCondition : public ICoroutineWaitCondition
 public:
 	using ConditionFunc = std::function<bool()>;
 
-	explicit CConditionWaitCondition(ConditionFunc InCondition, const TString& InDescription = TString("Condition"))
+	explicit CConditionWaitCondition(ConditionFunc InCondition, const CString& InDescription = CString("Condition"))
 	    : Condition(std::move(InCondition)),
 	      Description(InDescription)
 	{}
@@ -217,14 +216,14 @@ public:
 		return Condition ? Condition() : true;
 	}
 
-	TString GetDescription() const override
+	CString GetDescription() const override
 	{
 		return Description;
 	}
 
 private:
 	ConditionFunc Condition;
-	TString Description;
+	CString Description;
 };
 
 /**
@@ -247,7 +246,7 @@ public:
 	// === 委托定义 ===
 	DECLARE_DELEGATE(FOnCoroutineStarted, FCoroutineId);
 	DECLARE_DELEGATE(FOnCoroutineCompleted, FCoroutineId);
-	DECLARE_DELEGATE(FOnCoroutineFailed, FCoroutineId, const TString&);
+	DECLARE_DELEGATE(FOnCoroutineFailed, FCoroutineId, const CString&);
 	DECLARE_DELEGATE(FOnCoroutineYielded, FCoroutineId);
 	DECLARE_DELEGATE(FOnCoroutineResumed, FCoroutineId);
 
@@ -260,7 +259,7 @@ public:
 	 * @brief 构造函数
 	 */
 	NCoroutine(CoroutineFunction InFunction,
-	           const TString& InName = TString("Coroutine"),
+	           const CString& InName = CString("Coroutine"),
 	           size_t InStackSize = DEFAULT_COROUTINE_STACK_SIZE)
 	    : Function(std::move(InFunction)),
 	      Name(InName),
@@ -289,7 +288,7 @@ public:
 	/**
 	 * @brief 主协程构造函数
 	 */
-	explicit NCoroutine(const TString& InName = TString("MainCoroutine"))
+	explicit NCoroutine(const CString& InName = CString("MainCoroutine"))
 	    : Function(nullptr),
 	      Name(InName),
 	      StackSize(0),
@@ -539,7 +538,7 @@ public:
 	/**
 	 * @brief 获取协程名称
 	 */
-	const TString& GetName() const
+	const CString& GetName() const
 	{
 		return Name;
 	}
@@ -640,7 +639,7 @@ protected:
 		catch (const std::exception& e)
 		{
 			State = ECoroutineState::Failed;
-			TString ErrorMsg(e.what());
+			CString ErrorMsg(e.what());
 			OnCoroutineFailed.ExecuteIfBound(CoroutineId, ErrorMsg);
 
 			NLOG_THREADING(Error, "Coroutine '{}' failed with exception: {}", Name.GetData(), e.what());
@@ -648,7 +647,7 @@ protected:
 		catch (...)
 		{
 			State = ECoroutineState::Failed;
-			TString ErrorMsg("Unknown exception");
+			CString ErrorMsg("Unknown exception");
 			OnCoroutineFailed.ExecuteIfBound(CoroutineId, ErrorMsg);
 
 			NLOG_THREADING(Error, "Coroutine '{}' failed with unknown exception", Name.GetData());
@@ -658,26 +657,26 @@ protected:
 	/**
 	 * @brief 获取状态字符串
 	 */
-	TString GetStateString() const
+	CString GetStateString() const
 	{
 		switch (State.load())
 		{
 		case ECoroutineState::Created:
-			return TString("Created");
+			return CString("Created");
 		case ECoroutineState::Ready:
-			return TString("Ready");
+			return CString("Ready");
 		case ECoroutineState::Running:
-			return TString("Running");
+			return CString("Running");
 		case ECoroutineState::Suspended:
-			return TString("Suspended");
+			return CString("Suspended");
 		case ECoroutineState::Completed:
-			return TString("Completed");
+			return CString("Completed");
 		case ECoroutineState::Failed:
-			return TString("Failed");
+			return CString("Failed");
 		case ECoroutineState::Cancelled:
-			return TString("Cancelled");
+			return CString("Cancelled");
 		default:
-			return TString("Unknown");
+			return CString("Unknown");
 		}
 	}
 
@@ -699,7 +698,7 @@ private:
 	// === 成员变量 ===
 
 	CoroutineFunction Function;         // 协程函数
-	TString Name;                       // 协程名称
+	CString Name;                       // 协程名称
 	size_t StackSize;                   // 栈大小
 	std::atomic<ECoroutineState> State; // 协程状态
 	FCoroutineId CoroutineId;           // 协程ID
@@ -728,7 +727,7 @@ inline TSharedPtr<CTimeWaitCondition> CreateTimeWait(const CTimespan& Duration)
  */
 template <typename TFunc>
 TSharedPtr<CConditionWaitCondition> CreateConditionWait(TFunc&& Condition,
-                                                        const TString& Description = TString("Condition"))
+                                                        const CString& Description = CString("Condition"))
 {
 	return MakeShared<CConditionWaitCondition>(std::forward<TFunc>(Condition), Description);
 }

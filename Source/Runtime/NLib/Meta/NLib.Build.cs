@@ -23,9 +23,10 @@ public class NLibTarget : NutStaticLibraryTarget
         // 头文件包含目录
         IncludeDirs = new List<string>
         {
-            "../Sources",
-            "../../../ThirdParty/tcmalloc/src",
-            "../../../ThirdParty/spdlog/include"
+            "Sources",
+            "ThirdParty/tcmalloc/src",
+            "ThirdParty/spdlog/include",
+            "ThirdParty/nlohmann_json/single_include"
         };
         
         // 依赖库
@@ -35,6 +36,6 @@ public class NLibTarget : NutStaticLibraryTarget
             "spdlog"
         };
     }
-}
 
+}
 

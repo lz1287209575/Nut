@@ -2,7 +2,6 @@
 
 #include "IO/FileSystem.h"
 #include "Logging/LogCategory.h"
-#include "Time/TimeManager.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -76,7 +75,7 @@ void NConfigManager::Shutdown()
 
 // === 配置源管理 ===
 
-bool NConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, EConfigPriority Priority, bool bOptional)
+bool NConfigManager::AddJsonFile(const CString& Name, const CString& FilePath, EConfigPriority Priority, bool bOptional)
 {
 	if (!bIsInitialized.load())
 	{
@@ -123,7 +122,7 @@ bool NConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, E
 		}
 	}
 
-	ConfigSources.Add(NewSource);
+	ConfigSources.PushBack(NewSource);
 
 	// 重新合并配置
 	MergeAllSources();
@@ -139,7 +138,7 @@ bool NConfigManager::AddJsonFile(const TString& Name, const TString& FilePath, E
 	return true;
 }
 
-bool NConfigManager::AddEnvironmentVariables(const TString& Prefix, EConfigPriority Priority)
+bool NConfigManager::AddEnvironmentVariables(const CString& Prefix, EConfigPriority Priority)
 {
 	if (!bIsInitialized.load())
 	{
@@ -169,7 +168,7 @@ bool NConfigManager::AddEnvironmentVariables(const TString& Prefix, EConfigPrior
 	NewSource.Data = ParseEnvironmentVariables(Prefix);
 	NewSource.bIsLoaded = true;
 
-	ConfigSources.Add(NewSource);
+	ConfigSources.PushBack(NewSource);
 
 	// 重新合并配置
 	MergeAllSources();
@@ -206,7 +205,7 @@ bool NConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority 
 	NewSource.Data = ParseCommandLineArgs(argc, argv);
 	NewSource.bIsLoaded = true;
 
-	ConfigSources.Add(NewSource);
+	ConfigSources.PushBack(NewSource);
 
 	// 重新合并配置
 	MergeAllSources();
@@ -215,7 +214,7 @@ bool NConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority 
 	return true;
 }
 
-bool NConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Config, EConfigPriority Priority)
+bool NConfigManager::AddMemoryConfig(const CString& Name, const CConfigValue& Config, EConfigPriority Priority)
 {
 	if (!bIsInitialized.load())
 	{
@@ -243,7 +242,7 @@ bool NConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Co
 	NewSource.Data = Config;
 	NewSource.bIsLoaded = true;
 
-	ConfigSources.Add(NewSource);
+	ConfigSources.PushBack(NewSource);
 
 	// 重新合并配置
 	MergeAllSources();
@@ -252,7 +251,7 @@ bool NConfigManager::AddMemoryConfig(const TString& Name, const CConfigValue& Co
 	return true;
 }
 
-bool NConfigManager::RemoveConfigSource(const TString& Name)
+bool NConfigManager::RemoveConfigSource(const CString& Name)
 {
 	if (!bIsInitialized.load())
 	{
@@ -282,7 +281,7 @@ bool NConfigManager::RemoveConfigSource(const TString& Name)
 	return false;
 }
 
-bool NConfigManager::ReloadConfigSource(const TString& Name)
+bool NConfigManager::ReloadConfigSource(const CString& Name)
 {
 	if (!bIsInitialized.load())
 	{
@@ -350,7 +349,7 @@ void NConfigManager::ReloadAllSources()
 
 // === 配置访问 ===
 
-CConfigValue NConfigManager::GetConfig(const TString& Key, const CConfigValue& DefaultValue) const
+CConfigValue NConfigManager::GetConfig(const CString& Key, const CConfigValue& DefaultValue) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -370,14 +369,14 @@ CConfigValue NConfigManager::GetConfig(const TString& Key, const CConfigValue& D
 	if (!Value.IsNull())
 	{
 		// 缓存结果
-		const_cast<NConfigManager*>(this)->ConfigCache.Add(Key, Value);
+		const_cast<NConfigManager*>(this)->ConfigCache.Insert(Key, Value);
 		return Value;
 	}
 
 	return DefaultValue;
 }
 
-void NConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, const TString& SourceName)
+void NConfigManager::SetConfig(const CString& Key, const CConfigValue& Value, const CString& SourceName)
 {
 	if (!bIsInitialized.load())
 	{
@@ -408,7 +407,7 @@ void NConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, co
 		NewSource.bAutoReload = false;
 		NewSource.Data = CConfigObject();
 		NewSource.bIsLoaded = true;
-		ConfigSources.Add(NewSource);
+		ConfigSources.PushBack(NewSource);
 		TargetSource = &ConfigSources.Last();
 	}
 
@@ -429,7 +428,7 @@ void NConfigManager::SetConfig(const TString& Key, const CConfigValue& Value, co
 	NotifyConfigChanged(Key, OldValue, Value, SourceName);
 }
 
-bool NConfigManager::HasConfig(const TString& Key) const
+bool NConfigManager::HasConfig(const CString& Key) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -474,7 +473,7 @@ TArray<TString, CMemoryManager> NConfigManager::GetAllKeys() const
 	return Keys;
 }
 
-CConfigObject NConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
+CConfigObject NConfigManager::GetConfigsWithPrefix(const CString& Prefix) const
 {
 	CConfigObject Result;
 
@@ -496,7 +495,7 @@ CConfigObject NConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
 
 			if (!RelativeKey.IsEmpty())
 			{
-				Result.Add(RelativeKey, GetConfig(Key));
+				Result.Insert(RelativeKey, GetConfig(Key));
 			}
 		}
 	}
@@ -506,7 +505,7 @@ CConfigObject NConfigManager::GetConfigsWithPrefix(const TString& Prefix) const
 
 // === 配置验证 ===
 
-void NConfigManager::AddValidator(const TString& Key, TSharedPtr<IConfigValidator> Validator)
+void NConfigManager::AddValidator(const CString& Key, TSharedPtr<IConfigValidator> Validator)
 {
 	if (!bIsInitialized.load())
 	{
@@ -517,10 +516,10 @@ void NConfigManager::AddValidator(const TString& Key, TSharedPtr<IConfigValidato
 	NLOG_CONFIG(Info, "Adding validator for key: {}", Key.GetData());
 
 	std::lock_guard<std::mutex> Lock(ConfigMutex);
-	Validators.Add(Key, Validator);
+	Validators.Insert(Key, Validator);
 }
 
-void NConfigManager::RemoveValidator(const TString& Key)
+void NConfigManager::RemoveValidator(const CString& Key)
 {
 	if (!bIsInitialized.load())
 	{
@@ -539,7 +538,7 @@ bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErro
 
 	if (!bIsInitialized.load())
 	{
-		OutErrors.Add("ConfigManager not initialized");
+		OutErrors.PushBack("ConfigManager not initialized");
 		return false;
 	}
 
@@ -557,7 +556,7 @@ bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErro
 
 		if (!Validator->Validate(Key, Value, ErrorMessage))
 		{
-			OutErrors.Add(TString("Validation failed for '") + Key + TString("': ") + ErrorMessage);
+			OutErrors.PushBack(CString("Validation failed for '") + Key + CString("': ") + ErrorMessage);
 			bAllValid = false;
 
 			// 触发验证失败事件
@@ -568,7 +567,7 @@ bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErro
 	return bAllValid;
 }
 
-bool NConfigManager::ValidateConfig(const TString& Key, TString& OutError) const
+bool NConfigManager::ValidateConfig(const CString& Key, CString& OutError) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -692,7 +691,7 @@ TString NConfigManager::GenerateConfigReport() const
 	return Report;
 }
 
-bool NConfigManager::ExportConfig(const TString& FilePath, bool bPrettyPrint) const
+bool NConfigManager::ExportConfig(const CString& FilePath, bool bPrettyPrint) const
 {
 	if (!bIsInitialized.load())
 	{
@@ -769,7 +768,7 @@ void NConfigManager::MergeAllSources()
 	{
 		if (Source.bIsLoaded)
 		{
-			SortedSources.Add(&Source);
+			SortedSources.PushBack(&Source);
 		}
 	}
 
@@ -866,12 +865,12 @@ CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 
 				// 尝试解析值类型
 				CConfigValue ConfigVal = ParseStringValue(Value);
-				Result.Add(Key, ConfigVal);
+				Result.Insert(Key, ConfigVal);
 			}
 			else
 			{
 				// 没有值的开关，设为true
-				Result.Add(KeyValue, CConfigValue(true));
+				Result.Insert(KeyValue, CConfigValue(true));
 			}
 		}
 		// 处理 -key value 格式
@@ -881,7 +880,7 @@ CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 			TString Value(argv[i + 1]);
 
 			CConfigValue ConfigVal = ParseStringValue(Value);
-			Result.Add(Key, ConfigVal);
+			Result.Insert(Key, ConfigVal);
 			i++; // 跳过下一个参数
 		}
 	}
@@ -890,7 +889,7 @@ CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 	return CConfigValue(Result);
 }
 
-CConfigValue NConfigManager::ParseEnvironmentVariables(const TString& Prefix)
+CConfigValue NConfigManager::ParseEnvironmentVariables(const CString& Prefix)
 {
 	CConfigObject Result;
 
@@ -925,7 +924,7 @@ CConfigValue NConfigManager::ParseEnvironmentVariables(const TString& Prefix)
 					Key = Key.Replace("_", ".");
 
 					CConfigValue ConfigVal = ParseStringValue(Value);
-					Result.Add(Key, ConfigVal);
+					Result.Insert(Key, ConfigVal);
 				}
 			}
 		}
@@ -987,10 +986,10 @@ bool NConfigManager::IsFileModified(const SConfigSource& Source) const
 	return CurrentModTime > Source.LastModified;
 }
 
-void NConfigManager::NotifyConfigChanged(const TString& Key,
+void NConfigManager::NotifyConfigChanged(const CString& Key,
                                          const CConfigValue& OldValue,
                                          const CConfigValue& NewValue,
-                                         const TString& SourceName)
+                                         const CString& SourceName)
 {
 	SConfigChangeEvent Event(Key, OldValue, NewValue, SourceName);
 	OnConfigChanged.Broadcast(Event);
@@ -998,7 +997,7 @@ void NConfigManager::NotifyConfigChanged(const TString& Key,
 	NLOG_CONFIG(Debug, "Config changed: {} in source: {}", Key.GetData(), SourceName.GetData());
 }
 
-void NConfigManager::ApplyConfigValue(const TString& Key, const CConfigValue& Value, const TString& SourceName)
+void NConfigManager::ApplyConfigValue(const CString& Key, const CConfigValue& Value, const CString& SourceName)
 {
 	// 这个方法可以用于应用配置值的副作用，比如更新系统设置等
 	// 目前只是记录日志
@@ -1011,7 +1010,7 @@ void NConfigManager::ApplyConfigValue(const TString& Key, const CConfigValue& Va
 
 // === 辅助函数 ===
 
-CDateTime NConfigManager::GetFileModificationTime(const TString& FilePath) const
+CDateTime NConfigManager::GetFileModificationTime(const CString& FilePath) const
 {
 	try
 	{
@@ -1046,7 +1045,7 @@ TString NConfigManager::GetSourceTypeName(EConfigSourceType Type) const
 	}
 }
 
-CConfigValue NConfigManager::ParseStringValue(const TString& Value) const
+CConfigValue NConfigManager::ParseStringValue(const CString& Value) const
 {
 	// 尝试解析为布尔值
 	if (Value.ToLower() == "true" || Value.ToLower() == "yes" || Value == "1")
@@ -1099,27 +1098,27 @@ void NConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObje
 			// 递归合并对象
 			CConfigObject MergedObj = Target[Key].AsObject();
 			MergeConfigObjects(MergedObj, Value.AsObject());
-			Target.Add(Key, CConfigValue(MergedObj));
+			Target.Insert(Key, CConfigValue(MergedObj));
 		}
 		else
 		{
 			// 直接覆盖
-			Target.Add(Key, Value);
+			Target.Insert(Key, Value);
 		}
 	}
 }
 
 void NConfigManager::CollectKeysFromValue(const CConfigValue& Value,
-                                          const TString& Prefix,
-                                          TArray<TString, CMemoryManager>& OutKeys) const
+                                          const CString& Prefix,
+                                          TArray<CString>& OutKeys) const
 {
 	if (Value.IsObject())
 	{
 		const auto& Object = Value.AsObject();
 		for (const auto& Pair : Object)
 		{
-			TString FullKey = Prefix.IsEmpty() ? Pair.Key : (Prefix + TString(".") + Pair.Key);
-			OutKeys.Add(FullKey);
+			CString FullKey = Prefix.IsEmpty() ? Pair.Key : (Prefix + CString(".") + Pair.Key);
+			OutKeys.PushBack(FullKey);
 			CollectKeysFromValue(Pair.Value, FullKey, OutKeys);
 		}
 	}
@@ -1129,7 +1128,7 @@ void NConfigManager::CollectKeysFromValue(const CConfigValue& Value,
 		for (int32_t i = 0; i < Array.Size(); ++i)
 		{
 			TString FullKey = Prefix + TString("[") + TString::FromInt(i) + TString("]");
-			OutKeys.Add(FullKey);
+			OutKeys.PushBack(FullKey);
 			CollectKeysFromValue(Array[i], FullKey, OutKeys);
 		}
 	}

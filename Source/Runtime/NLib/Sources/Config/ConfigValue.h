@@ -11,6 +11,9 @@
 #include <type_traits>
 #include <variant>
 
+// Include nlohmann/json
+#include <nlohmann/json.hpp>
+
 namespace NLib
 {
 /**
@@ -35,117 +38,119 @@ class CConfigValue;
 /**
  * @brief 配置数组类型
  */
+// 前向声明
+class CConfigValue;
+
+/**
+ * @brief 配置数组类型
+ */
 using CConfigArray = TArray<CConfigValue, CMemoryManager>;
 
 /**
  * @brief 配置对象类型
  */
-using CConfigObject = THashMap<TString, CConfigValue, CMemoryManager>;
+using CConfigObject = THashMap<CString, CConfigValue, std::hash<CString>, std::equal_to<CString>, CMemoryManager>;
 
 /**
  * @brief 配置值变体类型
  */
-using CConfigVariant = std::variant<std::monostate, // Null
-                                    bool,           // Bool
-                                    int32_t,        // Int32
-                                    int64_t,        // Int64
-                                    float,          // Float
-                                    double,         // Double
-                                    TString,        // String
-                                    CConfigArray,   // Array
-                                    CConfigObject   // Object
+// 前向声明
+class CConfigValue;
+
+/**
+ * @brief 简化的配置值变体类型（只包含基本类型）
+ */
+using CConfigVariant = std::variant<std::monostate,                      // Null
+                                    bool,                                // Bool
+                                    int32_t,                            // Int32
+                                    int64_t,                            // Int64
+                                    float,                              // Float
+                                    double,                             // Double
+                                    CString       // String
                                     >;
 
 /**
  * @brief 配置值类
  *
- * 提供类型安全的配置值存储和访问：
+ * 使用nlohmann::json作为底层存储，提供类型安全的配置值访问：
  * - 支持多种基础数据类型
- * - 嵌套对象和数组支持
+ * - 嵌套对象和数组支持  
  * - 类型转换和验证
  * - 路径访问支持
+ * - JSON序列化/反序列化
  */
 class CConfigValue
 {
+private:
+	nlohmann::json InternalJson;  // 使用nlohmann::json作为底层存储
+
+private:
+	// 辅助函数：将CString转换为std::string
+	static std::string CStringToStdString(const CString& str)
+	{
+		return std::string(str.GetData(), str.Size());
+	}
+	
+	// 辅助函数：将std::string转换为CString  
+	static CString StdStringToCString(const std::string& str)
+	{
+		return CString(str.c_str());
+	}
+
 public:
 	// === 构造函数 ===
 
 	/**
 	 * @brief 默认构造函数（空值）
 	 */
-	CConfigValue()
-	    : Value(std::monostate{})
-	{}
+	CConfigValue() : InternalJson(nullptr) {}
 
 	/**
-	 * @brief 布尔值构造函数
+	 * @brief 从nlohmann::json构造
 	 */
-	explicit CConfigValue(bool InValue)
-	    : Value(InValue)
-	{}
+	explicit CConfigValue(const nlohmann::json& json) : InternalJson(json) {}
+	explicit CConfigValue(nlohmann::json&& json) : InternalJson(std::move(json)) {}
 
 	/**
-	 * @brief 整数构造函数
+	 * @brief 基础类型构造函数
 	 */
-	explicit CConfigValue(int32_t InValue)
-	    : Value(InValue)
-	{}
-	explicit CConfigValue(int64_t InValue)
-	    : Value(InValue)
-	{}
+	explicit CConfigValue(bool value) : InternalJson(value) {}
+	explicit CConfigValue(int32_t value) : InternalJson(value) {}
+	explicit CConfigValue(int64_t value) : InternalJson(value) {}
+	explicit CConfigValue(float value) : InternalJson(value) {}
+	explicit CConfigValue(double value) : InternalJson(value) {}
+	explicit CConfigValue(const char* value) : InternalJson(std::string(value)) {}
+	explicit CConfigValue(const CString& value) : InternalJson(CStringToStdString(value)) {}
+	
+	/**
+	 * @brief 从CConfigArray构造
+	 */
+	explicit CConfigValue(const CConfigArray& array) 
+	{
+		InternalJson = nlohmann::json::array();
+		for (const auto& item : array)
+		{
+			InternalJson.push_back(item.InternalJson);
+		}
+	}
+	
+	/**
+	 * @brief 从CConfigObject构造
+	 */
+	explicit CConfigValue(const CConfigObject& object)
+	{
+		InternalJson = nlohmann::json::object();
+		for (const auto& pair : object)
+		{
+			InternalJson[CStringToStdString(pair.first)] = pair.second.InternalJson;
+		}
+	}
 
 	/**
-	 * @brief 浮点数构造函数
+	 * @brief 拷贝和移动构造函数
 	 */
-	explicit CConfigValue(float InValue)
-	    : Value(InValue)
-	{}
-	explicit CConfigValue(double InValue)
-	    : Value(InValue)
-	{}
-
-	/**
-	 * @brief 字符串构造函数
-	 */
-	explicit CConfigValue(const TString& InValue)
-	    : Value(InValue)
-	{}
-	explicit CConfigValue(TString&& InValue)
-	    : Value(std::move(InValue))
-	{}
-	explicit CConfigValue(const char* InValue)
-	    : Value(TString(InValue))
-	{}
-
-	/**
-	 * @brief 数组构造函数
-	 */
-	explicit CConfigValue(const CConfigArray& InValue)
-	    : Value(InValue)
-	{}
-	explicit CConfigValue(CConfigArray&& InValue)
-	    : Value(std::move(InValue))
-	{}
-
-	/**
-	 * @brief 对象构造函数
-	 */
-	explicit CConfigValue(const CConfigObject& InValue)
-	    : Value(InValue)
-	{}
-	explicit CConfigValue(CConfigObject&& InValue)
-	    : Value(std::move(InValue))
-	{}
-
-	/**
-	 * @brief 拷贝构造函数
-	 */
-	CConfigValue(const CConfigValue& Other) = default;
-
-	/**
-	 * @brief 移动构造函数
-	 */
-	CConfigValue(CConfigValue&& Other) noexcept = default;
+	CConfigValue(const CConfigValue& other) : InternalJson(other.InternalJson) {}
+	CConfigValue(CConfigValue&& other) noexcept : InternalJson(std::move(other.InternalJson)) {}
 
 	/**
 	 * @brief 析构函数
@@ -155,67 +160,102 @@ public:
 public:
 	// === 赋值操作符 ===
 
-	CConfigValue& operator=(const CConfigValue& Other) = default;
-	CConfigValue& operator=(CConfigValue&& Other) noexcept = default;
+	CConfigValue& operator=(const CConfigValue& Other)
+	{
+		if (this != &Other)
+		{
+			InternalJson = Other.InternalJson;
+		}
+		return *this;
+	}
+	
+	CConfigValue& operator=(CConfigValue&& Other) noexcept
+	{
+		if (this != &Other)
+		{
+			InternalJson = std::move(Other.InternalJson);
+		}
+		return *this;
+	}
 
 	CConfigValue& operator=(bool InValue)
 	{
-		Value = InValue;
+		InternalJson = InValue;
 		return *this;
 	}
 	CConfigValue& operator=(int32_t InValue)
 	{
-		Value = InValue;
+		InternalJson = InValue;
 		return *this;
 	}
 	CConfigValue& operator=(int64_t InValue)
 	{
-		Value = InValue;
+		InternalJson = InValue;
 		return *this;
 	}
 	CConfigValue& operator=(float InValue)
 	{
-		Value = InValue;
+		InternalJson = InValue;
 		return *this;
 	}
 	CConfigValue& operator=(double InValue)
 	{
-		Value = InValue;
+		InternalJson = InValue;
 		return *this;
 	}
-	CConfigValue& operator=(const TString& InValue)
+	CConfigValue& operator=(const CString& InValue)
 	{
-		Value = InValue;
+		InternalJson = CStringToStdString(InValue);
 		return *this;
 	}
-	CConfigValue& operator=(TString&& InValue)
+	CConfigValue& operator=(CString&& InValue)
 	{
-		Value = std::move(InValue);
+		InternalJson = CStringToStdString(InValue);
 		return *this;
 	}
 	CConfigValue& operator=(const char* InValue)
 	{
-		Value = TString(InValue);
+		InternalJson = std::string(InValue);
 		return *this;
 	}
 	CConfigValue& operator=(const CConfigArray& InValue)
 	{
-		Value = InValue;
+		nlohmann::json JsonArray = nlohmann::json::array();
+		for (const auto& Item : InValue)
+		{
+			JsonArray.push_back(Item.InternalJson);
+		}
+		InternalJson = JsonArray;
 		return *this;
 	}
 	CConfigValue& operator=(CConfigArray&& InValue)
 	{
-		Value = std::move(InValue);
+		nlohmann::json JsonArray = nlohmann::json::array();
+		for (auto& Item : InValue)
+		{
+			JsonArray.push_back(std::move(Item.InternalJson));
+		}
+		InternalJson = JsonArray;
 		return *this;
 	}
 	CConfigValue& operator=(const CConfigObject& InValue)
 	{
-		Value = InValue;
+		nlohmann::json JsonObject = nlohmann::json::object();
+		for (const auto& Pair : InValue)
+		{
+			JsonObject[CStringToStdString(Pair.first)] = Pair.second.InternalJson;
+		}
+		InternalJson = JsonObject;
 		return *this;
 	}
 	CConfigValue& operator=(CConfigObject&& InValue)
 	{
-		Value = std::move(InValue);
+		nlohmann::json JsonObject = nlohmann::json::object();
+		for (auto& Pair : InValue)
+		{
+			JsonObject[CStringToStdString(Pair.first)] = std::move(Pair.second.InternalJson);
+		}
+		InternalJson = JsonObject;
 		return *this;
 	}
 
@@ -227,7 +267,47 @@ public:
 	 */
 	EConfigValueType GetType() const
 	{
-		return static_cast<EConfigValueType>(Value.index());
+		if (InternalJson.is_null())
+		{
+			return EConfigValueType::Null;
+		}
+		else if (InternalJson.is_boolean())
+		{
+			return EConfigValueType::Bool;
+		}
+		else if (InternalJson.is_number_integer())
+		{
+			// 检查是否适合int32_t
+			int64_t Value = InternalJson.get<int64_t>();
+			if (Value >= INT32_MIN && Value <= INT32_MAX)
+			{
+				return EConfigValueType::Int32;
+			}
+			else
+			{
+				return EConfigValueType::Int64;
+			}
+		}
+		else if (InternalJson.is_number_float())
+		{
+			return EConfigValueType::Double;
+		}
+		else if (InternalJson.is_string())
+		{
+			return EConfigValueType::String;
+		}
+		else if (InternalJson.is_array())
+		{
+			return EConfigValueType::Array;
+		}
+		else if (InternalJson.is_object())
+		{
+			return EConfigValueType::Object;
+		}
+		else
+		{
+			return EConfigValueType::Null;
+		}
 	}
 
 	/**
@@ -304,22 +384,18 @@ public:
 	 */
 	bool AsBool(bool DefaultValue = false) const
 	{
-		if (IsBool())
+		if (InternalJson.is_boolean())
 		{
-			return std::get<bool>(Value);
+			return InternalJson.get<bool>();
 		}
-		else if (IsInt())
+		else if (InternalJson.is_number())
 		{
-			return AsInt64() != 0;
+			return InternalJson.get<double>() != 0.0;
 		}
-		else if (IsFloat())
+		else if (InternalJson.is_string())
 		{
-			return AsDouble() != 0.0;
-		}
-		else if (IsString())
-		{
-			const auto& Str = std::get<TString>(Value);
-			return Str.Equals("true", false) || Str.Equals("1", false);
+			std::string Str = InternalJson.get<std::string>();
+			return Str == "true" || Str == "1";
 		}
 
 		return DefaultValue;
@@ -330,29 +406,31 @@ public:
 	 */
 	int32_t AsInt32(int32_t DefaultValue = 0) const
 	{
-		if (GetType() == EConfigValueType::Int32)
+		if (InternalJson.is_number_integer())
 		{
-			return std::get<int32_t>(Value);
+			int64_t Val = InternalJson.get<int64_t>();
+			if (Val >= INT32_MIN && Val <= INT32_MAX)
+			{
+				return static_cast<int32_t>(Val);
+			}
+			else
+			{
+				return Val > 0 ? INT32_MAX : INT32_MIN;
+			}
 		}
-		else if (GetType() == EConfigValueType::Int64)
+		else if (InternalJson.is_number_float())
 		{
-			int64_t Val = std::get<int64_t>(Value);
-			return static_cast<int32_t>(
-			    NMath::Clamp(Val, static_cast<int64_t>(INT32_MIN), static_cast<int64_t>(INT32_MAX)));
+			return static_cast<int32_t>(InternalJson.get<double>());
 		}
-		else if (IsFloat())
+		else if (InternalJson.is_boolean())
 		{
-			return static_cast<int32_t>(AsDouble());
+			return InternalJson.get<bool>() ? 1 : 0;
 		}
-		else if (IsBool())
-		{
-			return std::get<bool>(Value) ? 1 : 0;
-		}
-		else if (IsString())
+		else if (InternalJson.is_string())
 		{
 			try
 			{
-				return std::stoi(std::get<TString>(Value).GetData());
+				return std::stoi(InternalJson.get<std::string>());
 			}
 			catch (...)
 			{
@@ -368,27 +446,23 @@ public:
 	 */
 	int64_t AsInt64(int64_t DefaultValue = 0) const
 	{
-		if (GetType() == EConfigValueType::Int64)
+		if (InternalJson.is_number_integer())
 		{
-			return std::get<int64_t>(Value);
+			return InternalJson.get<int64_t>();
 		}
-		else if (GetType() == EConfigValueType::Int32)
+		else if (InternalJson.is_number_float())
 		{
-			return static_cast<int64_t>(std::get<int32_t>(Value));
+			return static_cast<int64_t>(InternalJson.get<double>());
 		}
-		else if (IsFloat())
+		else if (InternalJson.is_boolean())
 		{
-			return static_cast<int64_t>(AsDouble());
+			return InternalJson.get<bool>() ? 1 : 0;
 		}
-		else if (IsBool())
-		{
-			return std::get<bool>(Value) ? 1 : 0;
-		}
-		else if (IsString())
+		else if (InternalJson.is_string())
 		{
 			try
 			{
-				return std::stoll(std::get<TString>(Value).GetData());
+				return std::stoll(InternalJson.get<std::string>());
 			}
 			catch (...)
 			{
@@ -412,27 +486,19 @@ public:
 	 */
 	double AsDouble(double DefaultValue = 0.0) const
 	{
-		if (GetType() == EConfigValueType::Double)
+		if (InternalJson.is_number())
 		{
-			return std::get<double>(Value);
+			return InternalJson.get<double>();
 		}
-		else if (GetType() == EConfigValueType::Float)
+		else if (InternalJson.is_boolean())
 		{
-			return static_cast<double>(std::get<float>(Value));
+			return InternalJson.get<bool>() ? 1.0 : 0.0;
 		}
-		else if (IsInt())
-		{
-			return static_cast<double>(AsInt64());
-		}
-		else if (IsBool())
-		{
-			return std::get<bool>(Value) ? 1.0 : 0.0;
-		}
-		else if (IsString())
+		else if (InternalJson.is_string())
 		{
 			try
 			{
-				return std::stod(std::get<TString>(Value).GetData());
+				return std::stod(InternalJson.get<std::string>());
 			}
 			catch (...)
 			{
@@ -446,38 +512,72 @@ public:
 	/**
 	 * @brief 转换为字符串
 	 */
-	TString AsString(const TString& DefaultValue = TString()) const
+	CString AsString(const CString& DefaultValue = CString()) const
 	{
-		if (IsString())
+		if (InternalJson.is_string())
 		{
-			return std::get<TString>(Value);
+			return StdStringToCString(InternalJson.get<std::string>());
 		}
-		else if (IsBool())
+		else if (InternalJson.is_boolean())
 		{
-			return std::get<bool>(Value) ? TString("true") : TString("false");
+			return InternalJson.get<bool>() ? CString("true") : CString("false");
 		}
-		else if (GetType() == EConfigValueType::Int32)
+		else if (InternalJson.is_number_integer())
 		{
-			return TString::FromInt(std::get<int32_t>(Value));
+			int64_t Val = InternalJson.get<int64_t>();
+			if (Val >= INT32_MIN && Val <= INT32_MAX)
+			{
+				return CString::FromInt(static_cast<int32_t>(Val));
+			}
+			else
+			{
+				return CString::FromInt64(Val);
+			}
 		}
-		else if (GetType() == EConfigValueType::Int64)
+		else if (InternalJson.is_number_float())
 		{
-			return TString::FromInt64(std::get<int64_t>(Value));
+			return CString::FromDouble(InternalJson.get<double>());
 		}
-		else if (GetType() == EConfigValueType::Float)
+		else if (InternalJson.is_null())
 		{
-			return TString::FromFloat(std::get<float>(Value));
-		}
-		else if (GetType() == EConfigValueType::Double)
-		{
-			return TString::FromDouble(std::get<double>(Value));
-		}
-		else if (IsNull())
-		{
-			return TString("null");
+			return CString("null");
 		}
 
 		return DefaultValue;
+	}
+	
+	/**
+	 * @brief 获取哈希值
+	 */
+	size_t GetHashCode() const
+	{
+		// 简化哈希实现：基于类型和部分数据
+		size_t Hash = static_cast<size_t>(GetType());
+		
+		switch (GetType())
+		{
+		case EConfigValueType::Bool:
+			Hash ^= static_cast<size_t>(InternalJson.get<bool>());
+			break;
+		case EConfigValueType::Int32:
+			Hash ^= static_cast<size_t>(AsInt32());
+			break;
+		case EConfigValueType::Int64:
+			Hash ^= static_cast<size_t>(InternalJson.get<int64_t>());
+			break;
+		case EConfigValueType::Double:
+			Hash ^= std::hash<double>{}(InternalJson.get<double>());
+			break;
+		case EConfigValueType::String:
+			Hash ^= std::hash<std::string>{}(InternalJson.get<std::string>());
+			break;
+		default:
+			// 对于复杂类型，使用简单哈希
+			Hash ^= reinterpret_cast<size_t>(this);
+			break;
+		}
+		
+		return Hash;
 	}
 
 	/**
@@ -486,9 +586,18 @@ public:
 	const CConfigArray& AsArray() const
 	{
 		static CConfigArray EmptyArray;
-		if (IsArray())
+		static thread_local CConfigArray TempArray; // 临时数组，用于转换
+		
+		if (InternalJson.is_array())
 		{
-			return std::get<CConfigArray>(Value);
+			// 将nlohmann::json数组转换为CConfigArray
+			TempArray.Clear();
+			TempArray.Reserve(InternalJson.size());
+			for (const auto& Item : InternalJson)
+			{
+				TempArray.PushBack(CConfigValue(Item));
+			}
+			return TempArray;
 		}
 		return EmptyArray;
 	}
@@ -498,11 +607,21 @@ public:
 	 */
 	CConfigArray& AsArray()
 	{
-		if (!IsArray())
+		static thread_local CConfigArray TempArray; // 临时数组
+		
+		if (!InternalJson.is_array())
 		{
-			Value = CConfigArray();
+			InternalJson = nlohmann::json::array();
 		}
-		return std::get<CConfigArray>(Value);
+		
+		// 将nlohmann::json数组转换为CConfigArray
+		TempArray.Clear();
+		TempArray.Reserve(InternalJson.size());
+		for (const auto& Item : InternalJson)
+		{
+			TempArray.PushBack(CConfigValue(Item));
+		}
+		return TempArray;
 	}
 
 	/**
@@ -511,9 +630,17 @@ public:
 	const CConfigObject& AsObject() const
 	{
 		static CConfigObject EmptyObject;
-		if (IsObject())
+		static thread_local CConfigObject TempObject; // 临时对象
+		
+		if (InternalJson.is_object())
 		{
-			return std::get<CConfigObject>(Value);
+			// 将nlohmann::json对象转换为CConfigObject
+			TempObject.Clear();
+			for (const auto& Item : InternalJson.items())
+			{
+				TempObject.Insert(StdStringToCString(Item.key()), CConfigValue(Item.value()));
+			}
+			return TempObject;
 		}
 		return EmptyObject;
 	}
@@ -523,11 +650,20 @@ public:
 	 */
 	CConfigObject& AsObject()
 	{
-		if (!IsObject())
+		static thread_local CConfigObject TempObject; // 临时对象
+		
+		if (!InternalJson.is_object())
 		{
-			Value = CConfigObject();
+			InternalJson = nlohmann::json::object();
 		}
-		return std::get<CConfigObject>(Value);
+		
+		// 将nlohmann::json对象转换为CConfigObject
+		TempObject.Clear();
+		for (const auto& Item : InternalJson.items())
+		{
+			TempObject.Insert(StdStringToCString(Item.key()), CConfigValue(Item.value()));
+		}
+		return TempObject;
 	}
 
 public:
@@ -538,13 +674,9 @@ public:
 	 */
 	size_t Size() const
 	{
-		if (IsArray())
+		if (InternalJson.is_array() || InternalJson.is_object())
 		{
-			return AsArray().Size();
-		}
-		else if (IsObject())
-		{
-			return AsObject().Size();
+			return InternalJson.size();
 		}
 		return 0;
 	}
@@ -563,9 +695,12 @@ public:
 	const CConfigValue& operator[](size_t Index) const
 	{
 		static CConfigValue NullValue;
-		if (IsArray() && Index < AsArray().Size())
+		static thread_local CConfigValue TempValue;
+		
+		if (InternalJson.is_array() && Index < InternalJson.size())
 		{
-			return AsArray()[Index];
+			TempValue = CConfigValue(InternalJson[Index]);
+			return TempValue;
 		}
 		return NullValue;
 	}
@@ -575,18 +710,21 @@ public:
 	 */
 	CConfigValue& operator[](size_t Index)
 	{
-		if (!IsArray())
+		static thread_local CConfigValue TempValue;
+		
+		if (!InternalJson.is_array())
 		{
-			Value = CConfigArray();
+			InternalJson = nlohmann::json::array();
 		}
 
-		auto& Array = AsArray();
-		while (Array.Size() <= Index)
+		// 等待数组扩容到指定索引
+		while (InternalJson.size() <= Index)
 		{
-			Array.Add(CConfigValue());
+			InternalJson.push_back(nlohmann::json(nullptr));
 		}
 
-		return Array[Index];
+		TempValue = CConfigValue(InternalJson[Index]);
+		return TempValue;
 	}
 
 	/**
@@ -594,12 +732,20 @@ public:
 	 */
 	void PushBack(const CConfigValue& Val)
 	{
-		AsArray().Add(Val);
+		if (!InternalJson.is_array())
+		{
+			InternalJson = nlohmann::json::array();
+		}
+		InternalJson.push_back(Val.InternalJson);
 	}
 
 	void PushBack(CConfigValue&& Val)
 	{
-		AsArray().Add(std::move(Val));
+		if (!InternalJson.is_array())
+		{
+			InternalJson = nlohmann::json::array();
+		}
+		InternalJson.push_back(std::move(Val.InternalJson));
 	}
 
 public:
@@ -608,15 +754,18 @@ public:
 	/**
 	 * @brief 对象访问操作符
 	 */
-	const CConfigValue& operator[](const TString& Key) const
+	const CConfigValue& operator[](const CString& Key) const
 	{
 		static CConfigValue NullValue;
-		if (IsObject())
+		static thread_local CConfigValue TempValue;
+		
+		if (InternalJson.is_object())
 		{
-			auto* Found = AsObject().Find(Key);
-			if (Found)
+			std::string StdKey = CStringToStdString(Key);
+			if (InternalJson.contains(StdKey))
 			{
-				return *Found;
+				TempValue = CConfigValue(InternalJson[StdKey]);
+				return TempValue;
 			}
 		}
 		return NullValue;
@@ -625,32 +774,33 @@ public:
 	/**
 	 * @brief 对象访问操作符（可修改）
 	 */
-	CConfigValue& operator[](const TString& Key)
+	CConfigValue& operator[](const CString& Key)
 	{
-		if (!IsObject())
+		static thread_local CConfigValue TempValue;
+		
+		if (!InternalJson.is_object())
 		{
-			Value = CConfigObject();
+			InternalJson = nlohmann::json::object();
 		}
 
-		auto& Object = AsObject();
-		auto* Found = Object.Find(Key);
-		if (Found)
+		std::string StdKey = CStringToStdString(Key);
+		if (!InternalJson.contains(StdKey))
 		{
-			return *Found;
+			InternalJson[StdKey] = nlohmann::json(nullptr);
 		}
 
-		Object.Add(Key, CConfigValue());
-		return Object[Key];
+		TempValue = CConfigValue(InternalJson[StdKey]);
+		return TempValue;
 	}
 
 	/**
 	 * @brief 检查对象是否包含键
 	 */
-	bool HasKey(const TString& Key) const
+	bool HasKey(const CString& Key) const
 	{
-		if (IsObject())
+		if (InternalJson.is_object())
 		{
-			return AsObject().Contains(Key);
+			return InternalJson.contains(CStringToStdString(Key));
 		}
 		return false;
 	}
@@ -658,16 +808,15 @@ public:
 	/**
 	 * @brief 获取对象的所有键
 	 */
-	TArray<TString, CMemoryManager> GetKeys() const
+	TArray<CString> GetKeys() const
 	{
-		TArray<TString, CMemoryManager> Keys;
-		if (IsObject())
+		TArray<CString> Keys;
+		if (InternalJson.is_object())
 		{
-			const auto& Object = AsObject();
-			Keys.Reserve(Object.Size());
-			for (const auto& Pair : Object)
+			Keys.Reserve(InternalJson.size());
+			for (const auto& Item : InternalJson.items())
 			{
-				Keys.Add(Pair.Key);
+				Keys.PushBack(StdStringToCString(Item.key()));
 			}
 		}
 		return Keys;
@@ -676,11 +825,16 @@ public:
 	/**
 	 * @brief 移除对象键
 	 */
-	bool RemoveKey(const TString& Key)
+	bool RemoveKey(const CString& Key)
 	{
-		if (IsObject())
+		if (InternalJson.is_object())
 		{
-			return AsObject().Remove(Key);
+			std::string StdKey = CStringToStdString(Key);
+			if (InternalJson.contains(StdKey))
+			{
+				InternalJson.erase(StdKey);
+				return true;
+			}
 		}
 		return false;
 	}
@@ -692,24 +846,25 @@ public:
 	 * @brief 通过路径获取值
 	 * @param Path 路径，例如 "database.host" 或 "servers[0].port"
 	 */
-	const CConfigValue& GetByPath(const TString& Path) const;
+	const CConfigValue& GetByPath(const CString& Path) const;
 
 	/**
 	 * @brief 通过路径设置值
 	 */
-	void SetByPath(const TString& Path, const CConfigValue& Val);
+	void SetByPath(const CString& Path, const CConfigValue& Val);
 
 	/**
 	 * @brief 检查路径是否存在
 	 */
-	bool HasPath(const TString& Path) const;
+	bool HasPath(const CString& Path) const;
 
 public:
 	// === 比较操作符 ===
 
 	bool operator==(const CConfigValue& Other) const
 	{
-		return Value == Other.Value;
+		// 直接使用nlohmann::json的比较
+		return InternalJson == Other.InternalJson;
 	}
 
 	bool operator!=(const CConfigValue& Other) const
@@ -723,42 +878,45 @@ public:
 	/**
 	 * @brief 转换为JSON字符串
 	 */
-	TString ToJsonString(bool Pretty = false, int32_t Indent = 0) const;
+	CString ToJsonString(bool Pretty = false, int32_t Indent = 2) const;
+
+	/**
+	 * @brief 获取底层nlohmann::json对象的引用
+	 */
+	const nlohmann::json& GetInternalJson() const { return InternalJson; }
+	nlohmann::json& GetInternalJson() { return InternalJson; }
 
 	/**
 	 * @brief 获取类型名称
 	 */
-	TString GetTypeName() const
+	CString GetTypeName() const
 	{
 		switch (GetType())
 		{
 		case EConfigValueType::Null:
-			return TString("null");
+			return CString("null");
 		case EConfigValueType::Bool:
-			return TString("bool");
+			return CString("bool");
 		case EConfigValueType::Int32:
-			return TString("int32");
+			return CString("int32");
 		case EConfigValueType::Int64:
-			return TString("int64");
+			return CString("int64");
 		case EConfigValueType::Float:
-			return TString("float");
+			return CString("float");
 		case EConfigValueType::Double:
-			return TString("double");
+			return CString("double");
 		case EConfigValueType::String:
-			return TString("string");
+			return CString("string");
 		case EConfigValueType::Array:
-			return TString("array");
+			return CString("array");
 		case EConfigValueType::Object:
-			return TString("object");
+			return CString("object");
 		default:
-			return TString("unknown");
+			return CString("unknown");
 		}
 	}
 
-private:
-	// === 成员变量 ===
-
-	CConfigVariant Value; // 配置值
+	// 注意：所有其他成员变量已经被 InternalJson 替代
 };
 
 // === 类型别名 ===
@@ -767,3 +925,16 @@ using FConfigArray = CConfigArray;
 using FConfigObject = CConfigObject;
 
 } // namespace NLib
+
+// === std::hash 特化 ===
+namespace std
+{
+template <>
+struct hash<NLib::CConfigValue>
+{
+	size_t operator()(const NLib::CConfigValue& Value) const
+	{
+		return Value.GetHashCode();
+	}
+};
+}

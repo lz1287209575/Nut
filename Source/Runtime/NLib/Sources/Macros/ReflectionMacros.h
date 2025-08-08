@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <type_traits>
 #include <typeinfo>
 
 namespace NLib
@@ -212,20 +213,36 @@ enum class EClassFlags : uint32_t
 private:                                                                                                               \
 	friend class NLib::CReflectionRegistry;                                                                            \
 	static bool bReflectionRegistered;                                                                                 \
-	static void RegisterReflection();                                                                                  \
+                                                                                                                       \
+	static void RegisterReflection()                                                                                   \
+	{                                                                                                                  \
+		if (!bReflectionRegistered)                                                                                   \
+		{                                                                                                              \
+			auto& Registry = NLib::CReflectionRegistry::GetInstance();                                                \
+			Registry.RegisterClass(GetStaticClassReflection());                                                       \
+			bReflectionRegistered = true;                                                                             \
+		}                                                                                                              \
+	}                                                                                                                  \
                                                                                                                        \
 public:                                                                                                                \
 	using Super = NObject;                                                                                             \
+                                                                                                                       \
 	virtual const std::type_info& GetTypeInfo() const override                                                         \
 	{                                                                                                                  \
 		return typeid(*this);                                                                                          \
 	}                                                                                                                  \
+                                                                                                                       \
 	virtual const char* GetTypeName() const override                                                                   \
 	{                                                                                                                  \
 		return GetStaticTypeName();                                                                                    \
 	}                                                                                                                  \
-	virtual const NLib::SClassReflection* GetClassReflection() const override;                                         \
-	static const char* GetStaticTypeName();                                                                            \
+                                                                                                                       \
+	virtual const NLib::SClassReflection* GetClassReflection() const override                                          \
+	{                                                                                                                  \
+		return GetStaticClassReflection();                                                                            \
+	}                                                                                                                  \
+                                                                                                                       \
+	static const char* GetStaticTypeName();                                                                           \
 	static const NLib::SClassReflection* GetStaticClassReflection();                                                   \
 	static NLib::NObject* CreateDefaultObject();                                                                       \
                                                                                                                        \
@@ -388,6 +405,51 @@ private:
  * @brief 强制重新生成代码的宏
  */
 #define FORCE_REGENERATE_CODE() static_assert(false, "请运行 NutHeaderTools 重新生成反射代码")
+
+/**
+ * @brief 枚举类标志位操作宏
+ * 
+ * 为枚举类自动生成位运算操作符，使其可以作为标志位使用
+ * 
+ * 示例：
+ * enum class EFilePermissions
+ * {
+ *     None = 0,
+ *     Read = 1,
+ *     Write = 2,
+ *     Execute = 4
+ * };
+ * ENUM_CLASS_FLAGS(EFilePermissions)
+ */
+#define ENUM_CLASS_FLAGS(EnumType) \
+    inline constexpr EnumType operator|(EnumType Left, EnumType Right) \
+    { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(Left) | static_cast<std::underlying_type_t<EnumType>>(Right)); \
+    } \
+    inline constexpr EnumType operator&(EnumType Left, EnumType Right) \
+    { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(Left) & static_cast<std::underlying_type_t<EnumType>>(Right)); \
+    } \
+    inline constexpr EnumType operator^(EnumType Left, EnumType Right) \
+    { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(Left) ^ static_cast<std::underlying_type_t<EnumType>>(Right)); \
+    } \
+    inline constexpr EnumType operator~(EnumType Value) \
+    { \
+        return static_cast<EnumType>(~static_cast<std::underlying_type_t<EnumType>>(Value)); \
+    } \
+    inline EnumType& operator|=(EnumType& Left, EnumType Right) \
+    { \
+        return Left = Left | Right; \
+    } \
+    inline EnumType& operator&=(EnumType& Left, EnumType Right) \
+    { \
+        return Left = Left & Right; \
+    } \
+    inline EnumType& operator^=(EnumType& Left, EnumType Right) \
+    { \
+        return Left = Left ^ Right; \
+    }
 
 #ifndef GENERATED_CODE_VERSION_CHECK
 #define GENERATED_CODE_VERSION_CHECK(Version)                                                                          \

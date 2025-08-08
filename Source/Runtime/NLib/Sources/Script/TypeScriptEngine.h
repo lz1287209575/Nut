@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "ScriptEngine.h"
 
@@ -56,16 +56,16 @@ public:
 	int64_t ToInt64() const override;
 	float ToFloat() const override;
 	double ToDouble() const override;
-	TString ToString() const override;
+	CString ToString() const override;
 
 	int32_t GetArrayLength() const override;
 	CScriptValue GetArrayElement(int32_t Index) const override;
 	void SetArrayElement(int32_t Index, const CScriptValue& Value) override;
 
-	TArray<TString, CMemoryManager> GetObjectKeys() const override;
-	CScriptValue GetObjectProperty(const TString& Key) const override;
-	void SetObjectProperty(const TString& Key, const CScriptValue& Value) override;
-	bool HasObjectProperty(const TString& Key) const override;
+	TArray<CString, CMemoryManager> GetObjectKeys() const override;
+	CScriptValue GetObjectProperty(const CString& Key) const override;
+	void SetObjectProperty(const CString& Key, const CScriptValue& Value) override;
+	bool HasObjectProperty(const CString& Key) const override;
 
 	SScriptExecutionResult CallFunction(const TArray<CScriptValue, CMemoryManager>& Args) override;
 
@@ -111,16 +111,16 @@ class CTypeScriptModule : public CScriptModule
 	GENERATED_BODY()
 
 public:
-	explicit CTypeScriptModule(v8::Isolate* InIsolate, const TString& InName);
+	explicit CTypeScriptModule(v8::Isolate* InIsolate, const CString& InName);
 	~CTypeScriptModule() override;
 
 	// === CScriptModule接口实现 ===
 
-	TString GetName() const override
+	CString GetName() const override
 	{
 		return ModuleName;
 	}
-	TString GetVersion() const override
+	CString GetVersion() const override
 	{
 		return TEXT("1.0");
 	}
@@ -129,21 +129,21 @@ public:
 		return EScriptLanguage::TypeScript;
 	}
 
-	SScriptExecutionResult Load(const TString& ModulePath) override;
+	SScriptExecutionResult Load(const CString& ModulePath) override;
 	SScriptExecutionResult Unload() override;
 	bool IsLoaded() const override
 	{
 		return bLoaded;
 	}
 
-	CScriptValue GetGlobal(const TString& Name) const override;
-	void SetGlobal(const TString& Name, const CScriptValue& Value) override;
+	CScriptValue GetGlobal(const CString& Name) const override;
+	void SetGlobal(const CString& Name, const CScriptValue& Value) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath) override;
+	SScriptExecutionResult ExecuteString(const CString& Code) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath) override;
 
-	void RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterObject(const TString& Name, const CScriptValue& Object) override;
+	void RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterObject(const CString& Name, const CScriptValue& Object) override;
 
 	// === TypeScript特有方法 ===
 
@@ -160,20 +160,20 @@ public:
 	 * @param TypeScriptCode TypeScript源代码
 	 * @return 编译后的JavaScript代码
 	 */
-	TString CompileTypeScript(const TString& TypeScriptCode);
+	CString CompileTypeScript(const CString& TypeScriptCode);
 
 	/**
 	 * @brief 设置模块导出
 	 */
-	void SetModuleExports(const TString& Name, const CScriptValue& Value);
+	void SetModuleExports(const CString& Name, const CScriptValue& Value);
 
 private:
-	SScriptExecutionResult HandleV8Error(const TString& Operation);
+	SScriptExecutionResult HandleV8Error(const CString& Operation);
 	void SetupModuleEnvironment();
 
 private:
 	v8::Isolate* Isolate = nullptr;
-	TString ModuleName;
+	CString ModuleName;
 	bool bLoaded = false;
 	v8::Persistent<v8::Context>* ModuleContext = nullptr;
 };
@@ -207,20 +207,20 @@ public:
 		return EScriptLanguage::TypeScript;
 	}
 
-	TSharedPtr<CScriptModule> CreateModule(const TString& Name) override;
-	TSharedPtr<CScriptModule> GetModule(const TString& Name) const override;
-	void DestroyModule(const TString& Name) override;
+	TSharedPtr<CScriptModule> CreateModule(const CString& Name) override;
+	TSharedPtr<CScriptModule> GetModule(const CString& Name) const override;
+	void DestroyModule(const CString& Name) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code, const TString& ModuleName = TEXT("__main__")) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath, const TString& ModuleName = TEXT("")) override;
+	SScriptExecutionResult ExecuteString(const CString& Code, const CString& ModuleName = TEXT("__main__")) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath, const CString& ModuleName = TEXT("")) override;
 
 	void CollectGarbage() override;
 	uint64_t GetMemoryUsage() const override;
 	void ResetTimeout() override;
 
-	void RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterGlobalObject(const TString& Name, const CScriptValue& Object) override;
-	void RegisterGlobalConstant(const TString& Name, const CScriptValue& Value) override;
+	void RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object) override;
+	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value) override;
 
 	// === TypeScript特有方法 ===
 
@@ -243,19 +243,19 @@ public:
 	 * @param ModuleName 模块名称
 	 * @return 执行结果
 	 */
-	SScriptExecutionResult ExecuteTypeScript(const TString& TypeScriptCode, const TString& ModuleName = TEXT(""));
+	SScriptExecutionResult ExecuteTypeScript(const CString& TypeScriptCode, const CString& ModuleName = TEXT(""));
 
 	/**
 	 * @brief 设置TypeScript编译选项
 	 */
-	void SetTypeScriptCompilerOptions(const THashMap<TString, TString, CMemoryManager>& Options);
+	void SetTypeScriptCompilerOptions(const THashMap<CString, CString, CMemoryManager>& Options);
 
 private:
 	bool InitializeV8();
 	void ShutdownV8();
-	SScriptExecutionResult HandleV8Error(const TString& Operation);
+	SScriptExecutionResult HandleV8Error(const CString& Operation);
 	void RegisterNLibAPI();
-	TString CompileTypeScriptToJavaScript(const TString& TypeScriptCode);
+	CString CompileTypeScriptToJavaScript(const CString& TypeScriptCode);
 
 	// V8回调函数
 	static void MessageCallback(v8::Local<v8::Message> message, v8::Local<v8::Value> error);
@@ -265,8 +265,8 @@ private:
 	v8::Isolate* Isolate = nullptr;
 	v8::Persistent<v8::Context>* GlobalContext = nullptr;
 	SScriptConfig Config;
-	THashMap<TString, TSharedPtr<CTypeScriptModule>, CMemoryManager> Modules;
-	THashMap<TString, TString, CMemoryManager> CompilerOptions;
+	THashMap<CString, TSharedPtr<CTypeScriptModule>, CMemoryManager> Modules;
+	THashMap<CString, CString, CMemoryManager> CompilerOptions;
 
 	// 状态跟踪
 	uint64_t StartTime = 0;
@@ -290,7 +290,7 @@ public:
 	{
 		return EScriptLanguage::TypeScript;
 	}
-	TString GetVersion() const override;
+	CString GetVersion() const override;
 	bool IsSupported() const override;
 
 	TSharedPtr<CScriptContext> CreateContext(const SScriptConfig& Config) override;
@@ -308,19 +308,19 @@ public:
 	CScriptValue CreateBool(bool Value) override;
 	CScriptValue CreateInt(int32_t Value) override;
 	CScriptValue CreateFloat(float Value) override;
-	CScriptValue CreateString(const TString& Value) override;
+	CScriptValue CreateString(const CString& Value) override;
 	CScriptValue CreateArray() override;
 	CScriptValue CreateObject() override;
 
-	SScriptExecutionResult CheckSyntax(const TString& Code) override;
-	SScriptExecutionResult CompileFile(const TString& FilePath, const TString& OutputPath = TString()) override;
+	SScriptExecutionResult CheckSyntax(const CString& Code) override;
+	SScriptExecutionResult CompileFile(const CString& FilePath, const CString& OutputPath = CString()) override;
 
 	// === TypeScript特有方法 ===
 
 	/**
 	 * @brief 获取V8版本信息
 	 */
-	static TString GetV8VersionString();
+	static CString GetV8VersionString();
 
 	/**
 	 * @brief 检查V8是否可用
@@ -340,7 +340,7 @@ public:
 	/**
 	 * @brief 编译TypeScript文件到JavaScript
 	 */
-	SScriptExecutionResult CompileTypeScriptFile(const TString& InputPath, const TString& OutputPath);
+	SScriptExecutionResult CompileTypeScriptFile(const CString& InputPath, const CString& OutputPath);
 
 private:
 	void RegisterStandardLibraries();
@@ -445,7 +445,7 @@ Config.bEnableSandbox = true;
 auto Context = TSEngine->CreateContext(Config);
 
 // 执行TypeScript代码
-TString TSCode = TEXT(R"(
+CString TSCode = TEXT(R"(
     class Player {
         name: string;
         health: number = 100;

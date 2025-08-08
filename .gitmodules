@@ -4,3 +4,6 @@
 [submodule "ThirdParty/spdlog"]
 	path = ThirdParty/spdlog
 	url = https://gitee.com/chooosky/spdlog.git
+[submodule "ThirdParty/nlohmann_json"]
+	path = ThirdParty/nlohmann_json
+	url = https://gitee.com/code9labs/nlohmann.json

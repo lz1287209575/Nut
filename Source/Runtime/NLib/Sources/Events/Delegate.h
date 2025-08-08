@@ -503,14 +503,13 @@ public:
 	 * @brief 移除对象的所有绑定
 	 */
 	template <typename TObject>
-	int32_t RemoveAll(TObject* Object)
+	int32_t RemoveAll(TObject* /*Object*/)
 	{
 		// 注意：这个实现比较简化，实际实现中需要更复杂的类型匹配
 		// 可能需要存储额外的类型信息来精确匹配
 		return 0; // 简化实现
 	}
 
-public:
 	// === 执行委托 ===
 
 	/**
@@ -536,7 +535,7 @@ public:
 				// 收集一次性绑定
 				if (Binding.bIsOneShot)
 				{
-					OneShotHandles.Add(Binding.Handle);
+					OneShotHandles.PushBack(Binding.Handle);
 				}
 			}
 			catch (...)

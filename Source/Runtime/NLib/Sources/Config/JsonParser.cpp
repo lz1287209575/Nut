@@ -10,7 +10,7 @@ namespace NLib
 {
 // === CJsonParserImpl 实现 ===
 
-CJsonParser::CJsonParserImpl::CJsonParserImpl(const TString& InJson, const SParseOptions& InOptions)
+CJsonParser::CJsonParserImpl::CJsonParserImpl(const CString& InJson, const SParseOptions& InOptions)
     : Json(InJson),
       Options(InOptions)
 {}
@@ -58,7 +58,7 @@ char CJsonParser::CJsonParserImpl::CurrentChar() const
 char CJsonParser::CJsonParserImpl::PeekChar(int32_t Offset) const
 {
 	int32_t PeekPos = Position + Offset;
-	if (PeekPos >= Json.Length())
+	if (PeekPos >= static_cast<int32_t>(Json.Size()))
 	{
 		return '\0';
 	}
@@ -76,7 +76,7 @@ void CJsonParser::CJsonParserImpl::AdvanceChar()
 
 bool CJsonParser::CJsonParserImpl::IsAtEnd() const
 {
-	return Position >= Json.Length();
+	return Position >= static_cast<int32_t>(Json.Size());
 }
 
 void CJsonParser::CJsonParserImpl::SkipWhitespace()
@@ -157,7 +157,7 @@ void CJsonParser::CJsonParserImpl::UpdatePosition(char Ch)
 	}
 }
 
-SJsonParseError CJsonParser::CJsonParserImpl::CreateError(const TString& Message) const
+SJsonParseError CJsonParser::CJsonParserImpl::CreateError(const CString& Message) const
 {
 	return SJsonParseError(Message, Line, Column, Position);
 }
@@ -198,7 +198,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseValue()
 	case '9':
 		return ParseNumber();
 	default:
-		throw CreateError(TString("Unexpected character: ") + TString(&Ch, 1));
+		throw CreateError(CString("Unexpected character: ") + CString(&Ch, 1));
 	}
 }
 
@@ -230,14 +230,14 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseBool()
 CConfigValue CJsonParser::CJsonParserImpl::ParseNumber()
 {
 	int32_t StartPos = Position;
-	bool bIsNegative = false;
+	// bool bIsNegative = false; // 未使用的变量
 	bool bHasDecimal = false;
 	bool bHasExponent = false;
 
 	// 处理负号
 	if (CurrentChar() == '-')
 	{
-		bIsNegative = true;
+		// bIsNegative = true;
 		AdvanceChar();
 	}
 
@@ -298,7 +298,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseNumber()
 	}
 
 	// 提取数字字符串
-	TString NumberStr = Json.Substring(StartPos, Position - StartPos);
+	CString NumberStr = Json.SubString(StartPos, Position - StartPos);
 
 	try
 	{
@@ -338,7 +338,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseNumber()
 
 CConfigValue CJsonParser::CJsonParserImpl::ParseString()
 {
-	TString Str = ParseStringLiteral();
+	CString Str = ParseStringLiteral();
 	return CConfigValue(UnescapeString(Str));
 }
 
@@ -364,7 +364,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseArray()
 
 	while (true)
 	{
-		Array.Add(ParseValue());
+		Array.PushBack(ParseValue());
 
 		SkipWhitespace();
 
@@ -420,7 +420,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseObject()
 		SkipWhitespace();
 
 		// 解析键
-		TString Key;
+		CString Key;
 		if (CurrentChar() == '"')
 		{
 			Key = UnescapeString(ParseStringLiteral());
@@ -433,7 +433,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseObject()
 			{
 				AdvanceChar();
 			}
-			Key = Json.Substring(StartPos, Position - StartPos);
+			Key = Json.SubString(StartPos, Position - StartPos);
 		}
 		else
 		{
@@ -451,7 +451,7 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseObject()
 
 		// 解析值
 		CConfigValue Value = ParseValue();
-		Object.Add(Key, Value);
+		Object.Insert(Key, Value);
 
 		SkipWhitespace();
 
@@ -482,14 +482,14 @@ CConfigValue CJsonParser::CJsonParserImpl::ParseObject()
 	return CConfigValue(Object);
 }
 
-TString CJsonParser::CJsonParserImpl::ParseStringLiteral()
+CString CJsonParser::CJsonParserImpl::ParseStringLiteral()
 {
 	if (!ExpectChar('"'))
 	{
 		throw CreateError("Expected '\"'");
 	}
 
-	TString Result;
+	CString Result;
 
 	while (!IsAtEnd() && CurrentChar() != '"')
 	{
@@ -533,7 +533,7 @@ TString CJsonParser::CJsonParserImpl::ParseStringLiteral()
 			case 'u': {
 				// Unicode转义
 				AdvanceChar();
-				TString HexStr;
+				CString HexStr;
 				for (int i = 0; i < 4; ++i)
 				{
 					if (IsAtEnd() || !std::isxdigit(CurrentChar()))
@@ -564,7 +564,7 @@ TString CJsonParser::CJsonParserImpl::ParseStringLiteral()
 				continue; // 不要再次前进
 			}
 			default:
-				throw CreateError(TString("Invalid escape sequence: \\") + TString(&EscapeChar, 1));
+				throw CreateError(CString("Invalid escape sequence: \\") + CString(&EscapeChar, 1));
 			}
 			AdvanceChar();
 		}
@@ -587,7 +587,7 @@ TString CJsonParser::CJsonParserImpl::ParseStringLiteral()
 	return Result;
 }
 
-TString CJsonParser::CJsonParserImpl::UnescapeString(const TString& Str)
+CString CJsonParser::CJsonParserImpl::UnescapeString(const CString& Str)
 {
 	// 已经在ParseStringLiteral中处理了转义，这里直接返回
 	return Str;
@@ -603,14 +603,14 @@ bool CJsonParser::CJsonParserImpl::ExpectChar(char Expected)
 	return false;
 }
 
-bool CJsonParser::CJsonParserImpl::MatchKeyword(const TString& Keyword)
+bool CJsonParser::CJsonParserImpl::MatchKeyword(const CString& Keyword)
 {
-	if (Position + Keyword.Length() > Json.Length())
+	if (Position + static_cast<int32_t>(Keyword.Size()) > static_cast<int32_t>(Json.Size()))
 	{
 		return false;
 	}
 
-	for (int32_t i = 0; i < Keyword.Length(); ++i)
+	for (int32_t i = 0; i < static_cast<int32_t>(Keyword.Size()); ++i)
 	{
 		if (Json[Position + i] != Keyword[i])
 		{
@@ -619,9 +619,9 @@ bool CJsonParser::CJsonParserImpl::MatchKeyword(const TString& Keyword)
 	}
 
 	// 确保关键字后面没有标识符字符
-	if (Position + Keyword.Length() < Json.Length())
+	if (Position + static_cast<int32_t>(Keyword.Size()) < static_cast<int32_t>(Json.Size()))
 	{
-		char NextChar = Json[Position + Keyword.Length()];
+		char NextChar = Json[Position + static_cast<int32_t>(Keyword.Size())];
 		if (std::isalnum(NextChar) || NextChar == '_')
 		{
 			return false;
@@ -629,7 +629,7 @@ bool CJsonParser::CJsonParserImpl::MatchKeyword(const TString& Keyword)
 	}
 
 	// 前进到关键字后面
-	for (int32_t i = 0; i < Keyword.Length(); ++i)
+	for (int32_t i = 0; i < static_cast<int32_t>(Keyword.Size()); ++i)
 	{
 		AdvanceChar();
 	}
@@ -639,26 +639,35 @@ bool CJsonParser::CJsonParserImpl::MatchKeyword(const TString& Keyword)
 
 // === CJsonParser 静态方法实现 ===
 
-SJsonParseResult CJsonParser::Parse(const TString& JsonString, const SParseOptions& Options)
+SJsonParseResult CJsonParser::Parse(const CString& JsonString, const SParseOptions& /*Options*/)
 {
-	NLOG_CONFIG(Debug, "Parsing JSON string of length {}", JsonString.Length());
+	NLOG_CONFIG(Debug, "Parsing JSON string of length {}", JsonString.Size());
 
-	CJsonParserImpl Parser(JsonString, Options);
-	auto Result = Parser.Parse();
-
-	if (Result.bSuccess)
+	try
 	{
+		// 使用nlohmann::json直接解析
+		std::string StdJsonString(JsonString.GetData(), JsonString.Size());
+		nlohmann::json ParsedJson = nlohmann::json::parse(StdJsonString);
+		
+		// 创建 CConfigValue 对象
+		CConfigValue Result(ParsedJson);
+		
 		NLOG_CONFIG(Debug, "JSON parsing successful");
+		return SJsonParseResult(Result);
 	}
-	else
+	catch (const nlohmann::json::parse_error& e)
 	{
-		NLOG_CONFIG(Error, "JSON parsing failed: {}", Result.Error.ToString().GetData());
+		NLOG_CONFIG(Error, "JSON parsing failed: {}", e.what());
+		return SJsonParseResult(SJsonParseError(CString(e.what())));
 	}
-
-	return Result;
+	catch (const std::exception& e)
+	{
+		NLOG_CONFIG(Error, "JSON parsing failed: {}", e.what());
+		return SJsonParseResult(SJsonParseError(CString(e.what())));
+	}
 }
 
-SJsonParseResult CJsonParser::ParseFile(const TString& FilePath, const SParseOptions& Options)
+SJsonParseResult CJsonParser::ParseFile(const CString& FilePath, const SParseOptions& Options)
 {
 	NLOG_CONFIG(Debug, "Parsing JSON file: {}", FilePath.GetData());
 
@@ -670,11 +679,11 @@ SJsonParseResult CJsonParser::ParseFile(const TString& FilePath, const SParseOpt
 	}
 
 	// 读取文件内容
-	TString JsonContent;
+	CString JsonContent;
 	std::string Line;
 	while (std::getline(File, Line))
 	{
-		JsonContent += TString(Line.c_str());
+		JsonContent += CString(Line.c_str());
 		JsonContent += "\n";
 	}
 
@@ -695,32 +704,32 @@ CJsonGenerator::CJsonGeneratorImpl::CJsonGeneratorImpl(const SJsonGenerateOption
     : Options(InOptions)
 {}
 
-TString CJsonGenerator::CJsonGeneratorImpl::Generate(const CConfigValue& Value)
+CString CJsonGenerator::CJsonGeneratorImpl::Generate(const CConfigValue& Value)
 {
 	return GenerateValue(Value, 0);
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::GenerateValue(const CConfigValue& Value, int32_t Indent)
+CString CJsonGenerator::CJsonGeneratorImpl::GenerateValue(const CConfigValue& Value, int32_t Indent)
 {
 	switch (Value.GetType())
 	{
 	case EConfigValueType::Null:
-		return TString("null");
+		return CString("null");
 
 	case EConfigValueType::Bool:
-		return Value.AsBool() ? TString("true") : TString("false");
+		return Value.AsBool() ? CString("true") : CString("false");
 
 	case EConfigValueType::Int32:
-		return TString::FromInt(Value.AsInt32());
+		return CString::FromInt(Value.AsInt32());
 
 	case EConfigValueType::Int64:
-		return TString::FromInt64(Value.AsInt64());
+		return CString::FromInt64(Value.AsInt64());
 
 	case EConfigValueType::Float:
-		return TString::FromFloat(Value.AsFloat());
+		return CString::FromFloat(Value.AsFloat());
 
 	case EConfigValueType::Double:
-		return TString::FromDouble(Value.AsDouble());
+		return CString::FromDouble(Value.AsDouble());
 
 	case EConfigValueType::String:
 		return GenerateString(Value.AsString());
@@ -732,29 +741,29 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateValue(const CConfigValue& Va
 		return GenerateObject(Value.AsObject(), Indent);
 
 	default:
-		return TString("null");
+		return CString("null");
 	}
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::GenerateString(const TString& Str)
+CString CJsonGenerator::CJsonGeneratorImpl::GenerateString(const CString& Str)
 {
-	return TString("\"") + EscapeString(Str) + TString("\"");
+	return CString("\"") + EscapeString(Str) + CString("\"");
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::GenerateArray(const CConfigArray& Array, int32_t Indent)
+CString CJsonGenerator::CJsonGeneratorImpl::GenerateArray(const CConfigArray& Array, int32_t Indent)
 {
 	if (Array.IsEmpty())
 	{
-		return TString("[]");
+		return CString("[]");
 	}
 
-	TString Result = TString("[");
+	CString Result = CString("[");
 
 	if (Options.bPrettyPrint)
 	{
 		Result += "\n";
 
-		for (int32_t i = 0; i < Array.Size(); ++i)
+		for (size_t i = 0; i < Array.Size(); ++i)
 		{
 			Result += GetIndent(Indent + 1);
 			Result += GenerateValue(Array[i], Indent + 1);
@@ -771,7 +780,7 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateArray(const CConfigArray& Ar
 	}
 	else
 	{
-		for (int32_t i = 0; i < Array.Size(); ++i)
+		for (size_t i = 0; i < Array.Size(); ++i)
 		{
 			Result += GenerateValue(Array[i], Indent + 1);
 
@@ -786,22 +795,22 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateArray(const CConfigArray& Ar
 	return Result;
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& Object, int32_t Indent)
+CString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& Object, int32_t Indent)
 {
 	if (Object.IsEmpty())
 	{
-		return TString("{}");
+		return CString("{}");
 	}
 
-	TString Result = TString("{");
+	CString Result = CString("{");
 
 	// 获取所有键并可选地排序
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 	Keys.Reserve(Object.Size());
 
 	for (const auto& Pair : Object)
 	{
-		Keys.Add(Pair.Key);
+		Keys.PushBack(Pair.first);
 	}
 
 	if (Options.bSortKeys)
@@ -813,7 +822,7 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& 
 			{
 				if (Keys[i] > Keys[j])
 				{
-					TString Temp = Keys[i];
+					CString Temp = Keys[i];
 					Keys[i] = Keys[j];
 					Keys[j] = Temp;
 				}
@@ -827,7 +836,7 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& 
 
 		for (int32_t i = 0; i < Keys.Size(); ++i)
 		{
-			const TString& Key = Keys[i];
+			const CString& Key = Keys[i];
 			const CConfigValue* Value = Object.Find(Key);
 
 			Result += GetIndent(Indent + 1);
@@ -849,7 +858,7 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& 
 	{
 		for (int32_t i = 0; i < Keys.Size(); ++i)
 		{
-			const TString& Key = Keys[i];
+			const CString& Key = Keys[i];
 			const CConfigValue* Value = Object.Find(Key);
 
 			Result += GenerateString(Key);
@@ -867,14 +876,14 @@ TString CJsonGenerator::CJsonGeneratorImpl::GenerateObject(const CConfigObject& 
 	return Result;
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::GetIndent(int32_t Level) const
+CString CJsonGenerator::CJsonGeneratorImpl::GetIndent(int32_t Level) const
 {
 	if (!Options.bPrettyPrint || Level <= 0)
 	{
-		return TString();
+		return CString();
 	}
 
-	TString Result;
+	CString Result;
 	for (int32_t i = 0; i < Level * Options.IndentSize; ++i)
 	{
 		Result += " ";
@@ -882,12 +891,12 @@ TString CJsonGenerator::CJsonGeneratorImpl::GetIndent(int32_t Level) const
 	return Result;
 }
 
-TString CJsonGenerator::CJsonGeneratorImpl::EscapeString(const TString& Str) const
+CString CJsonGenerator::CJsonGeneratorImpl::EscapeString(const CString& Str) const
 {
-	TString Result;
-	Result.Reserve(Str.Length() * 2);
+	CString Result;
+	Result.Reserve(Str.Size() * 2);
 
-	for (int32_t i = 0; i < Str.Length(); ++i)
+	for (int32_t i = 0; i < Str.Size(); ++i)
 	{
 		char Ch = Str[i];
 		switch (Ch)
@@ -933,25 +942,41 @@ TString CJsonGenerator::CJsonGeneratorImpl::EscapeString(const TString& Str) con
 
 // === CJsonGenerator 静态方法实现 ===
 
-TString CJsonGenerator::Generate(const CConfigValue& Value, const SJsonGenerateOptions& Options)
+CString CJsonGenerator::Generate(const CConfigValue& Value, const SJsonGenerateOptions& Options)
 {
 	NLOG_CONFIG(Debug, "Generating JSON string");
 
-	CJsonGeneratorImpl Generator(Options);
-	TString Result = Generator.Generate(Value);
-
-	NLOG_CONFIG(Debug, "JSON generation completed, length: {}", Result.Length());
-
-	return Result;
+	try
+	{
+		// 直接使用nlohmann::json生成
+		std::string JsonString;
+		if (Options.bPrettyPrint)
+		{
+			JsonString = Value.GetInternalJson().dump(Options.IndentSize);
+		}
+		else
+		{
+			JsonString = Value.GetInternalJson().dump();
+		}
+		
+		CString Result(JsonString.c_str());
+		NLOG_CONFIG(Debug, "JSON generation completed, length: {}", Result.Size());
+		return Result;
+	}
+	catch (const std::exception& e)
+	{
+		NLOG_CONFIG(Error, "JSON generation failed: {}", e.what());
+		return CString();
+	}
 }
 
 bool CJsonGenerator::WriteToFile(const CConfigValue& Value,
-                                 const TString& FilePath,
+                                 const CString& FilePath,
                                  const SJsonGenerateOptions& Options)
 {
 	NLOG_CONFIG(Debug, "Writing JSON to file: {}", FilePath.GetData());
 
-	TString JsonString = Generate(Value, Options);
+	CString JsonString = Generate(Value, Options);
 
 	std::ofstream File(FilePath.GetData());
 	if (!File.is_open())

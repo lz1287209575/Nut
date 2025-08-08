@@ -53,7 +53,7 @@ public:
 	// === 构造函数 ===
 
 	NPath();
-	explicit NPath(const TString& InPath);
+	explicit NPath(const CString& InPath);
 	explicit NPath(const char* InPath);
 	NPath(const NPath& Other);
 	NPath(NPath&& Other) noexcept;
@@ -65,7 +65,7 @@ public:
 
 	NPath& operator=(const NPath& Other);
 	NPath& operator=(NPath&& Other) noexcept;
-	NPath& operator=(const TString& InPath);
+	NPath& operator=(const CString& InPath);
 	NPath& operator=(const char* InPath);
 
 public:
@@ -79,11 +79,11 @@ public:
 	// === 路径拼接操作符 ===
 
 	NPath operator/(const NPath& Other) const;
-	NPath operator/(const TString& Other) const;
+	NPath operator/(const CString& Other) const;
 	NPath operator/(const char* Other) const;
 
 	NPath& operator/=(const NPath& Other);
-	NPath& operator/=(const TString& Other);
+	NPath& operator/=(const CString& Other);
 	NPath& operator/=(const char* Other);
 
 public:
@@ -92,7 +92,7 @@ public:
 	/**
 	 * @brief 获取路径字符串
 	 */
-	const TString& ToString() const
+	CString ToString() const override
 	{
 		return PathString;
 	}
@@ -126,7 +126,7 @@ public:
 	 */
 	int32_t Length() const
 	{
-		return PathString.Length();
+		return static_cast<int32_t>(PathString.Size());
 	}
 
 public:
@@ -135,17 +135,17 @@ public:
 	/**
 	 * @brief 获取文件名（包含扩展名）
 	 */
-	TString GetFileName() const;
+	CString GetFileName() const;
 
 	/**
 	 * @brief 获取文件名（不包含扩展名）
 	 */
-	TString GetFileNameWithoutExtension() const;
+	CString GetFileNameWithoutExtension() const;
 
 	/**
 	 * @brief 获取文件扩展名
 	 */
-	TString GetExtension() const;
+	CString GetExtension() const;
 
 	/**
 	 * @brief 获取目录路径
@@ -160,7 +160,7 @@ public:
 	/**
 	 * @brief 获取所有路径组件
 	 */
-	TArray<TString, CMemoryManager> GetComponents() const;
+	TArray<CString, CMemoryManager> GetComponents() const;
 
 public:
 	// === 路径操作 ===
@@ -193,12 +193,12 @@ public:
 	/**
 	 * @brief 改变扩展名
 	 */
-	NPath& ChangeExtension(const TString& NewExtension);
+	NPath& ChangeExtension(const CString& NewExtension);
 
 	/**
 	 * @brief 获取改变扩展名后的路径
 	 */
-	NPath WithExtension(const TString& NewExtension) const;
+	NPath WithExtension(const CString& NewExtension) const;
 
 public:
 	// === 路径检查 ===
@@ -275,7 +275,7 @@ public:
 	/**
 	 * @brief 标准化路径分隔符
 	 */
-	static TString NormalizeSeparators(const TString& Path);
+	static CString NormalizeSeparators(const CString& Path);
 
 	/**
 	 * @brief 获取两个路径的公共前缀
@@ -309,7 +309,7 @@ private:
 	/**
 	 * @brief 分割路径字符串
 	 */
-	TArray<TString, CMemoryManager> SplitPath() const;
+	TArray<CString, CMemoryManager> SplitPath() const;
 
 	/**
 	 * @brief 从std::filesystem::path转换
@@ -322,7 +322,7 @@ private:
 	std::filesystem::path ToStdPath() const;
 
 private:
-	TString PathString; // 路径字符串
+	CString PathString; // 路径字符串
 };
 
 // === 全局操作符 ===
@@ -330,7 +330,7 @@ private:
 /**
  * @brief 字符串与路径的拼接
  */
-inline NPath operator/(const TString& Left, const NPath& Right)
+inline NPath operator/(const CString& Left, const NPath& Right)
 {
 	return NPath(Left) / Right;
 }
@@ -348,7 +348,7 @@ inline NPath operator/(const char* Left, const NPath& Right)
 /**
  * @brief 创建路径的便捷函数
  */
-inline NPath MakePath(const TString& PathStr)
+inline NPath MakePath(const CString& PathStr)
 {
 	return NPath(PathStr);
 }

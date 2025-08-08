@@ -40,8 +40,8 @@ namespace NutHeaderTools
         {
             builder.AddCommonGlobalOptions();
             
-            builder.AddGlobalOption(HeaderToolOptions.SourcePaths);
-            builder.AddGlobalOption(HeaderToolOptions.UseMeta);
+            // 使用与 NutBuildTools 相同的参数结构
+            builder.AddGlobalOption(BuildOptions.Target);
             builder.AddGlobalOption(HeaderToolOptions.OutputDirectory);
             builder.AddGlobalOption(HeaderToolOptions.Force);
 
@@ -57,11 +57,20 @@ namespace NutHeaderTools
 
             try
             {
-                var parseResult = context.CancellationToken;
-                // TODO: 从 context 中获取命令行参数
-                // 这里需要调整以获取实际的参数值
+                // 从 context 中获取命令行参数
+                var target = context.ParseResult.GetValueForOption(BuildOptions.Target);
+                var outputDirectory = context.ParseResult.GetValueForOption(HeaderToolOptions.OutputDirectory);
+                var force = context.ParseResult.GetValueForOption(HeaderToolOptions.Force);
+
+                logger.Info($"配置选项:");
+                logger.Info($"  目标模块: {target ?? "全部"}");
+                logger.Info($"  强制重新生成: {force}");
+                if (!string.IsNullOrEmpty(outputDirectory))
+                {
+                    logger.Info($"  输出目录: {outputDirectory}");
+                }
                 
-                await ProcessAllHeadersAsync();
+                await ProcessAllHeadersAsync(target, outputDirectory, force);
                 logger.Info($"✓ 成功生成 {generatedFileCount} 个 .generate.h 文件");
                 return 0;
             }
@@ -72,7 +81,7 @@ namespace NutHeaderTools
             }
         }
 
-        private async Task ProcessAllHeadersAsync()
+        private async Task ProcessAllHeadersAsync(string? targetName, string? outputDirectory, bool force)
         {
             // 定位项目根目录
             projectRoot = FindProjectRootFromNprx();
@@ -87,7 +96,31 @@ namespace NutHeaderTools
             
             // 使用新的模块发现逻辑
             await DiscoverModulesAsync();
-            ProcessModules();
+            
+            // 根据 target 参数过滤模块
+            var targetModules = FilterTargetModules(targetName);
+            
+            if (targetModules.Count == 0)
+            {
+                if (!string.IsNullOrEmpty(targetName))
+                {
+                    logger.Error($"未找到目标模块: {targetName}");
+                    throw new InvalidOperationException($"Target module not found: {targetName}");
+                }
+                else
+                {
+                    logger.Warning("没有找到任何模块需要处理");
+                    return;
+                }
+            }
+            
+            logger.Info($"找到 {targetModules.Count} 个模块需要处理:");
+            foreach (var module in targetModules)
+            {
+                logger.Info($"  • {module.Name} ({module.Type})");
+            }
+            
+            ProcessModules(targetModules, outputDirectory, force);
         }
 
         private void ProcessDirectory(string directory)
@@ -317,14 +350,58 @@ namespace NutHeaderTools
         }
 
         /// <summary>
-        /// 处理所有模块
+        /// 过滤要处理的目标模块
         /// </summary>
-        private void ProcessModules()
+        private List<ModuleInfo> FilterTargetModules(string? targetName)
         {
-            foreach (var module in modules)
+            if (string.IsNullOrEmpty(targetName))
+            {
+                // 如果没有指定目标，处理所有有Meta文件的模块
+                return modules.Where(m => !string.IsNullOrEmpty(m.MetaFilePath)).ToList();
+            }
+
+            // 查找指定名称的模块
+            var targetModule = modules.FirstOrDefault(m =>
+                string.Equals(m.Name, targetName, StringComparison.OrdinalIgnoreCase));
+
+            if (targetModule != null)
+            {
+                return new List<ModuleInfo> { targetModule };
+            }
+
+            return new List<ModuleInfo>();
+        }
+
+        /// <summary>
+        /// 处理指定的模块
+        /// </summary>
+        private void ProcessModules(List<ModuleInfo> targetModules, string? outputDirectory, bool force)
+        {
+            foreach (var module in targetModules)
             {
                 logger.Info($"🔍 处理模块: {module.Name}");
 
+                // 检查是否有Meta文件
+                if (string.IsNullOrEmpty(module.MetaFilePath))
+                {
+                    logger.Warning($"    模块 {module.Name} 没有Meta文件，跳过处理");
+                    continue;
+                }
+
+                logger.Info($"    Meta文件: {Path.GetRelativePath(projectRoot, module.MetaFilePath)}");
+
+                // 根据Meta文件中的配置处理源文件
+                ProcessModuleWithMeta(module, outputDirectory, force);
+            }
+        }
+
+        /// <summary>
+        /// 根据Meta文件配置处理模块
+        /// </summary>
+        private void ProcessModuleWithMeta(ModuleInfo module, string? outputDirectory, bool force)
+        {
+            try
+            {
                 if (Directory.Exists(module.SourcesPath))
                 {
                     logger.Debug($"    扫描源目录: {module.SourcesPath}");
@@ -334,24 +411,40 @@ namespace NutHeaderTools
                 {
                     logger.Warning($"    源目录不存在: {module.SourcesPath}");
                 }
+
+                // 如果模块有BuildTarget，可以进一步根据其Sources配置处理
+                if (module.BuildTarget != null && module.BuildTarget.Sources != null)
+                {
+                    logger.Debug($"    根据Meta文件中的Sources配置处理文件");
+                    foreach (var source in module.BuildTarget.Sources)
+                    {
+                        string fullPath = Path.IsPathRooted(source) ? source : Path.Combine(module.ModulePath, source);
+                        if (Directory.Exists(fullPath))
+                        {
+                            ProcessDirectory(fullPath);
+                        }
+                        else if (File.Exists(fullPath) && (fullPath.EndsWith(".h") || fullPath.EndsWith(".hpp")))
+                        {
+                            ProcessHeaderFile(fullPath);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"    处理模块 {module.Name} 失败: {ex.Message}", ex);
             }
         }
 
         private string GetGenerateFilePath(string headerPath)
         {
-            // 构建相对于Source目录的路径
-            string sourcePath = Path.Combine(projectRoot, "Source");
-            string relativePath = Path.GetRelativePath(sourcePath, headerPath);
-            
-            // 生成文件放在 Intermediate/Generated 目录下，保持相同的子目录结构
+            // 生成文件直接放在 Intermediate/Generated 目录下，使用平坦结构
             string intermediateRoot = Path.Combine(projectRoot, "Intermediate", "Generated");
             string fileName = Path.GetFileNameWithoutExtension(headerPath);
-            string relativeDir = Path.GetDirectoryName(relativePath) ?? "";
             
-            string generateDir = Path.Combine(intermediateRoot, relativeDir);
-            Directory.CreateDirectory(generateDir); // 确保目录存在
+            Directory.CreateDirectory(intermediateRoot); // 确保目录存在
             
-            return Path.Combine(generateDir, $"{fileName}.generate.h");
+            return Path.Combine(intermediateRoot, $"{fileName}.generate.h");
         }
 
         private static void GenerateCodeFile(string outputPath, HeaderInfo headerInfo)
@@ -383,14 +476,6 @@ namespace NutHeaderTools
 
             writer.WriteLine("namespace NLib");
             writer.WriteLine("{");
-            writer.WriteLine();
-
-            // 前向声明所有类
-            foreach (ClassInfo classInfo in headerInfo.Classes)
-            {
-                writer.WriteLine($"class {classInfo.Name};");
-            }
-            writer.WriteLine();
 
             foreach (ClassInfo classInfo in headerInfo.Classes)
             {
@@ -521,63 +606,9 @@ namespace NutHeaderTools
             }
             else
             {
-                // 生成GENERATED_BODY实现
-                writer.WriteLine($"// {classInfo.Name} GENERATED_BODY 实现");
-                
-                // 生成静态成员变量定义
-                writer.WriteLine($"bool {classInfo.Name}::bReflectionRegistered = false;");
-                writer.WriteLine();
-                
-                // 实现GetStaticTypeName
-                writer.WriteLine($"const char* {classInfo.Name}::GetStaticTypeName()");
-                writer.WriteLine("{");
-                writer.WriteLine($"    return \"{classInfo.Name}\";");
-                writer.WriteLine("}");
-                writer.WriteLine();
-                
-                // 实现GetStaticClassReflection
-                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetStaticClassReflection()");
-                writer.WriteLine("{");
-                writer.WriteLine($"    return &{classInfo.Name}_ClassReflection;");
-                writer.WriteLine("}");
-                writer.WriteLine();
-                
-                // 实现GetClassReflection
-                writer.WriteLine($"const SClassReflection* {classInfo.Name}::GetClassReflection() const");
-                writer.WriteLine("{");
-                writer.WriteLine($"    return &{classInfo.Name}_ClassReflection;");
-                writer.WriteLine("}");
-                writer.WriteLine();
-                
-                // 实现CreateDefaultObject
-                writer.WriteLine($"NObject* {classInfo.Name}::CreateDefaultObject()");
-                writer.WriteLine("{");
-                writer.WriteLine($"    return new {classInfo.Name}();");
-                writer.WriteLine("}");
-                writer.WriteLine();
-                
-                // 实现RegisterReflection
-                writer.WriteLine($"void {classInfo.Name}::RegisterReflection()");
-                writer.WriteLine("{");
-                writer.WriteLine("    if (!bReflectionRegistered)");
-                writer.WriteLine("    {");
-                writer.WriteLine("        auto& Registry = CReflectionRegistry::GetInstance();");
-                writer.WriteLine($"        Registry.RegisterClass(&{classInfo.Name}_ClassReflection);");
-                writer.WriteLine("        bReflectionRegistered = true;");
-                writer.WriteLine("    }");
-                writer.WriteLine("}");
-                writer.WriteLine();
-                
-                // 自动注册（通过静态初始化）
-                writer.WriteLine($"// 自动注册 {classInfo.Name} 到反射系统");
-                writer.WriteLine("namespace {");
-                writer.WriteLine($"    struct {classInfo.Name}AutoRegistrar {{");
-                writer.WriteLine($"        {classInfo.Name}AutoRegistrar() {{");
-                writer.WriteLine($"            {classInfo.Name}::RegisterReflection();");
-                writer.WriteLine("        }");
-                writer.WriteLine("    };");
-                writer.WriteLine($"    static {classInfo.Name}AutoRegistrar {classInfo.Name}_auto_registrar;");
-                writer.WriteLine("}");
+                // 类似UE的做法，只生成反射数据，不生成函数实现
+                writer.WriteLine($"// {classInfo.Name} 反射数据已生成");
+                writer.WriteLine($"// 函数实现由 GENERATED_BODY() 宏提供");
             }
             writer.WriteLine();
         }
