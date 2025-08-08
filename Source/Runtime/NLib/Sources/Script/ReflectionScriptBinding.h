@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Reflection/ReflectionRegistry.h"
 #include "Reflection/ReflectionStructures.h"
 #include "ScriptEngine.h"
@@ -21,8 +21,8 @@ struct SScriptBindingInfo
 	bool bScriptCallable = false;                               // meta=(ScriptCallable)
 	bool bScriptStatic = false;                                 // meta=(ScriptStatic)
 	bool bScriptEvent = false;                                  // meta=(ScriptEvent)
-	TString ScriptName;                                         // meta=(ScriptName="CustomName")
-	TString ScriptCategory;                                     // meta=(ScriptCategory="MyCategory")
+	CString ScriptName;                                         // meta=(ScriptName="CustomName")
+	CString ScriptCategory;                                     // meta=(ScriptCategory="MyCategory")
 	TArray<EScriptLanguage, CMemoryManager> SupportedLanguages; // meta=(Languages="Lua,TypeScript,Python")
 
 	/**
@@ -59,33 +59,33 @@ public:
 	/**
 	 * @brief 生成类绑定代码
 	 */
-	virtual TString GenerateClassBinding(const SClassReflection* ClassReflection,
+	virtual CString GenerateClassBinding(const SClassReflection* ClassReflection,
 	                                     const SScriptBindingInfo& BindingInfo) = 0;
 
 	/**
 	 * @brief 生成函数绑定代码
 	 */
-	virtual TString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+	virtual CString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
 	                                        const SScriptBindingInfo& BindingInfo,
-	                                        const TString& ClassName = TString()) = 0;
+	                                        const CString& ClassName = CString()) = 0;
 
 	/**
 	 * @brief 生成属性绑定代码
 	 */
-	virtual TString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+	virtual CString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
 	                                        const SScriptBindingInfo& BindingInfo,
-	                                        const TString& ClassName) = 0;
+	                                        const CString& ClassName) = 0;
 
 	/**
 	 * @brief 生成枚举绑定代码
 	 */
-	virtual TString GenerateEnumBinding(const SEnumReflection* EnumReflection,
+	virtual CString GenerateEnumBinding(const SEnumReflection* EnumReflection,
 	                                    const SScriptBindingInfo& BindingInfo) = 0;
 
 	/**
 	 * @brief 生成完整的绑定文件
 	 */
-	virtual TString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) = 0;
+	virtual CString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) = 0;
 };
 
 /**
@@ -99,25 +99,25 @@ public:
 		return EScriptLanguage::Lua;
 	}
 
-	TString GenerateClassBinding(const SClassReflection* ClassReflection,
+	CString GenerateClassBinding(const SClassReflection* ClassReflection,
 	                             const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+	CString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName = TString()) override;
+	                                const CString& ClassName = CString()) override;
 
-	TString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+	CString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName) override;
+	                                const CString& ClassName) override;
 
-	TString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
+	CString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
+	CString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
 
 private:
-	TString ConvertTypeToLua(const std::type_info& TypeInfo) const;
-	TString GenerateLuaUserdata(const SClassReflection* ClassReflection) const;
-	TString GenerateLuaMetatable(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
+	CString ConvertTypeToLua(const std::type_info& TypeInfo) const;
+	CString GenerateLuaUserdata(const SClassReflection* ClassReflection) const;
+	CString GenerateLuaMetatable(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
 };
 
 /**
@@ -131,26 +131,26 @@ public:
 		return EScriptLanguage::TypeScript;
 	}
 
-	TString GenerateClassBinding(const SClassReflection* ClassReflection,
+	CString GenerateClassBinding(const SClassReflection* ClassReflection,
 	                             const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+	CString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName = TString()) override;
+	                                const CString& ClassName = CString()) override;
 
-	TString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+	CString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName) override;
+	                                const CString& ClassName) override;
 
-	TString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
+	CString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
+	CString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
 
 private:
-	TString ConvertTypeToTypeScript(const std::type_info& TypeInfo) const;
-	TString GenerateTypeDefinition(const SClassReflection* ClassReflection,
+	CString ConvertTypeToTypeScript(const std::type_info& TypeInfo) const;
+	CString GenerateTypeDefinition(const SClassReflection* ClassReflection,
 	                               const SScriptBindingInfo& BindingInfo) const;
-	TString GenerateInterfaceDefinition(const SClassReflection* ClassReflection) const;
+	CString GenerateInterfaceDefinition(const SClassReflection* ClassReflection) const;
 };
 
 /**
@@ -164,27 +164,27 @@ public:
 		return EScriptLanguage::Python;
 	}
 
-	TString GenerateClassBinding(const SClassReflection* ClassReflection,
+	CString GenerateClassBinding(const SClassReflection* ClassReflection,
 	                             const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+	CString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName = TString()) override;
+	                                const CString& ClassName = CString()) override;
 
-	TString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+	CString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName) override;
+	                                const CString& ClassName) override;
 
-	TString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
+	CString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
+	CString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
 
 private:
-	TString ConvertTypeToPython(const std::type_info& TypeInfo) const;
-	TString GeneratePythonClass(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
-	TString GeneratePythonStub(const SClassReflection* ClassReflection) const;
-	TString GenerateTypeStub(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
-	TString GeneratePyiFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) const;
+	CString ConvertTypeToPython(const std::type_info& TypeInfo) const;
+	CString GeneratePythonClass(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
+	CString GeneratePythonStub(const SClassReflection* ClassReflection) const;
+	CString GenerateTypeStub(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
+	CString GeneratePyiFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) const;
 };
 
 /**
@@ -198,25 +198,25 @@ public:
 		return EScriptLanguage::CSharp;
 	}
 
-	TString GenerateClassBinding(const SClassReflection* ClassReflection,
+	CString GenerateClassBinding(const SClassReflection* ClassReflection,
 	                             const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+	CString GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName = TString()) override;
+	                                const CString& ClassName = CString()) override;
 
-	TString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+	CString GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
 	                                const SScriptBindingInfo& BindingInfo,
-	                                const TString& ClassName) override;
+	                                const CString& ClassName) override;
 
-	TString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
+	CString GenerateEnumBinding(const SEnumReflection* EnumReflection, const SScriptBindingInfo& BindingInfo) override;
 
-	TString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
+	CString GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) override;
 
 private:
-	TString ConvertTypeToCSharp(const std::type_info& TypeInfo) const;
-	TString GenerateCSharpClass(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
-	TString GeneratePInvokeDeclarations(const SClassReflection* ClassReflection) const;
+	CString ConvertTypeToCSharp(const std::type_info& TypeInfo) const;
+	CString GenerateCSharpClass(const SClassReflection* ClassReflection, const SScriptBindingInfo& BindingInfo) const;
+	CString GeneratePInvokeDeclarations(const SClassReflection* ClassReflection) const;
 };
 
 /**
@@ -278,12 +278,12 @@ public:
 	/**
 	 * @brief 生成指定语言的绑定代码
 	 */
-	TString GenerateBindingCode(EScriptLanguage Language) const;
+	CString GenerateBindingCode(EScriptLanguage Language) const;
 
 	/**
 	 * @brief 生成所有语言的绑定代码
 	 */
-	void GenerateAllBindings(const TString& OutputDirectory) const;
+	void GenerateAllBindings(const CString& OutputDirectory) const;
 
 	/**
 	 * @brief 获取所有支持脚本绑定的类
@@ -294,10 +294,10 @@ private:
 	CScriptBindingRegistry() = default;
 
 	THashMap<EScriptLanguage, TSharedPtr<IScriptBindingGenerator>, CMemoryManager> Generators;
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> ClassBindings;
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> EnumBindings;
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> ClassBindings;
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> EnumBindings;
 };
 
 /**
@@ -357,7 +357,7 @@ class NGamePlayer : public NObject
 
 public:
     NPROPERTY(BlueprintReadWrite, meta=(ScriptReadable, ScriptWritable, ScriptName="PlayerName"))
-    TString Name;
+    CString Name;
 
     NPROPERTY(BlueprintReadOnly, meta=(ScriptReadable))
     int32_t Health;
@@ -366,7 +366,7 @@ public:
     void TakeDamage(int32_t Amount);
 
     NFUNCTION(BlueprintCallable, meta=(ScriptCallable, ScriptStatic))
-    static NGamePlayer* CreatePlayer(const TString& PlayerName);
+    static NGamePlayer* CreatePlayer(const CString& PlayerName);
 };
 ```
 

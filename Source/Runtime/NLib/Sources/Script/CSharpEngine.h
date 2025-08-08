@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "ScriptEngine.h"
 
@@ -50,16 +50,16 @@ public:
 	int64_t ToInt64() const override;
 	float ToFloat() const override;
 	double ToDouble() const override;
-	TString ToString() const override;
+	CString ToString() const override;
 
-	int32_t GetArrayLength() const override;
+	int32_t GetArrayLength() const override;:
 	CScriptValue GetArrayElement(int32_t Index) const override;
 	void SetArrayElement(int32_t Index, const CScriptValue& Value) override;
 
-	TArray<TString, CMemoryManager> GetObjectKeys() const override;
-	CScriptValue GetObjectProperty(const TString& Key) const override;
-	void SetObjectProperty(const TString& Key, const CScriptValue& Value) override;
-	bool HasObjectProperty(const TString& Key) const override;
+	TArray<CString, CMemoryManager> GetObjectKeys() const override;
+	CScriptValue GetObjectProperty(const CString& Key) const override;
+	void SetObjectProperty(const CString& Key, const CScriptValue& Value) override;
+	bool HasObjectProperty(const CString& Key) const override;
 
 	SScriptExecutionResult CallFunction(const TArray<CScriptValue, CMemoryManager>& Args) override;
 
@@ -69,7 +69,7 @@ public:
 	// === C#/.NET特有方法 ===
 
 	/**
-	 * @brief 获取.NET对象句柄
+	 * @brief 获取
 	 */
 	void* GetDotNetObject() const
 	{
@@ -92,17 +92,17 @@ public:
 	/**
 	 * @brief 调用.NET方法
 	 */
-	CCSharpValue CallMethod(const TString& MethodName, const TArray<CCSharpValue, CMemoryManager>& Args);
+	CCSharpValue CallMethod(const CString& MethodName, const TArray<CCSharpValue, CMemoryManager>& Args);
 
 	/**
 	 * @brief 获取.NET属性值
 	 */
-	CCSharpValue GetProperty(const TString& PropertyName);
+	CCSharpValue GetProperty(const CString& PropertyName);
 
 	/**
 	 * @brief 设置.NET属性值
 	 */
-	void SetProperty(const TString& PropertyName, const CCSharpValue& Value);
+	void SetProperty(const CString& PropertyName, const CCSharpValue& Value);
 
 private:
 	void CreateReference(void* InDotNetObject, const char* InTypeName);
@@ -111,7 +111,7 @@ private:
 
 private:
 	void* DotNetObject = nullptr;
-	TString DotNetTypeName;
+	CString DotNetTypeName;
 	EScriptValueType CachedType = EScriptValueType::Null;
 	uint32_t ReferenceCount = 0;
 };
@@ -124,16 +124,16 @@ class CCSharpModule : public CScriptModule
 	GENERATED_BODY()
 
 public:
-	explicit CCSharpModule(void* InAssemblyContext, const TString& InName);
+	explicit CCSharpModule(void* InAssemblyContext, const CString& InName);
 	~CCSharpModule() override;
 
 	// === CScriptModule接口实现 ===
 
-	TString GetName() const override
+	CString GetName() const override
 	{
 		return ModuleName;
 	}
-	TString GetVersion() const override
+	CString GetVersion() const override
 	{
 		return TEXT("1.0");
 	}
@@ -142,21 +142,21 @@ public:
 		return EScriptLanguage::CSharp;
 	}
 
-	SScriptExecutionResult Load(const TString& ModulePath) override;
+	SScriptExecutionResult Load(const CString& ModulePath) override;
 	SScriptExecutionResult Unload() override;
 	bool IsLoaded() const override
 	{
 		return bLoaded;
 	}
 
-	CScriptValue GetGlobal(const TString& Name) const override;
-	void SetGlobal(const TString& Name, const CScriptValue& Value) override;
+	CScriptValue GetGlobal(const CString& Name) const override;
+	void SetGlobal(const CString& Name, const CScriptValue& Value) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath) override;
+	SScriptExecutionResult ExecuteString(const CString& Code) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath) override;
 
-	void RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterObject(const TString& Name, const CScriptValue& Object) override;
+	void RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterObject(const CString& Name, const CScriptValue& Object) override;
 
 	// === C#特有方法 ===
 
@@ -174,30 +174,30 @@ public:
 	 * @param AssemblyName 程序集名称
 	 * @return 是否编译成功
 	 */
-	bool CompileCSharpCode(const TString& SourceCode, const TString& AssemblyName);
+	bool CompileCSharpCode(const CString& SourceCode, const CString& AssemblyName);
 
 	/**
 	 * @brief 创建.NET类型实例
 	 */
-	CCSharpValue CreateInstance(const TString& TypeName, const TArray<CCSharpValue, CMemoryManager>& Args = {});
+	CCSharpValue CreateInstance(const CString& TypeName, const TArray<CCSharpValue, CMemoryManager>& Args = {});
 
 	/**
 	 * @brief 调用静态方法
 	 */
-	CCSharpValue CallStaticMethod(const TString& TypeName,
-	                              const TString& MethodName,
+	CCSharpValue CallStaticMethod(const CString& TypeName,
+	                              const CString& MethodName,
 	                              const TArray<CCSharpValue, CMemoryManager>& Args = {});
 
 private:
-	SScriptExecutionResult HandleDotNetError(const TString& Operation, const TString& ErrorMessage = TString());
+	SScriptExecutionResult HandleDotNetError(const CString& Operation, const CString& ErrorMessage = CString());
 	void SetupModuleEnvironment();
 
 private:
 	void* AssemblyContext = nullptr;
-	TString ModuleName;
+	CString ModuleName;
 	bool bLoaded = false;
 	void* LoadedAssembly = nullptr;
-	THashMap<TString, CCSharpValue, CMemoryManager> GlobalObjects;
+	THashMap<CString, CCSharpValue, CMemoryManager> GlobalObjects;
 };
 
 /**
@@ -229,20 +229,20 @@ public:
 		return EScriptLanguage::CSharp;
 	}
 
-	TSharedPtr<CScriptModule> CreateModule(const TString& Name) override;
-	TSharedPtr<CScriptModule> GetModule(const TString& Name) const override;
-	void DestroyModule(const TString& Name) override;
+	TSharedPtr<CScriptModule> CreateModule(const CString& Name) override;
+	TSharedPtr<CScriptModule> GetModule(const CString& Name) const override;
+	void DestroyModule(const CString& Name) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code, const TString& ModuleName = TEXT("__main__")) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath, const TString& ModuleName = TEXT("")) override;
+	SScriptExecutionResult ExecuteString(const CString& Code, const CString& ModuleName = TEXT("__main__")) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath, const CString& ModuleName = TEXT("")) override;
 
 	void CollectGarbage() override;
 	uint64_t GetMemoryUsage() const override;
 	void ResetTimeout() override;
 
-	void RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterGlobalObject(const TString& Name, const CScriptValue& Object) override;
-	void RegisterGlobalConstant(const TString& Name, const CScriptValue& Value) override;
+	void RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object) override;
+	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value) override;
 
 	// === C#特有方法 ===
 
@@ -268,24 +268,24 @@ public:
 	 * @param AssemblyName 临时程序集名称
 	 * @return 执行结果
 	 */
-	SScriptExecutionResult ExecuteCSharp(const TString& CSharpCode, const TString& AssemblyName = TEXT(""));
+	SScriptExecutionResult ExecuteCSharp(const CString& CSharpCode, const CString& AssemblyName = TEXT(""));
 
 	/**
 	 * @brief 加载.NET程序集
 	 * @param AssemblyPath 程序集文件路径
 	 * @return 程序集句柄
 	 */
-	void* LoadAssembly(const TString& AssemblyPath);
+	void* LoadAssembly(const CString& AssemblyPath);
 
 	/**
 	 * @brief 设置.NET运行时配置
 	 */
-	void SetRuntimeConfig(const THashMap<TString, TString, CMemoryManager>& Config);
+	void SetRuntimeConfig(const THashMap<CString, CString, CMemoryManager>& Config);
 
 private:
 	bool InitializeDotNet();
 	void ShutdownDotNet();
-	SScriptExecutionResult HandleDotNetError(const TString& Operation, const TString& ErrorMessage = TString());
+	SScriptExecutionResult HandleDotNetError(const CString& Operation, const CString& ErrorMessage = CString());
 	void RegisterNLibAPI();
 
 	// .NET运行时回调函数
@@ -295,8 +295,8 @@ private:
 	hostfxr_handle_t HostHandle = nullptr;
 	void* AssemblyLoadContext = nullptr;
 	SScriptConfig Config;
-	THashMap<TString, TSharedPtr<CCSharpModule>, CMemoryManager> Modules;
-	THashMap<TString, TString, CMemoryManager> RuntimeConfig;
+	THashMap<CString, TSharedPtr<CCSharpModule>, CMemoryManager> Modules;
+	THashMap<CString, CString, CMemoryManager> RuntimeConfig;
 
 	// 状态跟踪
 	uint64_t StartTime = 0;
@@ -335,7 +335,7 @@ public:
 	{
 		return EScriptLanguage::CSharp;
 	}
-	TString GetVersion() const override;
+	CString GetVersion() const override;
 	bool IsSupported() const override;
 
 	TSharedPtr<CScriptContext> CreateContext(const SScriptConfig& Config) override;
@@ -353,19 +353,19 @@ public:
 	CScriptValue CreateBool(bool Value) override;
 	CScriptValue CreateInt(int32_t Value) override;
 	CScriptValue CreateFloat(float Value) override;
-	CScriptValue CreateString(const TString& Value) override;
+	CScriptValue CreateString(const CString& Value) override;
 	CScriptValue CreateArray() override;
 	CScriptValue CreateObject() override;
 
-	SScriptExecutionResult CheckSyntax(const TString& Code) override;
-	SScriptExecutionResult CompileFile(const TString& FilePath, const TString& OutputPath = TString()) override;
+	SScriptExecutionResult CheckSyntax(const CString& Code) override;
+	SScriptExecutionResult CompileFile(const CString& FilePath, const CString& OutputPath = CString()) override;
 
 	// === C#特有方法 ===
 
 	/**
 	 * @brief 获取.NET运行时版本信息
 	 */
-	static TString GetDotNetVersionString();
+	static CString GetDotNetVersionString();
 
 	/**
 	 * @brief 检查.NET运行时是否可用
@@ -385,14 +385,14 @@ public:
 	/**
 	 * @brief 编译C#文件到程序集
 	 */
-	SScriptExecutionResult CompileCSharpFile(const TString& InputPath,
-	                                         const TString& OutputPath,
-	                                         const TArray<TString, CMemoryManager>& References = {});
+	SScriptExecutionResult CompileCSharpFile(const CString& InputPath,
+	                                         const CString& OutputPath,
+	                                         const TArray<CString, CMemoryManager>& References = {});
 
 	/**
 	 * @brief 设置全局编译选项
 	 */
-	void SetCompilerOptions(const THashMap<TString, TString, CMemoryManager>& Options);
+	void SetCompilerOptions(const THashMap<CString, CString, CMemoryManager>& Options);
 
 private:
 	void RegisterStandardLibraries();
@@ -401,7 +401,7 @@ private:
 private:
 	bool bInitialized = false;
 	TArray<TSharedPtr<CCSharpContext>, CMemoryManager> ActiveContexts;
-	THashMap<TString, TString, CMemoryManager> CompilerOptions;
+	THashMap<CString, CString, CMemoryManager> CompilerOptions;
 
 	static bool bDotNetRuntimeInitialized;
 	static void* HostfxrLibrary;
@@ -455,7 +455,7 @@ public:
 	/**
 	 * @brief 获取.NET类型的名称
 	 */
-	static TString GetDotNetTypeName(void* DotNetValue);
+	static CString GetDotNetTypeName(void* DotNetValue);
 
 	/**
 	 * @brief 创建.NET数组
@@ -514,7 +514,7 @@ Config.bEnableSandbox = false; // C#通常不需要沙箱
 auto Context = CSEngine->CreateContext(Config);
 
 // 执行C#代码
-TString CSCode = TEXT(R"(
+CString CSCode = TEXT(R"(
     using System;
 
     public class Player

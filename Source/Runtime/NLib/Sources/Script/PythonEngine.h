@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "ScriptEngine.h"
 
@@ -47,16 +47,16 @@ public:
 	int64_t ToInt64() const override;
 	float ToFloat() const override;
 	double ToDouble() const override;
-	TString ToString() const override;
+	CString ToString() const override;
 
 	int32_t GetArrayLength() const override;
 	CScriptValue GetArrayElement(int32_t Index) const override;
 	void SetArrayElement(int32_t Index, const CScriptValue& Value) override;
 
-	TArray<TString, CMemoryManager> GetObjectKeys() const override;
-	CScriptValue GetObjectProperty(const TString& Key) const override;
-	void SetObjectProperty(const TString& Key, const CScriptValue& Value) override;
-	bool HasObjectProperty(const TString& Key) const override;
+	TArray<CString, CMemoryManager> GetObjectKeys() const override;
+	CScriptValue GetObjectProperty(const CString& Key) const override;
+	void SetObjectProperty(const CString& Key, const CScriptValue& Value) override;
+	bool HasObjectProperty(const CString& Key) const override;
 
 	SScriptExecutionResult CallFunction(const TArray<CScriptValue, CMemoryManager>& Args) override;
 
@@ -81,22 +81,22 @@ public:
 	/**
 	 * @brief 调用Python方法
 	 */
-	CPythonValue CallMethod(const TString& MethodName, const TArray<CPythonValue, CMemoryManager>& Args = {});
+	CPythonValue CallMethod(const CString& MethodName, const TArray<CPythonValue, CMemoryManager>& Args = {});
 
 	/**
 	 * @brief 获取Python属性
 	 */
-	CPythonValue GetAttribute(const TString& AttributeName);
+	CPythonValue GetAttribute(const CString& AttributeName);
 
 	/**
 	 * @brief 设置Python属性
 	 */
-	void SetAttribute(const TString& AttributeName, const CPythonValue& Value);
+	void SetAttribute(const CString& AttributeName, const CPythonValue& Value);
 
 	/**
 	 * @brief 检查是否有指定属性
 	 */
-	bool HasAttribute(const TString& AttributeName) const;
+	bool HasAttribute(const CString& AttributeName) const;
 
 private:
 	void IncRef();
@@ -116,16 +116,16 @@ class CPythonModule : public CScriptModule
 	GENERATED_BODY()
 
 public:
-	explicit CPythonModule(const TString& InName);
+	explicit CPythonModule(const CString& InName);
 	~CPythonModule() override;
 
 	// === CScriptModule接口实现 ===
 
-	TString GetName() const override
+	CString GetName() const override
 	{
 		return ModuleName;
 	}
-	TString GetVersion() const override
+	CString GetVersion() const override
 	{
 		return TEXT("1.0");
 	}
@@ -134,21 +134,21 @@ public:
 		return EScriptLanguage::Python;
 	}
 
-	SScriptExecutionResult Load(const TString& ModulePath) override;
+	SScriptExecutionResult Load(const CString& ModulePath) override;
 	SScriptExecutionResult Unload() override;
 	bool IsLoaded() const override
 	{
 		return bLoaded && ModuleObject != nullptr;
 	}
 
-	CScriptValue GetGlobal(const TString& Name) const override;
-	void SetGlobal(const TString& Name, const CScriptValue& Value) override;
+	CScriptValue GetGlobal(const CString& Name) const override;
+	void SetGlobal(const CString& Name, const CScriptValue& Value) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath) override;
+	SScriptExecutionResult ExecuteString(const CString& Code) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath) override;
 
-	void RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterObject(const TString& Name, const CScriptValue& Object) override;
+	void RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterObject(const CString& Name, const CScriptValue& Object) override;
 
 	// === Python特有方法 ===
 
@@ -165,28 +165,28 @@ public:
 	 * @param ModuleName Python模块名（如"math", "os"等）
 	 * @return 是否导入成功
 	 */
-	bool ImportModule(const TString& ModuleName);
+	bool ImportModule(const CString& ModuleName);
 
 	/**
 	 * @brief 添加到sys.path
 	 */
-	void AddToSysPath(const TString& Path);
+	void AddToSysPath(const CString& Path);
 
 	/**
 	 * @brief 编译Python代码为字节码
 	 */
-	PyObject* CompilePythonCode(const TString& Code, const TString& Filename = TEXT("<string>"));
+	PyObject* CompilePythonCode(const CString& Code, const CString& Filename = TEXT("<string>"));
 
 private:
-	SScriptExecutionResult HandlePythonError(const TString& Operation);
+	SScriptExecutionResult HandlePythonError(const CString& Operation);
 	void SetupModuleEnvironment();
 
 private:
-	TString ModuleName;
+	CString ModuleName;
 	bool bLoaded = false;
 	PyObject* ModuleObject = nullptr;
 	PyObject* ModuleDict = nullptr;
-	THashMap<TString, CPythonValue, CMemoryManager> GlobalObjects;
+	THashMap<CString, CPythonValue, CMemoryManager> GlobalObjects;
 };
 
 /**
@@ -218,20 +218,20 @@ public:
 		return EScriptLanguage::Python;
 	}
 
-	TSharedPtr<CScriptModule> CreateModule(const TString& Name) override;
-	TSharedPtr<CScriptModule> GetModule(const TString& Name) const override;
-	void DestroyModule(const TString& Name) override;
+	TSharedPtr<CScriptModule> CreateModule(const CString& Name) override;
+	TSharedPtr<CScriptModule> GetModule(const CString& Name) const override;
+	void DestroyModule(const CString& Name) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code, const TString& ModuleName = TEXT("__main__")) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath, const TString& ModuleName = TEXT("")) override;
+	SScriptExecutionResult ExecuteString(const CString& Code, const CString& ModuleName = TEXT("__main__")) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath, const CString& ModuleName = TEXT("")) override;
 
 	void CollectGarbage() override;
 	uint64_t GetMemoryUsage() const override;
 	void ResetTimeout() override;
 
-	void RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterGlobalObject(const TString& Name, const CScriptValue& Object) override;
-	void RegisterGlobalConstant(const TString& Name, const CScriptValue& Value) override;
+	void RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object) override;
+	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value) override;
 
 	// === Python特有方法 ===
 
@@ -254,7 +254,7 @@ public:
 	/**
 	 * @brief 设置Python路径
 	 */
-	void SetPythonPath(const TArray<TString, CMemoryManager>& Paths);
+	void SetPythonPath(const TArray<CString, CMemoryManager>& Paths);
 
 	/**
 	 * @brief 执行Python脚本并获取结果
@@ -262,12 +262,12 @@ public:
 	 * @param LocalNamespace 局部命名空间（可选）
 	 * @return 执行结果
 	 */
-	SScriptExecutionResult ExecutePython(const TString& PythonCode, PyObject* LocalNamespace = nullptr);
+	SScriptExecutionResult ExecutePython(const CString& PythonCode, PyObject* LocalNamespace = nullptr);
 
 	/**
 	 * @brief 导入Python模块到全局命名空间
 	 */
-	bool ImportModule(const TString& ModuleName, const TString& Alias = TString());
+	bool ImportModule(const CString& ModuleName, const CString& Alias = CString());
 
 	/**
 	 * @brief 设置Python解释器标志
@@ -277,7 +277,7 @@ public:
 private:
 	bool InitializePython();
 	void ShutdownPython();
-	SScriptExecutionResult HandlePythonError(const TString& Operation);
+	SScriptExecutionResult HandlePythonError(const CString& Operation);
 	void RegisterNLibAPI();
 	void SetupBuiltinModules();
 
@@ -290,14 +290,14 @@ private:
 	PyObject* GlobalNamespace = nullptr;
 	PyObject* LocalNamespace = nullptr;
 	SScriptConfig Config;
-	THashMap<TString, TSharedPtr<CPythonModule>, CMemoryManager> Modules;
+	THashMap<CString, TSharedPtr<CPythonModule>, CMemoryManager> Modules;
 
 	// 状态跟踪
 	uint64_t StartTime = 0;
 	bool bTimeoutEnabled = false;
 
 	// Python路径和模块管理
-	TArray<TString, CMemoryManager> PythonPaths;
+	TArray<CString, CMemoryManager> PythonPaths;
 };
 
 /**
@@ -317,7 +317,7 @@ public:
 	{
 		return EScriptLanguage::Python;
 	}
-	TString GetVersion() const override;
+	CString GetVersion() const override;
 	bool IsSupported() const override;
 
 	TSharedPtr<CScriptContext> CreateContext(const SScriptConfig& Config) override;
@@ -335,19 +335,19 @@ public:
 	CScriptValue CreateBool(bool Value) override;
 	CScriptValue CreateInt(int32_t Value) override;
 	CScriptValue CreateFloat(float Value) override;
-	CScriptValue CreateString(const TString& Value) override;
+	CScriptValue CreateString(const CString& Value) override;
 	CScriptValue CreateArray() override;
 	CScriptValue CreateObject() override;
 
-	SScriptExecutionResult CheckSyntax(const TString& Code) override;
-	SScriptExecutionResult CompileFile(const TString& FilePath, const TString& OutputPath = TString()) override;
+	SScriptExecutionResult CheckSyntax(const CString& Code) override;
+	SScriptExecutionResult CompileFile(const CString& FilePath, const CString& OutputPath = CString()) override;
 
 	// === Python特有方法 ===
 
 	/**
 	 * @brief 获取Python版本信息
 	 */
-	static TString GetPythonVersionString();
+	static CString GetPythonVersionString();
 
 	/**
 	 * @brief 检查Python是否可用
@@ -367,17 +367,17 @@ public:
 	/**
 	 * @brief 编译Python文件到字节码
 	 */
-	SScriptExecutionResult CompilePythonFile(const TString& InputPath, const TString& OutputPath);
+	SScriptExecutionResult CompilePythonFile(const CString& InputPath, const CString& OutputPath);
 
 	/**
 	 * @brief 设置Python解释器选项
 	 */
-	void SetInterpreterOptions(const THashMap<TString, TString, CMemoryManager>& Options);
+	void SetInterpreterOptions(const THashMap<CString, CString, CMemoryManager>& Options);
 
 	/**
 	 * @brief 安装Python包（通过pip）
 	 */
-	bool InstallPythonPackage(const TString& PackageName, const TString& Version = TString());
+	bool InstallPythonPackage(const CString& PackageName, const CString& Version = CString());
 
 private:
 	void RegisterStandardLibraries();
@@ -386,7 +386,7 @@ private:
 private:
 	bool bInitialized = false;
 	TArray<TSharedPtr<CPythonContext>, CMemoryManager> ActiveContexts;
-	THashMap<TString, TString, CMemoryManager> InterpreterOptions;
+	THashMap<CString, CString, CMemoryManager> InterpreterOptions;
 
 	static bool bPythonInterpreterInitialized;
 	static void* PythonLibrary;
@@ -439,7 +439,7 @@ public:
 	/**
 	 * @brief 获取Python对象的类型名称
 	 */
-	static TString GetPythonTypeName(PyObject* PyObj);
+	static CString GetPythonTypeName(PyObject* PyObj);
 
 	/**
 	 * @brief 创建Python列表
@@ -449,7 +449,7 @@ public:
 	/**
 	 * @brief 创建Python字典
 	 */
-	static PyObject* CreatePythonDict(const THashMap<TString, PyObject*, CMemoryManager>& Elements);
+	static PyObject* CreatePythonDict(const THashMap<CString, PyObject*, CMemoryManager>& Elements);
 
 	/**
 	 * @brief 从Python列表获取元素
@@ -459,7 +459,7 @@ public:
 	/**
 	 * @brief 从Python字典获取键值对
 	 */
-	static THashMap<TString, PyObject*, CMemoryManager> GetPythonDictItems(PyObject* PyDict);
+	static THashMap<CString, PyObject*, CMemoryManager> GetPythonDictItems(PyObject* PyDict);
 };
 
 // === 类型别名 ===
@@ -527,7 +527,7 @@ Config.TimeoutMilliseconds = 10000;
 auto Context = PyEngine->CreateContext(Config);
 
 // 执行Python代码
-TString PythonCode = TEXT(R"(
+CString PythonCode = TEXT(R"(
 import sys
 import math
 

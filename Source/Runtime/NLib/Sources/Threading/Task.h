@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Containers/TArray.h"
-#include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Events/Delegate.h"

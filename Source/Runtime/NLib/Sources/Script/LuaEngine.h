@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "ScriptEngine.h"
 
@@ -44,16 +44,16 @@ public:
 	int64_t ToInt64() const override;
 	float ToFloat() const override;
 	double ToDouble() const override;
-	TString ToString() const override;
+	CString ToString() const override;
 
 	int32_t GetArrayLength() const override;
 	CScriptValue GetArrayElement(int32_t Index) const override;
 	void SetArrayElement(int32_t Index, const CScriptValue& Value) override;
 
-	TArray<TString, CMemoryManager> GetObjectKeys() const override;
-	CScriptValue GetObjectProperty(const TString& Key) const override;
-	void SetObjectProperty(const TString& Key, const CScriptValue& Value) override;
-	bool HasObjectProperty(const TString& Key) const override;
+	TArray<CString, CMemoryManager> GetObjectKeys() const override;
+	CScriptValue GetObjectProperty(const CString& Key) const override;
+	void SetObjectProperty(const CString& Key, const CScriptValue& Value) override;
+	bool HasObjectProperty(const CString& Key) const override;
 
 	SScriptExecutionResult CallFunction(const TArray<CScriptValue, CMemoryManager>& Args) override;
 
@@ -115,16 +115,16 @@ class CLuaScriptModule : public CScriptModule
 	GENERATED_BODY()
 
 public:
-	explicit CLuaScriptModule(lua_State* InLuaState, const TString& InName);
+	explicit CLuaScriptModule(lua_State* InLuaState, const CString& InName);
 	~CLuaScriptModule() override;
 
 	// === CScriptModule接口实现 ===
 
-	TString GetName() const override
+	CString GetName() const override
 	{
 		return ModuleName;
 	}
-	TString GetVersion() const override
+	CString GetVersion() const override
 	{
 		return TEXT("1.0");
 	}
@@ -133,21 +133,21 @@ public:
 		return EScriptLanguage::Lua;
 	}
 
-	SScriptExecutionResult Load(const TString& ModulePath) override;
+	SScriptExecutionResult Load(const CString& ModulePath) override;
 	SScriptExecutionResult Unload() override;
 	bool IsLoaded() const override
 	{
 		return bLoaded;
 	}
 
-	CScriptValue GetGlobal(const TString& Name) const override;
-	void SetGlobal(const TString& Name, const CScriptValue& Value) override;
+	CScriptValue GetGlobal(const CString& Name) const override;
+	void SetGlobal(const CString& Name, const CScriptValue& Value) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath) override;
+	SScriptExecutionResult ExecuteString(const CString& Code) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath) override;
 
-	void RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterObject(const TString& Name, const CScriptValue& Object) override;
+	void RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterObject(const CString& Name, const CScriptValue& Object) override;
 
 	// === Lua特有方法 ===
 
@@ -165,12 +165,12 @@ public:
 	void CreateModuleEnvironment();
 
 private:
-	SScriptExecutionResult HandleLuaError(int LuaResult, const TString& Operation);
+	SScriptExecutionResult HandleLuaError(int LuaResult, const CString& Operation);
 	void SetupModuleEnvironment();
 
 private:
 	lua_State* LuaState = nullptr;
-	TString ModuleName;
+	CString ModuleName;
 	bool bLoaded = false;
 	int ModuleEnvRef = -1; // 模块环境表的引用
 };
@@ -204,20 +204,20 @@ public:
 		return EScriptLanguage::Lua;
 	}
 
-	TSharedPtr<CScriptModule> CreateModule(const TString& Name) override;
-	TSharedPtr<CScriptModule> GetModule(const TString& Name) const override;
-	void DestroyModule(const TString& Name) override;
+	TSharedPtr<CScriptModule> CreateModule(const CString& Name) override;
+	TSharedPtr<CScriptModule> GetModule(const CString& Name) const override;
+	void DestroyModule(const CString& Name) override;
 
-	SScriptExecutionResult ExecuteString(const TString& Code, const TString& ModuleName = TEXT("__main__")) override;
-	SScriptExecutionResult ExecuteFile(const TString& FilePath, const TString& ModuleName = TEXT("")) override;
+	SScriptExecutionResult ExecuteString(const CString& Code, const CString& ModuleName = TEXT("__main__")) override;
+	SScriptExecutionResult ExecuteFile(const CString& FilePath, const CString& ModuleName = TEXT("")) override;
 
 	void CollectGarbage() override;
 	uint64_t GetMemoryUsage() const override;
 	void ResetTimeout() override;
 
-	void RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function) override;
-	void RegisterGlobalObject(const TString& Name, const CScriptValue& Object) override;
-	void RegisterGlobalConstant(const TString& Name, const CScriptValue& Value) override;
+	void RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function) override;
+	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object) override;
+	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value) override;
 
 	// === Lua特有方法 ===
 
@@ -247,7 +247,7 @@ public:
 private:
 	bool InitializeLua();
 	void ShutdownLua();
-	SScriptExecutionResult HandleLuaError(int LuaResult, const TString& Operation);
+	SScriptExecutionResult HandleLuaError(int LuaResult, const CString& Operation);
 	void RegisterNLibAPI();
 
 	// Lua回调函数
@@ -258,7 +258,7 @@ private:
 private:
 	lua_State* LuaState = nullptr;
 	SScriptConfig Config;
-	THashMap<TString, TSharedPtr<CLuaScriptModule>, CMemoryManager> Modules;
+	THashMap<CString, TSharedPtr<CLuaScriptModule>, CMemoryManager> Modules;
 
 	// 状态跟踪
 	uint64_t AllocatedMemory = 0;
@@ -284,7 +284,7 @@ public:
 	{
 		return EScriptLanguage::Lua;
 	}
-	TString GetVersion() const override;
+	CString GetVersion() const override;
 	bool IsSupported() const override;
 
 	TSharedPtr<CScriptContext> CreateContext(const SScriptConfig& Config) override;
@@ -302,19 +302,19 @@ public:
 	CScriptValue CreateBool(bool Value) override;
 	CScriptValue CreateInt(int32_t Value) override;
 	CScriptValue CreateFloat(float Value) override;
-	CScriptValue CreateString(const TString& Value) override;
+	CScriptValue CreateString(const CString& Value) override;
 	CScriptValue CreateArray() override;
 	CScriptValue CreateObject() override;
 
-	SScriptExecutionResult CheckSyntax(const TString& Code) override;
-	SScriptExecutionResult CompileFile(const TString& FilePath, const TString& OutputPath = TString()) override;
+	SScriptExecutionResult CheckSyntax(const CString& Code) override;
+	SScriptExecutionResult CompileFile(const CString& FilePath, const CString& OutputPath = CString()) override;
 
 	// === Lua特有方法 ===
 
 	/**
 	 * @brief 获取Lua版本信息
 	 */
-	static TString GetLuaVersionString();
+	static CString GetLuaVersionString();
 
 	/**
 	 * @brief 检查Lua是否可用

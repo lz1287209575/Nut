@@ -267,7 +267,7 @@ SSerializationResult CJsonSerializationArchive::Serialize(double& Value)
 	}
 }
 
-SSerializationResult CJsonSerializationArchive::Serialize(TString& Value)
+SSerializationResult CJsonSerializationArchive::Serialize(CString& Value)
 {
 	if (IsSerializing())
 	{
@@ -349,7 +349,7 @@ SSerializationResult CJsonSerializationArchive::SerializeToConfigValue(CConfigVa
 
 // === CSerializationArchive 虚函数实现 ===
 
-SSerializationResult CJsonSerializationArchive::BeginObject(const TString& TypeName)
+SSerializationResult CJsonSerializationArchive::BeginObject(const CString& TypeName)
 {
 	if (IsSerializing())
 	{
@@ -383,11 +383,11 @@ SSerializationResult CJsonSerializationArchive::BeginObject(const TString& TypeN
 			const auto& Object = CurrentValue->AsObject();
 			if (Object.Contains("__type"))
 			{
-				TString ActualType = Object["__type"].AsString();
+				CString ActualType = Object["__type"].AsString();
 				if (ActualType != TypeName)
 				{
 					return SSerializationResult(
-					    false, TString("Type mismatch: expected ") + TypeName + TString(", got ") + ActualType);
+					    false, CString("Type mismatch: expected ") + TypeName + CString(", got ") + ActualType);
 				}
 			}
 		}
@@ -396,17 +396,17 @@ SSerializationResult CJsonSerializationArchive::BeginObject(const TString& TypeN
 	return SSerializationResult(true);
 }
 
-SSerializationResult CJsonSerializationArchive::EndObject(const TString& TypeName)
+SSerializationResult CJsonSerializationArchive::EndObject(const CString& TypeName)
 {
 	return SSerializationResult(true);
 }
 
-SSerializationResult CJsonSerializationArchive::BeginField(const TString& FieldName)
+SSerializationResult CJsonSerializationArchive::BeginField(const CString& FieldName)
 {
 	return NavigateToField(FieldName);
 }
 
-SSerializationResult CJsonSerializationArchive::EndField(const TString& FieldName)
+SSerializationResult CJsonSerializationArchive::EndField(const CString& FieldName)
 {
 	return NavigateFromField(FieldName);
 }
@@ -421,11 +421,11 @@ SSerializationResult CJsonSerializationArchive::ReadJsonFromStream()
 	}
 
 	// 读取整个流到字符串
-	TString JsonString;
+	CString JsonString;
 	auto AllData = Stream->ReadAll();
 	if (!AllData.IsEmpty())
 	{
-		JsonString = TString(reinterpret_cast<const char*>(AllData.GetData()), AllData.Size());
+		JsonString = CString(reinterpret_cast<const char*>(AllData.GetData()), AllData.Size());
 	}
 
 	if (JsonString.IsEmpty())
@@ -437,7 +437,7 @@ SSerializationResult CJsonSerializationArchive::ReadJsonFromStream()
 	auto ParseResult = CJsonParser::Parse(JsonString);
 	if (!ParseResult.bSuccess)
 	{
-		return SSerializationResult(false, TString("JSON parse error: ") + ParseResult.Error.ToString());
+		return SSerializationResult(false, CString("JSON parse error: ") + ParseResult.Error.ToString());
 	}
 
 	RootValue = ParseResult.Value;
@@ -454,7 +454,7 @@ SSerializationResult CJsonSerializationArchive::WriteJsonToStream()
 
 	// 生成JSON字符串
 	bool bPrettyPrint = Context.HasFlag(ESerializationFlags::PrettyPrint);
-	TString JsonString = RootValue.ToJsonString(bPrettyPrint);
+	CString JsonString = RootValue.ToJsonString(bPrettyPrint);
 
 	if (JsonString.IsEmpty())
 	{
@@ -501,7 +501,7 @@ SSerializationResult CJsonSerializationArchive::SetCurrentValue(const CConfigVal
 	return SSerializationResult(true);
 }
 
-SSerializationResult CJsonSerializationArchive::NavigateToField(const TString& FieldName)
+SSerializationResult CJsonSerializationArchive::NavigateToField(const CString& FieldName)
 {
 	CConfigValue* CurrentValue = GetCurrentValue();
 	if (!CurrentValue)
@@ -529,7 +529,7 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const TString& F
 	{
 		if (!CurrentValue->IsObject())
 		{
-			return SSerializationResult(false, TString("Expected object for field '") + FieldName + TString("'"));
+			return SSerializationResult(false, CString("Expected object for field '") + FieldName + CString("'"));
 		}
 
 		const auto& Object = CurrentValue->AsObject();
@@ -543,7 +543,7 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const TString& F
 			}
 			else
 			{
-				return SSerializationResult(false, TString("Field '") + FieldName + TString("' not found"));
+				return SSerializationResult(false, CString("Field '") + FieldName + CString("' not found"));
 			}
 		}
 		else
@@ -555,7 +555,7 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const TString& F
 	return SSerializationResult(true);
 }
 
-SSerializationResult CJsonSerializationArchive::NavigateFromField(const TString& FieldName)
+SSerializationResult CJsonSerializationArchive::NavigateFromField(const CString& FieldName)
 {
 	if (NavigationStack.IsEmpty())
 	{
@@ -566,8 +566,8 @@ SSerializationResult CJsonSerializationArchive::NavigateFromField(const TString&
 	if (TopFrame.Key != FieldName)
 	{
 		return SSerializationResult(false,
-		                            TString("Field name mismatch: expected '") + FieldName + TString("', got '") +
-		                                TopFrame.Key + TString("'"));
+		                            CString("Field name mismatch: expected '") + FieldName + CString("', got '") +
+		                                TopFrame.Key + CString("'"));
 	}
 
 	NavigationStack.RemoveLast();
@@ -608,12 +608,12 @@ SSerializationResult CJsonSerializationArchive::EnsureCurrentIsArray()
 
 // === CJsonSerializationHelper 实现 ===
 
-TString CJsonSerializationHelper::ConfigValueToJson(const CConfigValue& Value, bool bPrettyPrint)
+CString CJsonSerializationHelper::ConfigValueToJson(const CConfigValue& Value, bool bPrettyPrint)
 {
 	return Value.ToJsonString(bPrettyPrint);
 }
 
-CConfigValue CJsonSerializationHelper::JsonToConfigValue(const TString& JsonString)
+CConfigValue CJsonSerializationHelper::JsonToConfigValue(const CString& JsonString)
 {
 	auto ParseResult = CJsonParser::Parse(JsonString);
 	if (ParseResult.bSuccess)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Containers/TArray.h"
-#include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "IO/Stream.h"
@@ -74,10 +73,10 @@ struct SSerializationVersion
 		return Major == Other.Major && !(*this < Other);
 	}
 
-	TString ToString() const
+	CString ToString() const
 	{
-		return TString::FromInt(Major) + TString(".") + TString::FromInt(Minor) + TString(".") +
-		       TString::FromInt(Patch);
+		return CString::FromInt(Major) + CString(".") + CString::FromInt(Minor) + CString(".") +
+		       CString::FromInt(Patch);
 	}
 };
 
@@ -87,14 +86,14 @@ struct SSerializationVersion
 struct SSerializationResult
 {
 	bool bSuccess = false;
-	TString ErrorMessage;
+	CString ErrorMessage;
 	int32_t BytesProcessed = 0;
 
 	SSerializationResult() = default;
 	SSerializationResult(bool bInSuccess)
 	    : bSuccess(bInSuccess)
 	{}
-	SSerializationResult(bool bInSuccess, const TString& InErrorMessage)
+	SSerializationResult(bool bInSuccess, const CString& InErrorMessage)
 	    : bSuccess(bInSuccess),
 	      ErrorMessage(InErrorMessage)
 	{}
@@ -108,15 +107,15 @@ struct SSerializationResult
 		return bSuccess;
 	}
 
-	TString ToString() const
+	CString ToString() const
 	{
 		if (bSuccess)
 		{
-			return TString("Success (") + TString::FromInt(BytesProcessed) + TString(" bytes)");
+			return CString("Success (") + CString::FromInt(BytesProcessed) + CString(" bytes)");
 		}
 		else
 		{
-			return TString("Error: ") + ErrorMessage;
+			return CString("Error: ") + ErrorMessage;
 		}
 	}
 };
@@ -149,7 +148,7 @@ struct SSerializationContext
 	ESerializationFormat Format = ESerializationFormat::Binary;
 	ESerializationFlags Flags = ESerializationFlags::None;
 	SSerializationVersion Version;
-	TString RootTypeName;
+	CString RootTypeName;
 	void* UserData = nullptr;
 
 	SSerializationContext() = default;
@@ -226,7 +225,7 @@ public:
 	virtual SSerializationResult Serialize(uint64_t& Value) = 0;
 	virtual SSerializationResult Serialize(float& Value) = 0;
 	virtual SSerializationResult Serialize(double& Value) = 0;
-	virtual SSerializationResult Serialize(TString& Value) = 0;
+	virtual SSerializationResult Serialize(CString& Value) = 0;
 
 public:
 	// === 容器序列化 ===
@@ -367,7 +366,7 @@ public:
 	// === 命名字段序列化 ===
 
 	template <typename T>
-	SSerializationResult SerializeField(const TString& FieldName, T& Value)
+	SSerializationResult SerializeField(const CString& FieldName, T& Value)
 	{
 		auto Result = BeginField(FieldName);
 		if (!Result.bSuccess)
@@ -388,7 +387,7 @@ public:
 	// === 对象序列化 ===
 
 	template <typename T>
-	SSerializationResult SerializeObject(T& Object, const TString& TypeName = TString())
+	SSerializationResult SerializeObject(T& Object, const CString& TypeName = CString())
 	{
 		auto Result = BeginObject(TypeName.IsEmpty() ? GetTypeName<T>() : TypeName);
 		if (!Result.bSuccess)
@@ -418,10 +417,10 @@ public:
 protected:
 	// === 格式特定的虚函数 ===
 
-	virtual SSerializationResult BeginObject(const TString& TypeName) = 0;
-	virtual SSerializationResult EndObject(const TString& TypeName) = 0;
-	virtual SSerializationResult BeginField(const TString& FieldName) = 0;
-	virtual SSerializationResult EndField(const TString& FieldName) = 0;
+	virtual SSerializationResult BeginObject(const CString& TypeName) = 0;
+	virtual SSerializationResult EndObject(const CString& TypeName) = 0;
+	virtual SSerializationResult BeginField(const CString& FieldName) = 0;
+	virtual SSerializationResult EndField(const CString& FieldName) = 0;
 
 protected:
 	// === 类型特性检测 ===
@@ -434,10 +433,10 @@ protected:
 	}
 
 	template <typename T>
-	static TString GetTypeName()
+	static CString GetTypeName()
 	{
 		// 简化的类型名获取，实际应使用反射系统
-		return TString("Unknown");
+		return CString("Unknown");
 	}
 
 	template <typename T>

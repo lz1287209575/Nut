@@ -191,10 +191,10 @@ double CTypeScriptValue::ToDouble() const
 	return MaybeDouble.IsJust() ? MaybeDouble.FromJust() : 0.0;
 }
 
-TString CTypeScriptValue::ToString() const
+CString CTypeScriptValue::ToString() const
 {
 	if (!IsValid())
-		return TString();
+		return CString();
 
 	v8::HandleScope HandleScope(Isolate);
 	v8::Local<v8::Context> Context = Isolate->GetCurrentContext();
@@ -202,10 +202,10 @@ TString CTypeScriptValue::ToString() const
 
 	v8::Local<v8::String> StringValue;
 	if (!Value->ToString(Context).ToLocal(&StringValue))
-		return TString();
+		return CString();
 
 	v8::String::Utf8Value Utf8Value(Isolate, StringValue);
-	return TString(*Utf8Value);
+	return CString(*Utf8Value);
 }
 
 int32_t CTypeScriptValue::GetArrayLength() const
@@ -252,9 +252,9 @@ void CTypeScriptValue::SetArrayElement(int32_t Index, const CScriptValue& Value)
 	Array->Set(Context, Index, V8Value);
 }
 
-TArray<TString, CMemoryManager> CTypeScriptValue::GetObjectKeys() const
+TArray<CString, CMemoryManager> CTypeScriptValue::GetObjectKeys() const
 {
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 	if (!IsObject())
 		return Keys;
 
@@ -272,7 +272,7 @@ TArray<TString, CMemoryManager> CTypeScriptValue::GetObjectKeys() const
 			if (PropertyNames->Get(Context, i).ToLocal(&Key))
 			{
 				v8::String::Utf8Value Utf8Key(Isolate, Key);
-				Keys.Add(TString(*Utf8Key));
+				Keys.Add(CString(*Utf8Key));
 			}
 		}
 	}
@@ -280,7 +280,7 @@ TArray<TString, CMemoryManager> CTypeScriptValue::GetObjectKeys() const
 	return Keys;
 }
 
-CScriptValue CTypeScriptValue::GetObjectProperty(const TString& Key) const
+CScriptValue CTypeScriptValue::GetObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return CScriptValue();
@@ -300,7 +300,7 @@ CScriptValue CTypeScriptValue::GetObjectProperty(const TString& Key) const
 	return CScriptValue();
 }
 
-void CTypeScriptValue::SetObjectProperty(const TString& Key, const CScriptValue& Value)
+void CTypeScriptValue::SetObjectProperty(const CString& Key, const CScriptValue& Value)
 {
 	if (!IsObject())
 		return;
@@ -315,7 +315,7 @@ void CTypeScriptValue::SetObjectProperty(const TString& Key, const CScriptValue&
 	Object->Set(Context, KeyString, V8Value);
 }
 
-bool CTypeScriptValue::HasObjectProperty(const TString& Key) const
+bool CTypeScriptValue::HasObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return false;
@@ -438,7 +438,7 @@ void CTypeScriptValue::CopyFrom(const CTypeScriptValue& Other)
 
 // === CTypeScriptModule 实现 ===
 
-CTypeScriptModule::CTypeScriptModule(v8::Isolate* InIsolate, const TString& InName)
+CTypeScriptModule::CTypeScriptModule(v8::Isolate* InIsolate, const CString& InName)
     : Isolate(InIsolate),
       ModuleName(InName),
       bLoaded(false),
@@ -450,7 +450,7 @@ CTypeScriptModule::~CTypeScriptModule()
 	Unload();
 }
 
-SScriptExecutionResult CTypeScriptModule::Load(const TString& ModulePath)
+SScriptExecutionResult CTypeScriptModule::Load(const CString& ModulePath)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -486,7 +486,7 @@ SScriptExecutionResult CTypeScriptModule::Unload()
 	return Result;
 }
 
-CScriptValue CTypeScriptModule::GetGlobal(const TString& Name) const
+CScriptValue CTypeScriptModule::GetGlobal(const CString& Name) const
 {
 	if (!bLoaded || !Isolate)
 		return CScriptValue();
@@ -505,7 +505,7 @@ CScriptValue CTypeScriptModule::GetGlobal(const TString& Name) const
 	return CScriptValue();
 }
 
-void CTypeScriptModule::SetGlobal(const TString& Name, const CScriptValue& Value)
+void CTypeScriptModule::SetGlobal(const CString& Name, const CScriptValue& Value)
 {
 	if (!bLoaded || !Isolate)
 		return;
@@ -519,7 +519,7 @@ void CTypeScriptModule::SetGlobal(const TString& Name, const CScriptValue& Value
 	Context->Global()->Set(Context, NameString, V8Value);
 }
 
-SScriptExecutionResult CTypeScriptModule::ExecuteString(const TString& Code)
+SScriptExecutionResult CTypeScriptModule::ExecuteString(const CString& Code)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -559,31 +559,31 @@ SScriptExecutionResult CTypeScriptModule::ExecuteString(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CTypeScriptModule::ExecuteFile(const TString& FilePath)
+SScriptExecutionResult CTypeScriptModule::ExecuteFile(const CString& FilePath)
 {
 	// TODO: 读取文件并执行
 	return ExecuteString(TEXT("// File execution not implemented"));
 }
 
-void CTypeScriptModule::RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CTypeScriptModule::RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 注册C++函数到V8
 	NLOG_SCRIPT(Warning, "RegisterFunction not implemented for TypeScript module");
 }
 
-void CTypeScriptModule::RegisterObject(const TString& Name, const CScriptValue& Object)
+void CTypeScriptModule::RegisterObject(const CString& Name, const CScriptValue& Object)
 {
 	SetGlobal(Name, Object);
 }
 
-TString CTypeScriptModule::CompileTypeScript(const TString& TypeScriptCode)
+CString CTypeScriptModule::CompileTypeScript(const CString& TypeScriptCode)
 {
 	// TODO: 集成TypeScript编译器
 	// 现在只返回原代码作为JavaScript
 	return TypeScriptCode;
 }
 
-void CTypeScriptModule::SetModuleExports(const TString& Name, const CScriptValue& Value)
+void CTypeScriptModule::SetModuleExports(const CString& Name, const CScriptValue& Value)
 {
 	if (!bLoaded || !Isolate)
 		return;
@@ -611,11 +611,11 @@ void CTypeScriptModule::SetModuleExports(const TString& Name, const CScriptValue
 	}
 }
 
-SScriptExecutionResult CTypeScriptModule::HandleV8Error(const TString& Operation)
+SScriptExecutionResult CTypeScriptModule::HandleV8Error(const CString& Operation)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
-	Result.ErrorMessage = TString::Format(TEXT("V8 Error in operation: {}"), Operation.GetData());
+	Result.ErrorMessage = CString::Format(TEXT("V8 Error in operation: {}"), Operation.GetData());
 
 	// TODO: 获取V8具体错误信息
 
@@ -691,7 +691,7 @@ void CTypeScriptContext::Shutdown()
 	NLOG_SCRIPT(Info, "TypeScript context shut down");
 }
 
-TSharedPtr<CScriptModule> CTypeScriptContext::CreateModule(const TString& Name)
+TSharedPtr<CScriptModule> CTypeScriptContext::CreateModule(const CString& Name)
 {
 	if (!Isolate)
 		return nullptr;
@@ -708,7 +708,7 @@ TSharedPtr<CScriptModule> CTypeScriptContext::CreateModule(const TString& Name)
 	return Module;
 }
 
-TSharedPtr<CScriptModule> CTypeScriptContext::GetModule(const TString& Name) const
+TSharedPtr<CScriptModule> CTypeScriptContext::GetModule(const CString& Name) const
 {
 	if (Modules.Contains(Name))
 		return Modules[Name];
@@ -716,7 +716,7 @@ TSharedPtr<CScriptModule> CTypeScriptContext::GetModule(const TString& Name) con
 	return nullptr;
 }
 
-void CTypeScriptContext::DestroyModule(const TString& Name)
+void CTypeScriptContext::DestroyModule(const CString& Name)
 {
 	if (Modules.Contains(Name))
 	{
@@ -725,7 +725,7 @@ void CTypeScriptContext::DestroyModule(const TString& Name)
 	}
 }
 
-SScriptExecutionResult CTypeScriptContext::ExecuteString(const TString& Code, const TString& ModuleName)
+SScriptExecutionResult CTypeScriptContext::ExecuteString(const CString& Code, const CString& ModuleName)
 {
 	if (ModuleName.IsEmpty() || ModuleName == TEXT("__main__"))
 	{
@@ -741,7 +741,7 @@ SScriptExecutionResult CTypeScriptContext::ExecuteString(const TString& Code, co
 	return Module->ExecuteString(Code);
 }
 
-SScriptExecutionResult CTypeScriptContext::ExecuteFile(const TString& FilePath, const TString& ModuleName)
+SScriptExecutionResult CTypeScriptContext::ExecuteFile(const CString& FilePath, const CString& ModuleName)
 {
 	// TODO: 读取文件并执行
 	return ExecuteString(TEXT("// File execution not implemented"), ModuleName);
@@ -771,13 +771,13 @@ void CTypeScriptContext::ResetTimeout()
 	StartTime = GetCurrentTimeMilliseconds();
 }
 
-void CTypeScriptContext::RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CTypeScriptContext::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 注册全局函数到V8
 	NLOG_SCRIPT(Warning, "RegisterGlobalFunction not implemented for TypeScript context");
 }
 
-void CTypeScriptContext::RegisterGlobalObject(const TString& Name, const CScriptValue& Object)
+void CTypeScriptContext::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
 {
 	if (!Isolate || !GlobalContext)
 		return;
@@ -792,7 +792,7 @@ void CTypeScriptContext::RegisterGlobalObject(const TString& Name, const CScript
 	Context->Global()->Set(Context, NameString, V8Value);
 }
 
-void CTypeScriptContext::RegisterGlobalConstant(const TString& Name, const CScriptValue& Value)
+void CTypeScriptContext::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
 {
 	RegisterGlobalObject(Name, Value);
 }
@@ -805,7 +805,7 @@ v8::Local<v8::Context> CTypeScriptContext::GetGlobalContext() const
 	return v8::Local<v8::Context>();
 }
 
-SScriptExecutionResult CTypeScriptContext::ExecuteTypeScript(const TString& TypeScriptCode, const TString& ModuleName)
+SScriptExecutionResult CTypeScriptContext::ExecuteTypeScript(const CString& TypeScriptCode, const CString& ModuleName)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -817,7 +817,7 @@ SScriptExecutionResult CTypeScriptContext::ExecuteTypeScript(const TString& Type
 	}
 
 	// 编译TypeScript到JavaScript
-	TString JavaScriptCode = CompileTypeScriptToJavaScript(TypeScriptCode);
+	CString JavaScriptCode = CompileTypeScriptToJavaScript(TypeScriptCode);
 
 	v8::HandleScope HandleScope(Isolate);
 	v8::Local<v8::Context> Context = GlobalContext->Get(Isolate);
@@ -848,7 +848,7 @@ SScriptExecutionResult CTypeScriptContext::ExecuteTypeScript(const TString& Type
 	return Result;
 }
 
-void CTypeScriptContext::SetTypeScriptCompilerOptions(const THashMap<TString, TString, CMemoryManager>& Options)
+void CTypeScriptContext::SetTypeScriptCompilerOptions(const THashMap<CString, CString, CMemoryManager>& Options)
 {
 	CompilerOptions = Options;
 }
@@ -898,11 +898,11 @@ void CTypeScriptContext::ShutdownV8()
 	}
 }
 
-SScriptExecutionResult CTypeScriptContext::HandleV8Error(const TString& Operation)
+SScriptExecutionResult CTypeScriptContext::HandleV8Error(const CString& Operation)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
-	Result.ErrorMessage = TString::Format(TEXT("V8 Error in operation: {}"), Operation.GetData());
+	Result.ErrorMessage = CString::Format(TEXT("V8 Error in operation: {}"), Operation.GetData());
 
 	// TODO: 获取V8具体错误信息
 
@@ -928,7 +928,7 @@ void CTypeScriptContext::RegisterNLibAPI()
 	Context->Global()->Set(Context, NLibName, NLibObject);
 }
 
-TString CTypeScriptContext::CompileTypeScriptToJavaScript(const TString& TypeScriptCode)
+CString CTypeScriptContext::CompileTypeScriptToJavaScript(const CString& TypeScriptCode)
 {
 	// TODO: 集成TypeScript编译器（可能通过Node.js或独立编译器）
 	// 现在简单返回原代码作为JavaScript
@@ -958,7 +958,7 @@ CTypeScriptEngine::~CTypeScriptEngine()
 	Shutdown();
 }
 
-TString CTypeScriptEngine::GetVersion() const
+CString CTypeScriptEngine::GetVersion() const
 {
 	return GetV8VersionString();
 }
@@ -1060,7 +1060,7 @@ CScriptValue CTypeScriptEngine::CreateFloat(float Value)
 	return CScriptValue();
 }
 
-CScriptValue CTypeScriptEngine::CreateString(const TString& Value)
+CScriptValue CTypeScriptEngine::CreateString(const CString& Value)
 {
 	return CScriptValue();
 }
@@ -1075,7 +1075,7 @@ CScriptValue CTypeScriptEngine::CreateObject()
 	return CScriptValue();
 }
 
-SScriptExecutionResult CTypeScriptEngine::CheckSyntax(const TString& Code)
+SScriptExecutionResult CTypeScriptEngine::CheckSyntax(const CString& Code)
 {
 	// TODO: 语法检查实现
 	SScriptExecutionResult Result;
@@ -1083,14 +1083,14 @@ SScriptExecutionResult CTypeScriptEngine::CheckSyntax(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CTypeScriptEngine::CompileFile(const TString& FilePath, const TString& OutputPath)
+SScriptExecutionResult CTypeScriptEngine::CompileFile(const CString& FilePath, const CString& OutputPath)
 {
 	return CompileTypeScriptFile(FilePath, OutputPath);
 }
 
-TString CTypeScriptEngine::GetV8VersionString()
+CString CTypeScriptEngine::GetV8VersionString()
 {
-	return TString(v8::V8::GetVersion());
+	return CString(v8::V8::GetVersion());
 }
 
 bool CTypeScriptEngine::IsV8Available()
@@ -1126,7 +1126,7 @@ void CTypeScriptEngine::ShutdownV8Platform()
 	bV8PlatformInitialized = false;
 }
 
-SScriptExecutionResult CTypeScriptEngine::CompileTypeScriptFile(const TString& InputPath, const TString& OutputPath)
+SScriptExecutionResult CTypeScriptEngine::CompileTypeScriptFile(const CString& InputPath, const CString& OutputPath)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -1175,7 +1175,7 @@ v8::Local<v8::Value> CTypeScriptTypeConverter::ToV8Value<double>(v8::Isolate* is
 }
 
 template <>
-v8::Local<v8::Value> CTypeScriptTypeConverter::ToV8Value<TString>(v8::Isolate* isolate, const TString& Value)
+v8::Local<v8::Value> CTypeScriptTypeConverter::ToV8Value<CString>(v8::Isolate* isolate, const CString& Value)
 {
 	return v8::String::NewFromUtf8(isolate, Value.GetData()).ToLocalChecked();
 }
@@ -1211,10 +1211,10 @@ double CTypeScriptTypeConverter::FromV8Value<double>(v8::Isolate* isolate, v8::L
 }
 
 template <>
-TString CTypeScriptTypeConverter::FromV8Value<TString>(v8::Isolate* isolate, v8::Local<v8::Value> Value)
+CString CTypeScriptTypeConverter::FromV8Value<CString>(v8::Isolate* isolate, v8::Local<v8::Value> Value)
 {
 	v8::String::Utf8Value Utf8Value(isolate, Value);
-	return TString(*Utf8Value);
+	return CString(*Utf8Value);
 }
 
 v8::Local<v8::Value> CTypeScriptTypeConverter::ToV8Value(v8::Isolate* isolate, const CScriptValue& ScriptValue)

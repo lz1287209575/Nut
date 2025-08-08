@@ -40,7 +40,7 @@ public:
 	 * @brief 玩家名称（脚本可读写）
 	 */
 	NPROPERTY(BlueprintReadWrite, meta = (ScriptReadable, ScriptWritable, ScriptName = "Name"))
-	TString PlayerName;
+	CString PlayerName;
 
 	/**
 	 * @brief 玩家血量（脚本只读）
@@ -72,13 +72,13 @@ public:
 	 * @brief 获取玩家信息（脚本可调用）
 	 */
 	NFUNCTION(BlueprintCallable, meta = (ScriptCallable))
-	TString GetPlayerInfo() const;
+	CString GetPlayerInfo() const;
 
 	/**
 	 * @brief 创建玩家实例（静态函数，脚本可调用）
 	 */
 	NFUNCTION(BlueprintCallable, meta = (ScriptCallable, ScriptStatic))
-	static NGamePlayer* CreatePlayer(const TString& Name, int32_t InitialLevel = 1);
+	static NGamePlayer* CreatePlayer(const CString& Name, int32_t InitialLevel = 1);
 
 	// === 脚本事件 ===
 
@@ -105,7 +105,7 @@ public:
 	virtual ~NGameItem() = default;
 
 	NPROPERTY(BlueprintReadWrite, meta = (ScriptReadable, ScriptWritable))
-	TString ItemName;
+	CString ItemName;
 
 	NPROPERTY(BlueprintReadWrite, meta = (ScriptReadable, ScriptWritable))
 	int32_t ItemCount = 1;
@@ -141,7 +141,7 @@ public:
 	 * @param BindingDirectory 脚本绑定文件目录
 	 * @return 是否初始化成功
 	 */
-	static bool InitializeScriptSystem(const TString& BindingDirectory = TEXT("Generated/ScriptBindings"));
+	static bool InitializeScriptSystem(const CString& BindingDirectory = TEXT("Generated/ScriptBindings"));
 
 	/**
 	 * @brief 运行Lua脚本示例
@@ -183,7 +183,7 @@ class NGamePlayer : public NObject
 
 public:
     NPROPERTY(BlueprintReadWrite, meta=(ScriptReadable, ScriptWritable))
-    TString PlayerName;
+    CString PlayerName;
 
     NFUNCTION(BlueprintCallable, meta=(ScriptCallable))
     void TakeDamage(int32_t Amount);

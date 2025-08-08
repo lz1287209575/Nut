@@ -279,6 +279,7 @@ namespace NutProjectFileGenerator.Generators
             foreach (var config in project.SupportedConfigurations)
             {
                 var platforms = new List<string> { "x64", "ARM64" };
+                var operatingSystem = "Windows";
                 if (OperatingSystem.IsWindows())
                 {
                     platforms.Add("Win32");
@@ -309,9 +310,9 @@ namespace NutProjectFileGenerator.Generators
                     sb.AppendLine("    <CharacterSet>Unicode</CharacterSet>");
                     
                     // 禁用标准构建过程，使用自定义构建
-                    sb.AppendLine("    <NMakeBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform)</NMakeBuildCommandLine>");
-                    sb.AppendLine("    <NMakeCleanCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --clean</NMakeCleanCommandLine>");
-                    sb.AppendLine("    <NMakeReBuildCommandLine>dotnet &quot;$(SolutionDir)Binary/NutBuildTools/NutBuildTools.dll&quot; build --target $(ProjectName) --configuration $(Configuration) --platform $(Platform) --rebuild</NMakeReBuildCommandLine>");
+                    sb.AppendLine(string.Format("    <NMakeBuildCommandLine>dotnet &quot;{0}/Binary/NutBuildTools/NutBuildTools.dll&quot; --target $(ProjectName) --configuration $(Configuration) --platform {1} build</NMakeBuildCommandLine>", project.ProjectRoot, operatingSystem));
+                    sb.AppendLine(string.Format("    <NMakeCleanCommandLine>dotnet &quot;{0}/Binary/NutBuildTools/NutBuildTools.dll&quot; --target $(ProjectName) --configuration $(Configuration) --platform {1} build --clean</NMakeCleanCommandLine>", project.ProjectRoot, operatingSystem));
+                    sb.AppendLine(string.Format("    <NMakeReBuildCommandLine>dotnet &quot;{0}/Binary/NutBuildTools/NutBuildTools.dll&quot; --target $(ProjectName) --configuration $(Configuration) --platform {1} build --rebuild</NMakeReBuildCommandLine>", project.ProjectRoot, operatingSystem));
                     
                     // 为Makefile项目配置IntelliSense包含目录
                     var allIncludeDirs = project.IncludeDirectories.Concat(solutionInfo.GlobalIncludeDirectories).Distinct();

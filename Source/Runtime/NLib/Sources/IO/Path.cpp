@@ -14,7 +14,7 @@ namespace NLib
 NPath::NPath()
 {}
 
-NPath::NPath(const TString& InPath)
+NPath::NPath(const CString& InPath)
     : PathString(InPath)
 {
 	Normalize();
@@ -54,7 +54,7 @@ NPath& NPath::operator=(NPath&& Other) noexcept
 	return *this;
 }
 
-NPath& NPath::operator=(const TString& InPath)
+NPath& NPath::operator=(const CString& InPath)
 {
 	PathString = InPath;
 	Normalize();
@@ -94,7 +94,7 @@ NPath NPath::operator/(const NPath& Other) const
 	return Result;
 }
 
-NPath NPath::operator/(const TString& Other) const
+NPath NPath::operator/(const CString& Other) const
 {
 	NPath Result(*this);
 	Result /= Other;
@@ -113,7 +113,7 @@ NPath& NPath::operator/=(const NPath& Other)
 	return *this /= Other.PathString;
 }
 
-NPath& NPath::operator/=(const TString& Other)
+NPath& NPath::operator/=(const CString& Other)
 {
 	if (Other.IsEmpty())
 	{
@@ -143,22 +143,22 @@ NPath& NPath::operator/=(const TString& Other)
 
 NPath& NPath::operator/=(const char* Other)
 {
-	return *this /= TString(Other ? Other : "");
+	return *this /= CString(Other ? Other : "");
 }
 
 // === 路径解析 ===
 
-TString NPath::GetFileName() const
+CString NPath::GetFileName() const
 {
 	if (PathString.IsEmpty())
 	{
-		return TString();
+		return CString();
 	}
 
 	try
 	{
 		std::filesystem::path StdPath = ToStdPath();
-		return TString(StdPath.filename().string().c_str());
+		return CString(StdPath.filename().string().c_str());
 	}
 	catch (...)
 	{
@@ -175,9 +175,9 @@ TString NPath::GetFileName() const
 	}
 }
 
-TString NPath::GetFileNameWithoutExtension() const
+CString NPath::GetFileNameWithoutExtension() const
 {
-	TString FileName = GetFileName();
+	CString FileName = GetFileName();
 	int32_t DotIndex = FileName.LastIndexOf('.');
 
 	if (DotIndex > 0) // 不包括以.开头的文件
@@ -188,9 +188,9 @@ TString NPath::GetFileNameWithoutExtension() const
 	return FileName;
 }
 
-TString NPath::GetExtension() const
+CString NPath::GetExtension() const
 {
-	TString FileName = GetFileName();
+	CString FileName = GetFileName();
 	int32_t DotIndex = FileName.LastIndexOf('.');
 
 	if (DotIndex > 0 && DotIndex < FileName.Length() - 1)
@@ -198,7 +198,7 @@ TString NPath::GetExtension() const
 		return FileName.Substring(DotIndex);
 	}
 
-	return TString();
+	return CString();
 }
 
 NPath NPath::GetDirectoryName() const
@@ -259,7 +259,7 @@ NPath NPath::GetRoot() const
 	}
 }
 
-TArray<TString, CMemoryManager> NPath::GetComponents() const
+TArray<CString, CMemoryManager> NPath::GetComponents() const
 {
 	return SplitPath();
 }
@@ -281,13 +281,13 @@ NPath& NPath::Normalize()
 	{
 		std::filesystem::path StdPath(PathString.GetData());
 		StdPath = StdPath.lexically_normal();
-		PathString = TString(StdPath.string().c_str());
+		PathString = CString(StdPath.string().c_str());
 	}
 	catch (...)
 	{
 		// 手动标准化
 		auto Components = SplitPath();
-		TArray<TString, CMemoryManager> NormalizedComponents;
+		TArray<CString, CMemoryManager> NormalizedComponents;
 
 		for (const auto& Component : Components)
 		{
@@ -405,16 +405,16 @@ NPath NPath::GetRelative(const NPath& BasePath) const
 	}
 }
 
-NPath& NPath::ChangeExtension(const TString& NewExtension)
+NPath& NPath::ChangeExtension(const CString& NewExtension)
 {
-	TString FileName = GetFileNameWithoutExtension();
+	CString FileName = GetFileNameWithoutExtension();
 	NPath Directory = GetDirectoryName();
 
 	PathString = (Directory / (FileName + NewExtension)).ToString();
 	return *this;
 }
 
-NPath NPath::WithExtension(const TString& NewExtension) const
+NPath NPath::WithExtension(const CString& NewExtension) const
 {
 	NPath Result(*this);
 	return Result.ChangeExtension(NewExtension);
@@ -564,9 +564,9 @@ bool NPath::IsInvalidPathChar(char Ch)
 #endif
 }
 
-TString NPath::NormalizeSeparators(const TString& Path)
+CString NPath::NormalizeSeparators(const CString& Path)
 {
-	TString Result = Path;
+	CString Result = Path;
 
 	// 替换所有分隔符为当前平台的标准分隔符
 	for (int32_t i = 0; i < Result.Length(); ++i)
@@ -605,9 +605,9 @@ NPath NPath::GetCommonPrefix(const NPath& Path1, const NPath& Path2)
 
 // === 内部实现 ===
 
-TArray<TString, CMemoryManager> NPath::SplitPath() const
+TArray<CString, CMemoryManager> NPath::SplitPath() const
 {
-	TArray<TString, CMemoryManager> Components;
+	TArray<CString, CMemoryManager> Components;
 
 	if (PathString.IsEmpty())
 	{
@@ -641,7 +641,7 @@ TArray<TString, CMemoryManager> NPath::SplitPath() const
 		// 添加组件
 		if (Current > ComponentStart)
 		{
-			TString Component(ComponentStart, static_cast<int32_t>(Current - ComponentStart));
+			CString Component(ComponentStart, static_cast<int32_t>(Current - ComponentStart));
 			Components.Add(Component);
 		}
 	}
@@ -651,7 +651,7 @@ TArray<TString, CMemoryManager> NPath::SplitPath() const
 
 void NPath::FromStdPath(const std::filesystem::path& StdPath)
 {
-	PathString = TString(StdPath.string().c_str());
+	PathString = CString(StdPath.string().c_str());
 }
 
 std::filesystem::path NPath::ToStdPath() const

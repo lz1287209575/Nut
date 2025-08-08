@@ -222,19 +222,19 @@ double CLuaScriptValue::ToDouble() const
 	return Result;
 }
 
-TString CLuaScriptValue::ToString() const
+CString CLuaScriptValue::ToString() const
 {
 	if (!IsValid())
-		return TString();
+		return CString();
 
 	lua_rawgeti(LuaState, LUA_REGISTRYINDEX, LuaRef);
 
 	size_t Length = 0;
 	const char* Str = lua_tolstring(LuaState, -1, &Length);
-	TString Result;
+	CString Result;
 	if (Str)
 	{
-		Result = TString(Str, static_cast<int32_t>(Length));
+		Result = CString(Str, static_cast<int32_t>(Length));
 	}
 
 	lua_pop(LuaState, 1);
@@ -289,9 +289,9 @@ void CLuaScriptValue::SetArrayElement(int32_t Index, const CScriptValue& Value)
 	lua_pop(LuaState, 1);
 }
 
-TArray<TString, CMemoryManager> CLuaScriptValue::GetObjectKeys() const
+TArray<CString, CMemoryManager> CLuaScriptValue::GetObjectKeys() const
 {
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 
 	if (!IsObject())
 		return Keys;
@@ -308,7 +308,7 @@ TArray<TString, CMemoryManager> CLuaScriptValue::GetObjectKeys() const
 			const char* Key = lua_tolstring(LuaState, -2, &Length);
 			if (Key)
 			{
-				Keys.Add(TString(Key, static_cast<int32_t>(Length)));
+				Keys.Add(CString(Key, static_cast<int32_t>(Length)));
 			}
 		}
 		lua_pop(LuaState, 1); // 移除值，保留键用于下次迭代
@@ -318,7 +318,7 @@ TArray<TString, CMemoryManager> CLuaScriptValue::GetObjectKeys() const
 	return Keys;
 }
 
-CScriptValue CLuaScriptValue::GetObjectProperty(const TString& Key) const
+CScriptValue CLuaScriptValue::GetObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return CScriptValue();
@@ -332,7 +332,7 @@ CScriptValue CLuaScriptValue::GetObjectProperty(const TString& Key) const
 	return Result;
 }
 
-void CLuaScriptValue::SetObjectProperty(const TString& Key, const CScriptValue& Value)
+void CLuaScriptValue::SetObjectProperty(const CString& Key, const CScriptValue& Value)
 {
 	if (!IsObject())
 		return;
@@ -354,7 +354,7 @@ void CLuaScriptValue::SetObjectProperty(const TString& Key, const CScriptValue& 
 	lua_pop(LuaState, 1);
 }
 
-bool CLuaScriptValue::HasObjectProperty(const TString& Key) const
+bool CLuaScriptValue::HasObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return false;
@@ -397,10 +397,10 @@ SScriptExecutionResult CLuaScriptValue::CallFunction(const TArray<CScriptValue, 
 
 	if (Result != LUA_OK)
 	{
-		TString ErrorMessage;
+		CString ErrorMessage;
 		if (lua_isstring(LuaState, -1))
 		{
-			ErrorMessage = TString(lua_tostring(LuaState, -1));
+			ErrorMessage = CString(lua_tostring(LuaState, -1));
 		}
 		lua_pop(LuaState, 1);
 
@@ -463,7 +463,7 @@ CConfigValue CLuaScriptValue::ToConfigValue() const
 		const char* Str = lua_tolstring(LuaState, -1, &Length);
 		if (Str)
 		{
-			Result = CConfigValue(TString(Str, static_cast<int32_t>(Length)));
+			Result = CConfigValue(CString(Str, static_cast<int32_t>(Length)));
 		}
 	}
 	break;
@@ -561,7 +561,7 @@ CLuaScriptEngine::~CLuaScriptEngine()
 	}
 }
 
-TString CLuaScriptEngine::GetVersion() const
+CString CLuaScriptEngine::GetVersion() const
 {
 	return GetLuaVersionString();
 }
@@ -679,7 +679,7 @@ CScriptValue CLuaScriptEngine::CreateFloat(float Value)
 	return CLuaScriptValue();
 }
 
-CScriptValue CLuaScriptEngine::CreateString(const TString& Value)
+CScriptValue CLuaScriptEngine::CreateString(const CString& Value)
 {
 	NLOG_SCRIPT(Warning, "CLuaScriptEngine::CreateString needs context to create Lua values");
 	return CLuaScriptValue();
@@ -697,7 +697,7 @@ CScriptValue CLuaScriptEngine::CreateObject()
 	return CLuaScriptValue();
 }
 
-SScriptExecutionResult CLuaScriptEngine::CheckSyntax(const TString& Code)
+SScriptExecutionResult CLuaScriptEngine::CheckSyntax(const CString& Code)
 {
 	// 创建临时Lua状态进行语法检查
 	lua_State* L = luaL_newstate();
@@ -711,10 +711,10 @@ SScriptExecutionResult CLuaScriptEngine::CheckSyntax(const TString& Code)
 	SScriptExecutionResult ExecutionResult;
 	if (Result != LUA_OK)
 	{
-		TString ErrorMessage;
+		CString ErrorMessage;
 		if (lua_isstring(L, -1))
 		{
-			ErrorMessage = TString(lua_tostring(L, -1));
+			ErrorMessage = CString(lua_tostring(L, -1));
 		}
 
 		ExecutionResult = SScriptExecutionResult(EScriptResult::CompileError, ErrorMessage);
@@ -728,7 +728,7 @@ SScriptExecutionResult CLuaScriptEngine::CheckSyntax(const TString& Code)
 	return ExecutionResult;
 }
 
-SScriptExecutionResult CLuaScriptEngine::CompileFile(const TString& FilePath, const TString& OutputPath)
+SScriptExecutionResult CLuaScriptEngine::CompileFile(const CString& FilePath, const CString& OutputPath)
 {
 	// Lua是解释型语言，通常不需要预编译
 	// 这里可以实现语法检查
@@ -736,7 +736,7 @@ SScriptExecutionResult CLuaScriptEngine::CompileFile(const TString& FilePath, co
 	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
-		                              TString(TEXT("Script file not found: ")) + FilePath);
+		                              CString(TEXT("Script file not found: ")) + FilePath);
 	}
 
 	// 读取文件内容进行语法检查
@@ -749,9 +749,9 @@ SScriptExecutionResult CLuaScriptEngine::CompileFile(const TString& FilePath, co
 	return CheckSyntax(FileContent.GetValue());
 }
 
-TString CLuaScriptEngine::GetLuaVersionString()
+CString CLuaScriptEngine::GetLuaVersionString()
 {
-	return TString(LUA_VERSION);
+	return CString(LUA_VERSION);
 }
 
 bool CLuaScriptEngine::IsLuaAvailable()
@@ -768,7 +768,7 @@ bool CLuaScriptEngine::IsLuaAvailable()
 
 // === CLuaScriptModule 实现 ===
 
-CLuaScriptModule::CLuaScriptModule(lua_State* InLuaState, const TString& InName)
+CLuaScriptModule::CLuaScriptModule(lua_State* InLuaState, const CString& InName)
     : LuaState(InLuaState),
       ModuleName(InName),
       bLoaded(false),
@@ -790,7 +790,7 @@ CLuaScriptModule::~CLuaScriptModule()
 	}
 }
 
-SScriptExecutionResult CLuaScriptModule::Load(const TString& ModulePath)
+SScriptExecutionResult CLuaScriptModule::Load(const CString& ModulePath)
 {
 	if (bLoaded)
 	{
@@ -800,7 +800,7 @@ SScriptExecutionResult CLuaScriptModule::Load(const TString& ModulePath)
 	if (!NFileSystem::FileExists(ModulePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
-		                              TString(TEXT("Module file not found: ")) + ModulePath);
+		                              CString(TEXT("Module file not found: ")) + ModulePath);
 	}
 
 	// 读取模块文件
@@ -873,7 +873,7 @@ SScriptExecutionResult CLuaScriptModule::Unload()
 	return SScriptExecutionResult(EScriptResult::Success);
 }
 
-CScriptValue CLuaScriptModule::GetGlobal(const TString& Name) const
+CScriptValue CLuaScriptModule::GetGlobal(const CString& Name) const
 {
 	if (!bLoaded || !LuaState || ModuleEnvRef == -1)
 	{
@@ -889,7 +889,7 @@ CScriptValue CLuaScriptModule::GetGlobal(const TString& Name) const
 	return Result;
 }
 
-void CLuaScriptModule::SetGlobal(const TString& Name, const CScriptValue& Value)
+void CLuaScriptModule::SetGlobal(const CString& Name, const CScriptValue& Value)
 {
 	if (!bLoaded || !LuaState || ModuleEnvRef == -1)
 	{
@@ -912,7 +912,7 @@ void CLuaScriptModule::SetGlobal(const TString& Name, const CScriptValue& Value)
 	lua_pop(LuaState, 1);
 }
 
-SScriptExecutionResult CLuaScriptModule::ExecuteString(const TString& Code)
+SScriptExecutionResult CLuaScriptModule::ExecuteString(const CString& Code)
 {
 	if (!bLoaded || !LuaState || ModuleEnvRef == -1)
 	{
@@ -950,12 +950,12 @@ SScriptExecutionResult CLuaScriptModule::ExecuteString(const TString& Code)
 	return ExecutionResult;
 }
 
-SScriptExecutionResult CLuaScriptModule::ExecuteFile(const TString& FilePath)
+SScriptExecutionResult CLuaScriptModule::ExecuteFile(const CString& FilePath)
 {
 	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
-		                              TString(TEXT("Script file not found: ")) + FilePath);
+		                              CString(TEXT("Script file not found: ")) + FilePath);
 	}
 
 	auto FileContent = NFileSystem::ReadFileAsString(FilePath);
@@ -967,7 +967,7 @@ SScriptExecutionResult CLuaScriptModule::ExecuteFile(const TString& FilePath)
 	return ExecuteString(FileContent.GetValue());
 }
 
-void CLuaScriptModule::RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CLuaScriptModule::RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	if (!bLoaded || !LuaState || ModuleEnvRef == -1 || !Function)
 	{
@@ -978,7 +978,7 @@ void CLuaScriptModule::RegisterFunction(const TString& Name, TSharedPtr<CScriptF
 	NLOG_SCRIPT(Warning, "CLuaScriptModule::RegisterFunction not fully implemented");
 }
 
-void CLuaScriptModule::RegisterObject(const TString& Name, const CScriptValue& Object)
+void CLuaScriptModule::RegisterObject(const CString& Name, const CScriptValue& Object)
 {
 	SetGlobal(Name, Object);
 }
@@ -1001,16 +1001,16 @@ void CLuaScriptModule::CreateModuleEnvironment()
 	ModuleEnvRef = luaL_ref(LuaState, LUA_REGISTRYINDEX);
 }
 
-SScriptExecutionResult CLuaScriptModule::HandleLuaError(int LuaResult, const TString& Operation)
+SScriptExecutionResult CLuaScriptModule::HandleLuaError(int LuaResult, const CString& Operation)
 {
-	TString ErrorMessage;
+	CString ErrorMessage;
 	if (lua_isstring(LuaState, -1))
 	{
-		ErrorMessage = TString(lua_tostring(LuaState, -1));
+		ErrorMessage = CString(lua_tostring(LuaState, -1));
 	}
 	else
 	{
-		ErrorMessage = TString(TEXT("Unknown error during ")) + Operation;
+		ErrorMessage = CString(TEXT("Unknown error during ")) + Operation;
 	}
 
 	lua_pop(LuaState, 1);
@@ -1123,7 +1123,7 @@ void CLuaScriptContext::Shutdown()
 	NLOG_SCRIPT(Info, "Lua script context shut down");
 }
 
-TSharedPtr<CScriptModule> CLuaScriptContext::CreateModule(const TString& Name)
+TSharedPtr<CScriptModule> CLuaScriptContext::CreateModule(const CString& Name)
 {
 	if (!LuaState)
 	{
@@ -1144,13 +1144,13 @@ TSharedPtr<CScriptModule> CLuaScriptContext::CreateModule(const TString& Name)
 	return Module;
 }
 
-TSharedPtr<CScriptModule> CLuaScriptContext::GetModule(const TString& Name) const
+TSharedPtr<CScriptModule> CLuaScriptContext::GetModule(const CString& Name) const
 {
 	auto* Module = Modules.Find(Name);
 	return Module ? *Module : nullptr;
 }
 
-void CLuaScriptContext::DestroyModule(const TString& Name)
+void CLuaScriptContext::DestroyModule(const CString& Name)
 {
 	auto* Module = Modules.Find(Name);
 	if (Module && *Module)
@@ -1161,7 +1161,7 @@ void CLuaScriptContext::DestroyModule(const TString& Name)
 	}
 }
 
-SScriptExecutionResult CLuaScriptContext::ExecuteString(const TString& Code, const TString& ModuleName)
+SScriptExecutionResult CLuaScriptContext::ExecuteString(const CString& Code, const CString& ModuleName)
 {
 	if (!LuaState)
 	{
@@ -1198,12 +1198,12 @@ SScriptExecutionResult CLuaScriptContext::ExecuteString(const TString& Code, con
 	return ExecutionResult;
 }
 
-SScriptExecutionResult CLuaScriptContext::ExecuteFile(const TString& FilePath, const TString& ModuleName)
+SScriptExecutionResult CLuaScriptContext::ExecuteFile(const CString& FilePath, const CString& ModuleName)
 {
 	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
-		                              TString(TEXT("Script file not found: ")) + FilePath);
+		                              CString(TEXT("Script file not found: ")) + FilePath);
 	}
 
 	auto FileContent = NFileSystem::ReadFileAsString(FilePath);
@@ -1241,7 +1241,7 @@ void CLuaScriptContext::ResetTimeout()
 	}
 }
 
-void CLuaScriptContext::RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CLuaScriptContext::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	if (!LuaState || !Function)
 		return;
@@ -1250,7 +1250,7 @@ void CLuaScriptContext::RegisterGlobalFunction(const TString& Name, TSharedPtr<C
 	NLOG_SCRIPT(Warning, "CLuaScriptContext::RegisterGlobalFunction not fully implemented");
 }
 
-void CLuaScriptContext::RegisterGlobalObject(const TString& Name, const CScriptValue& Object)
+void CLuaScriptContext::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
 {
 	if (!LuaState)
 		return;
@@ -1268,7 +1268,7 @@ void CLuaScriptContext::RegisterGlobalObject(const TString& Name, const CScriptV
 	lua_setglobal(LuaState, Name.GetData());
 }
 
-void CLuaScriptContext::RegisterGlobalConstant(const TString& Name, const CScriptValue& Value)
+void CLuaScriptContext::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
 {
 	RegisterGlobalObject(Name, Value);
 }
@@ -1384,16 +1384,16 @@ void CLuaScriptContext::ShutdownLua()
 	AllocatedMemory = 0;
 }
 
-SScriptExecutionResult CLuaScriptContext::HandleLuaError(int LuaResult, const TString& Operation)
+SScriptExecutionResult CLuaScriptContext::HandleLuaError(int LuaResult, const CString& Operation)
 {
-	TString ErrorMessage;
+	CString ErrorMessage;
 	if (lua_isstring(LuaState, -1))
 	{
-		ErrorMessage = TString(lua_tostring(LuaState, -1));
+		ErrorMessage = CString(lua_tostring(LuaState, -1));
 	}
 	else
 	{
-		ErrorMessage = TString(TEXT("Unknown error during ")) + Operation;
+		ErrorMessage = CString(TEXT("Unknown error during ")) + Operation;
 	}
 
 	lua_pop(LuaState, 1);

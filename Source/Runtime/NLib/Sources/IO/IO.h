@@ -71,7 +71,7 @@ inline bool IsIOModuleAvailable()
  * @param FilePath 文件路径
  * @return 文件内容，失败则返回空字符串
  */
-inline TString ReadTextFile(const NPath& FilePath)
+inline CString ReadTextFile(const NPath& FilePath)
 {
 	return NFileSystem::ReadAllText(FilePath);
 }
@@ -84,7 +84,7 @@ inline TString ReadTextFile(const NPath& FilePath)
  * @param bOverwrite 是否覆盖现有文件
  * @return 是否成功
  */
-inline bool WriteTextFile(const NPath& FilePath, const TString& Content, bool bOverwrite = true)
+inline bool WriteTextFile(const NPath& FilePath, const CString& Content, bool bOverwrite = true)
 {
 	return NFileSystem::WriteAllText(FilePath, Content, bOverwrite).bSuccess;
 }
@@ -96,7 +96,7 @@ inline bool WriteTextFile(const NPath& FilePath, const TString& Content, bool bO
  * @param Content 要追加的内容
  * @return 是否成功
  */
-inline bool AppendTextFile(const NPath& FilePath, const TString& Content)
+inline bool AppendTextFile(const NPath& FilePath, const CString& Content)
 {
 	return NFileSystem::AppendAllText(FilePath, Content).bSuccess;
 }
@@ -133,7 +133,7 @@ inline bool WriteBinaryFile(const NPath& FilePath, const TArray<uint8_t, CMemory
  * @param AppName 应用程序名称
  * @return 应用程序数据目录路径
  */
-inline NPath GetAppDataDirectory(const TString& AppName)
+inline NPath GetAppDataDirectory(const CString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows: %APPDATA%/AppName
@@ -169,7 +169,7 @@ inline NPath GetAppDataDirectory(const TString& AppName)
  * @param AppName 应用程序名称
  * @return 应用程序配置目录路径
  */
-inline NPath GetAppConfigDirectory(const TString& AppName)
+inline NPath GetAppConfigDirectory(const CString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows使用AppData
@@ -197,7 +197,7 @@ inline NPath GetAppConfigDirectory(const TString& AppName)
  * @param AppName 应用程序名称
  * @return 应用程序缓存目录路径
  */
-inline NPath GetAppCacheDirectory(const TString& AppName)
+inline NPath GetAppCacheDirectory(const CString& AppName)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	// Windows: %LOCALAPPDATA%/AppName/Cache
@@ -327,7 +327,7 @@ inline TSharedPtr<CBufferedStream> CreateBufferedFileStream(const NPath& FilePat
  * @param Text 文本内容
  * @return 内存流指针
  */
-inline TSharedPtr<NMemoryStream> CreateMemoryStreamFromText(const TString& Text)
+inline TSharedPtr<NMemoryStream> CreateMemoryStreamFromText(const CString& Text)
 {
 	TArray<uint8_t, CMemoryManager> Data(Text.Length());
 	memcpy(Data.GetData(), Text.GetData(), Text.Length());
@@ -340,15 +340,15 @@ inline TSharedPtr<NMemoryStream> CreateMemoryStreamFromText(const TString& Text)
  * @param Stream 内存流
  * @return 文本内容
  */
-inline TString ReadTextFromMemoryStream(TSharedPtr<NMemoryStream> Stream)
+inline CString ReadTextFromMemoryStream(TSharedPtr<NMemoryStream> Stream)
 {
 	if (!Stream)
 	{
-		return TString();
+		return CString();
 	}
 
 	const auto& Buffer = Stream->GetBuffer();
-	return TString(reinterpret_cast<const char*>(Buffer.GetData()), Buffer.Size());
+	return CString(reinterpret_cast<const char*>(Buffer.GetData()), Buffer.Size());
 }
 
 // === 文件模式匹配和搜索 ===
@@ -363,7 +363,7 @@ inline TString ReadTextFromMemoryStream(TSharedPtr<NMemoryStream> Stream)
  * @return 匹配的文件路径列表
  */
 inline TArray<NPath, CMemoryManager> SearchFiles(const NPath& Directory,
-                                                 const TString& Pattern = TString("*"),
+                                                 const CString& Pattern = CString("*"),
                                                  bool bRecursive = false,
                                                  bool bIncludeDirectories = false)
 {
@@ -385,7 +385,7 @@ inline TArray<NPath, CMemoryManager> SearchFiles(const NPath& Directory,
  * @param bRecursive 是否递归搜索
  * @return 最新文件路径，如果没有找到返回空路径
  */
-inline NPath FindNewestFile(const NPath& Directory, const TString& Pattern = TString("*"), bool bRecursive = false)
+inline NPath FindNewestFile(const NPath& Directory, const CString& Pattern = CString("*"), bool bRecursive = false)
 {
 	auto Files = SearchFiles(Directory, Pattern, bRecursive, false);
 
@@ -414,8 +414,8 @@ inline NPath FindNewestFile(const NPath& Directory, const TString& Pattern = TSt
  * @param Extension 文件扩展名
  * @return 临时文件流
  */
-inline TSharedPtr<NFileStream> CreateTempFileStream(const TString& Prefix = TString("temp"),
-                                                    const TString& Extension = TString(".tmp"))
+inline TSharedPtr<NFileStream> CreateTempFileStream(const CString& Prefix = CString("temp"),
+                                                    const CString& Extension = CString(".tmp"))
 {
 	NPath TempFile = NFileSystem::CreateTempFile(Prefix, Extension);
 	if (!TempFile.IsEmpty())
@@ -431,7 +431,7 @@ inline TSharedPtr<NFileStream> CreateTempFileStream(const TString& Prefix = TStr
 class CTempDirectoryManager
 {
 public:
-	explicit CTempDirectoryManager(const TString& Prefix = TString("temp"))
+	explicit CTempDirectoryManager(const CString& Prefix = CString("temp"))
 	{
 		TempDir = NFileSystem::CreateTempDirectory(Prefix);
 		if (!TempDir.IsEmpty())
@@ -530,7 +530,7 @@ using FDirectoryIterationOptions = SDirectoryIterationOptions;
  * NLib::NPath ConfigFile = NLib::GetAppConfigDirectory("MyApp") / "config.json";
  * NLib::EnsureDirectoryExists(ConfigFile.GetDirectoryName());
  *
- * TString Config = "{ \"setting\": \"value\" }";
+ * CString Config = "{ \"setting\": \"value\" }";
  * if (NLib::WriteTextFile(ConfigFile, Config)) {
  *     NLOG_IO(Info, "Config saved");
  * }

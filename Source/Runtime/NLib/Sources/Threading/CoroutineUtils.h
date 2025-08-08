@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Containers/TArray.h"
-#include "Containers/TString.h"
 #include "Core/SmartPointers.h"
+#include "Core/Object.h"
 #include "Coroutine.h"
 #include "CoroutineScheduler.h"
 #include "Logging/LogCategory.h"
@@ -40,7 +40,7 @@ public:
 			    }
 			    return false;
 		    },
-		    TString("SemaphoreAcquire"));
+		    CString("SemaphoreAcquire"));
 	}
 
 	/**
@@ -114,7 +114,7 @@ public:
 			    }
 			    return false;
 		    },
-		    TString("MutexLock"));
+		    CString("MutexLock"));
 	}
 
 	/**
@@ -183,7 +183,7 @@ public:
 			    std::lock_guard<std::mutex> Lock(NotifyMutex);
 			    return bNotified;
 		    },
-		    TString("ConditionWait"));
+		    CString("ConditionWait"));
 
 		Mutex.Lock();
 	}
@@ -204,7 +204,7 @@ public:
 				    std::lock_guard<std::mutex> Lock(NotifyMutex);
 				    return bNotified;
 			    },
-			    TString("ConditionWaitTimeout"));
+			    CString("ConditionWaitTimeout"));
 
 			Result = CurrentCoroutine->WaitForCondition(WaitCondition, Timeout);
 		}
@@ -287,7 +287,7 @@ public:
 		}
 
 		// 等待接收者准备好
-		CoroutineWaitFor([this]() { return bIsClosed.load() || HasReceiver(); }, TString("ChannelSend"));
+		CoroutineWaitFor([this]() { return bIsClosed.load() || HasReceiver(); }, CString("ChannelSend"));
 
 		if (bIsClosed.load())
 		{
@@ -324,7 +324,7 @@ public:
 		}
 
 		// 等待接收者准备好
-		CoroutineWaitFor([this]() { return bIsClosed.load() || HasReceiver(); }, TString("ChannelSend"));
+		CoroutineWaitFor([this]() { return bIsClosed.load() || HasReceiver(); }, CString("ChannelSend"));
 
 		if (bIsClosed.load())
 		{
@@ -362,7 +362,7 @@ public:
 		}
 
 		// 等待发送者
-		CoroutineWaitFor([this]() { return bIsClosed.load() || HasValue(); }, TString("ChannelReceive"));
+		CoroutineWaitFor([this]() { return bIsClosed.load() || HasValue(); }, CString("ChannelReceive"));
 
 		if (bIsClosed.load())
 		{
@@ -499,7 +499,7 @@ public:
 		// 创建工作协程
 		for (uint32_t i = 0; i < MaxPoolSize; ++i)
 		{
-			TString CoroutineName = TString("PoolWorker") + TString::FromInt(i);
+			CString CoroutineName = CString("PoolWorker") + CString::FromInt(i);
 			auto WorkerCoroutine = StartCoroutine(
 			    [this]() { WorkerLoop(); }, CoroutineName, ECoroutinePriority::Normal);
 
@@ -544,7 +544,7 @@ public:
 	 * @brief 提交任务
 	 */
 	template <typename TFunc>
-	bool SubmitTask(TFunc&& Function, const TString& TaskName = TString("PoolTask"))
+	bool SubmitTask(TFunc&& Function, const CString& TaskName = CString("PoolTask"))
 	{
 		if (!bIsRunning)
 		{
@@ -578,7 +578,7 @@ private:
 	struct PoolTask
 	{
 		std::function<void()> Function;
-		TString Name;
+		CString Name;
 	};
 
 	void WorkerLoop()
@@ -639,7 +639,7 @@ public:
 			    }
 			    return true;
 		    },
-		    TString("WaitAllCoroutines"));
+		    CString("WaitAllCoroutines"));
 	}
 
 	/**
@@ -661,7 +661,7 @@ public:
 			    }
 			    return false;
 		    },
-		    TString("WaitAnyCoroutine"));
+		    CString("WaitAnyCoroutine"));
 
 		return CompletedCoroutine;
 	}
@@ -676,7 +676,7 @@ public:
 		int32_t Index = 0;
 
 		auto CreateCoroutine = [&Coroutines, &Index](auto&& Function) {
-			TString Name = TString("ParallelCoroutine") + TString::FromInt(Index++);
+			CString Name = CString("ParallelCoroutine") + CString::FromInt(Index++);
 			auto Coroutine = StartCoroutine(std::forward<decltype(Function)>(Function), Name);
 			if (Coroutine.IsValid())
 			{
@@ -721,7 +721,7 @@ public:
 		// 创建测试协程
 		for (uint32_t i = 0; i < CoroutineCount; ++i)
 		{
-			TString CoroutineName = TString("TestCoroutine") + TString::FromInt(i);
+			CString CoroutineName = CString("TestCoroutine") + CString::FromInt(i);
 			auto TestCoroutine = StartCoroutine(
 			    [YieldsPerCoroutine]() {
 				    for (uint32_t j = 0; j < YieldsPerCoroutine; ++j)
@@ -759,7 +759,7 @@ public:
 	/**
 	 * @brief 生成协程系统综合报告
 	 */
-	static TString GenerateComprehensiveReport()
+	static CString GenerateComprehensiveReport()
 	{
 		auto& Scheduler = GetCoroutineScheduler();
 		auto SchedulerReport = Scheduler.GenerateReport();
@@ -778,7 +778,7 @@ public:
 		         MIN_COROUTINE_STACK_SIZE,
 		         MAX_COROUTINE_STACK_SIZE);
 
-		return TString(Buffer);
+		return CString(Buffer);
 	}
 };
 

@@ -62,7 +62,7 @@ inline bool FromBinary(T& Object, const TArray<uint8_t, CMemoryManager>& Data, F
  * @brief 序列化对象到JSON字符串
  */
 template <typename T>
-inline TString ToJson(const T& Object, bool bPrettyPrint = true)
+inline CString ToJson(const T& Object, bool bPrettyPrint = true)
 {
 	return JsonHelper::SerializeToString(Object, bPrettyPrint);
 }
@@ -71,7 +71,7 @@ inline TString ToJson(const T& Object, bool bPrettyPrint = true)
  * @brief 从JSON字符串反序列化对象
  */
 template <typename T>
-inline bool FromJson(T& Object, const TString& JsonString)
+inline bool FromJson(T& Object, const CString& JsonString)
 {
 	return JsonHelper::DeserializeFromString(Object, JsonString);
 }
@@ -226,7 +226,7 @@ bool DeserializeFromBinary(T& Object,
  * @brief 全局序列化到JSON
  */
 template <typename T>
-TString SerializeToJson(const T& Object, bool bPrettyPrint = true)
+CString SerializeToJson(const T& Object, bool bPrettyPrint = true)
 {
 	return Serialization::ToJson(Object, bPrettyPrint);
 }
@@ -235,7 +235,7 @@ TString SerializeToJson(const T& Object, bool bPrettyPrint = true)
  * @brief 全局从JSON反序列化
  */
 template <typename T>
-bool DeserializeFromJson(T& Object, const TString& JsonString)
+bool DeserializeFromJson(T& Object, const CString& JsonString)
 {
 	return Serialization::FromJson(Object, JsonString);
 }

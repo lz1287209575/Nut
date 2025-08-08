@@ -128,7 +128,7 @@ public:
 	DECLARE_DELEGATE(FOnThreadPoolStarted);
 	DECLARE_DELEGATE(FOnThreadPoolStopped);
 	DECLARE_DELEGATE(FOnTaskCompleted, uint64_t);
-	DECLARE_DELEGATE(FOnTaskFailed, uint64_t, const TString&);
+	DECLARE_DELEGATE(FOnTaskFailed, uint64_t, const CString&);
 
 public:
 	// === 构造函数 ===
@@ -238,7 +238,7 @@ public:
 	 * @brief 提交函数任务
 	 */
 	template <typename TFunc>
-	auto SubmitTask(TFunc&& Function, const TString& TaskName = TString("PoolTask"))
+	auto SubmitTask(TFunc&& Function, const CString& TaskName = CString("PoolTask"))
 	    -> TFuture<std::invoke_result_t<TFunc>>
 	{
 		using ResultType = std::invoke_result_t<TFunc>;
@@ -264,7 +264,7 @@ public:
 	 * @brief 提交对象成员函数任务
 	 */
 	template <typename TObject, typename TFunc>
-	auto SubmitTask(TObject* Object, TFunc&& Function, const TString& TaskName = TString("PoolTask"))
+	auto SubmitTask(TObject* Object, TFunc&& Function, const CString& TaskName = CString("PoolTask"))
 	    -> TFuture<std::invoke_result_t<TFunc, TObject*>>
 	{
 		using ResultType = std::invoke_result_t<TFunc, TObject*>;
@@ -308,7 +308,7 @@ public:
 	 * @brief 提交智能指针对象任务
 	 */
 	template <typename TObject, typename TFunc>
-	auto SubmitTask(TSharedPtr<TObject> Object, TFunc&& Function, const TString& TaskName = TString("PoolTask"))
+	auto SubmitTask(TSharedPtr<TObject> Object, TFunc&& Function, const CString& TaskName = CString("PoolTask"))
 	    -> TFuture<std::invoke_result_t<TFunc, TObject*>>
 	{
 		using ResultType = std::invoke_result_t<TFunc, TObject*>;
@@ -492,7 +492,7 @@ public:
 	/**
 	 * @brief 生成线程池报告
 	 */
-	TString GenerateReport() const
+	CString GenerateReport() const
 	{
 		std::lock_guard<std::mutex> Lock1(ThreadsMutex);
 		std::lock_guard<std::mutex> Lock2(TaskMutex);
@@ -522,7 +522,7 @@ public:
 		         Config.MaxThreads,
 		         Config.MaxQueueSize);
 
-		return TString(Buffer);
+		return CString(Buffer);
 	}
 
 private:
@@ -532,7 +532,7 @@ private:
 	 * @brief 创建任务对象
 	 */
 	template <typename TFunc>
-	auto CreateTask(TFunc&& Function, const TString& TaskName)
+	auto CreateTask(TFunc&& Function, const CString& TaskName)
 	{
 		using ResultType = std::invoke_result_t<TFunc>;
 
@@ -548,7 +548,7 @@ private:
 		});
 
 		// 绑定失败回调
-		Task->OnTaskFailed.BindLambda([this, TaskId](uint64_t FailedTaskId, const TString& Error) {
+		Task->OnTaskFailed.BindLambda([this, TaskId](uint64_t FailedTaskId, const CString& Error) {
 			OnTaskFailed.ExecuteIfBound(FailedTaskId, Error);
 			Stats.FailedTaskCount++;
 			TaskCompletionCondition.notify_all();
@@ -713,22 +713,22 @@ private:
 	/**
 	 * @brief 获取状态字符串
 	 */
-	TString GetStateString() const
+	CString GetStateString() const
 	{
 		switch (State.load())
 		{
 		case EThreadPoolState::Stopped:
-			return TString("Stopped");
+			return CString("Stopped");
 		case EThreadPoolState::Starting:
-			return TString("Starting");
+			return CString("Starting");
 		case EThreadPoolState::Running:
-			return TString("Running");
+			return CString("Running");
 		case EThreadPoolState::Stopping:
-			return TString("Stopping");
+			return CString("Stopping");
 		case EThreadPoolState::Paused:
-			return TString("Paused");
+			return CString("Paused");
 		default:
-			return TString("Unknown");
+			return CString("Unknown");
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 #include "Containers/TArray.h"
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "Reflection/ReflectionRegistry.h"
 #include "ScriptEngine.h"
@@ -29,9 +29,9 @@ struct SScriptBindingInfo
 	bool bScriptEvent = false;    // meta=ScriptEvent
 
 	// 通用属性
-	TString ScriptName;        // meta=(ScriptName="CustomName")
-	TString ScriptCategory;    // meta=(ScriptCategory="GamePlay")
-	TString ScriptDescription; // meta=(ScriptDescription="Description")
+	CString ScriptName;        // meta=(ScriptName="CustomName")
+	CString ScriptCategory;    // meta=(ScriptCategory="GamePlay")
+	CString ScriptDescription; // meta=(ScriptDescription="Description")
 
 	// 支持的语言（位标志）
 	uint32_t SupportedLanguages = 0; // 由ScriptLanguages解析而来
@@ -143,17 +143,17 @@ public:
 	 */
 	bool LoadScriptBindings(EScriptLanguage Language,
 	                        TSharedPtr<CScriptContext> Context,
-	                        const TString& BindingDirectory);
+	                        const CString& BindingDirectory);
 
 	/**
 	 * @brief 加载Lua绑定
 	 */
-	bool LoadLuaBindings(TSharedPtr<CScriptContext> Context, const TString& BindingDirectory);
+	bool LoadLuaBindings(TSharedPtr<CScriptContext> Context, const CString& BindingDirectory);
 
 	/**
 	 * @brief 加载TypeScript类型定义
 	 */
-	bool LoadTypeScriptBindings(TSharedPtr<CScriptContext> Context, const TString& BindingDirectory);
+	bool LoadTypeScriptBindings(TSharedPtr<CScriptContext> Context, const CString& BindingDirectory);
 
 	/**
 	 * @brief 获取所有支持脚本绑定的类
@@ -232,15 +232,15 @@ private:
 	~CScriptBindingLoader() = default;
 
 	// 内部辅助方法
-	TString GenerateBindingKey(const char* ClassName, const char* MemberName) const;
-	bool LoadBindingFile(const TString& FilePath, EScriptLanguage Language, TSharedPtr<CScriptContext> Context);
+	CString GenerateBindingKey(const char* ClassName, const char* MemberName) const;
+	bool LoadBindingFile(const CString& FilePath, EScriptLanguage Language, TSharedPtr<CScriptContext> Context);
 
 private:
 	// 绑定信息存储
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> ClassBindings;
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
-	THashMap<TString, SScriptBindingInfo, CMemoryManager> EnumBindings;
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> ClassBindings;
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
+	THashMap<CString, SScriptBindingInfo, CMemoryManager> EnumBindings;
 
 	mutable std::mutex BindingMutex; // 线程安全锁
 };
@@ -343,7 +343,7 @@ class NGamePlayer : public NObject
 
 public:
     NPROPERTY(BlueprintReadWrite, meta=(ScriptReadable, ScriptWritable, ScriptName="PlayerName"))
-    TString Name;
+    CString Name;
 
     NPROPERTY(BlueprintReadOnly, meta=ScriptReadable)
     int32_t Health;

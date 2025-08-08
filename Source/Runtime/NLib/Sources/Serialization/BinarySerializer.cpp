@@ -120,7 +120,7 @@ SSerializationResult CBinarySerializationArchive::Serialize(double& Value)
 	return SerializeRaw(Value);
 }
 
-SSerializationResult CBinarySerializationArchive::Serialize(TString& Value)
+SSerializationResult CBinarySerializationArchive::Serialize(CString& Value)
 {
 	if (IsSerializing())
 	{
@@ -162,11 +162,11 @@ SSerializationResult CBinarySerializationArchive::Serialize(TString& Value)
 			}
 
 			Buffer[Length] = '\0';
-			Value = TString(Buffer.GetData(), Length);
+			Value = CString(Buffer.GetData(), Length);
 		}
 		else
 		{
-			Value = TString();
+			Value = CString();
 		}
 	}
 
@@ -240,7 +240,7 @@ SSerializationResult CBinarySerializationArchive::SerializeByteArray(TArray<uint
 	return SSerializationResult(true);
 }
 
-SSerializationResult CBinarySerializationArchive::SerializeStringWithLength(TString& Str)
+SSerializationResult CBinarySerializationArchive::SerializeStringWithLength(CString& Str)
 {
 	return Serialize(Str); // 默认实现已经包含长度
 }
@@ -283,7 +283,7 @@ SSerializationResult CBinarySerializationArchive::SerializeCompressedBlock(TArra
 }
 
 SSerializationResult CBinarySerializationArchive::SerializeEncryptedBlock(TArray<uint8_t, CMemoryManager>& Data,
-                                                                          const TString& Key)
+                                                                          const CString& Key)
 {
 	// 加密功能的占位实现
 	NLOG_SERIALIZATION(Warning, "Encryption not implemented yet");
@@ -292,14 +292,14 @@ SSerializationResult CBinarySerializationArchive::SerializeEncryptedBlock(TArray
 
 // === 类型信息支持 ===
 
-SSerializationResult CBinarySerializationArchive::SerializeTypeInfo(const TString& TypeName, uint32_t TypeHash)
+SSerializationResult CBinarySerializationArchive::SerializeTypeInfo(const CString& TypeName, uint32_t TypeHash)
 {
 	if (!Context.HasFlag(ESerializationFlags::IncludeTypeInfo))
 	{
 		return SSerializationResult(true); // 跳过类型信息
 	}
 
-	auto Result = Serialize(const_cast<TString&>(TypeName));
+	auto Result = Serialize(const_cast<CString&>(TypeName));
 	if (!Result.bSuccess)
 	{
 		return Result;
@@ -308,7 +308,7 @@ SSerializationResult CBinarySerializationArchive::SerializeTypeInfo(const TStrin
 	return Serialize(const_cast<uint32_t&>(TypeHash));
 }
 
-SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const TString& ExpectedTypeName,
+SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const CString& ExpectedTypeName,
                                                                    uint32_t ExpectedTypeHash)
 {
 	if (!Context.HasFlag(ESerializationFlags::IncludeTypeInfo))
@@ -316,7 +316,7 @@ SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const TString
 		return SSerializationResult(true); // 跳过类型验证
 	}
 
-	TString ActualTypeName;
+	CString ActualTypeName;
 	auto Result = Serialize(ActualTypeName);
 	if (!Result.bSuccess)
 	{
@@ -333,7 +333,7 @@ SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const TString
 	if (ActualTypeName != ExpectedTypeName || ActualTypeHash != ExpectedTypeHash)
 	{
 		return SSerializationResult(
-		    false, TString("Type mismatch: expected ") + ExpectedTypeName + TString(", got ") + ActualTypeName);
+		    false, CString("Type mismatch: expected ") + ExpectedTypeName + CString(", got ") + ActualTypeName);
 	}
 
 	return SSerializationResult(true);
@@ -341,7 +341,7 @@ SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const TString
 
 // === CSerializationArchive 虚函数实现 ===
 
-SSerializationResult CBinarySerializationArchive::BeginObject(const TString& TypeName)
+SSerializationResult CBinarySerializationArchive::BeginObject(const CString& TypeName)
 {
 	ObjectNestingLevel++;
 	ObjectTypeStack.Add(TypeName);
@@ -360,38 +360,38 @@ SSerializationResult CBinarySerializationArchive::BeginObject(const TString& Typ
 	return SSerializationResult(true);
 }
 
-SSerializationResult CBinarySerializationArchive::EndObject(const TString& TypeName)
+SSerializationResult CBinarySerializationArchive::EndObject(const CString& TypeName)
 {
 	if (ObjectNestingLevel <= 0 || ObjectTypeStack.IsEmpty())
 	{
 		return SSerializationResult(false, "Mismatched EndObject call");
 	}
 
-	TString ExpectedType = ObjectTypeStack.Last();
+	CString ExpectedType = ObjectTypeStack.Last();
 	ObjectTypeStack.RemoveLast();
 	ObjectNestingLevel--;
 
 	if (ExpectedType != TypeName)
 	{
 		return SSerializationResult(
-		    false, TString("Type mismatch in EndObject: expected ") + ExpectedType + TString(", got ") + TypeName);
+		    false, CString("Type mismatch in EndObject: expected ") + ExpectedType + CString(", got ") + TypeName);
 	}
 
 	return SSerializationResult(true);
 }
 
-SSerializationResult CBinarySerializationArchive::BeginField(const TString& FieldName)
+SSerializationResult CBinarySerializationArchive::BeginField(const CString& FieldName)
 {
 	// 二进制格式通常不需要字段名，但可以可选地包含用于调试
 	if (Context.HasFlag(ESerializationFlags::IncludeMetadata))
 	{
-		return Serialize(const_cast<TString&>(FieldName));
+		return Serialize(const_cast<CString&>(FieldName));
 	}
 
 	return SSerializationResult(true);
 }
 
-SSerializationResult CBinarySerializationArchive::EndField(const TString& FieldName)
+SSerializationResult CBinarySerializationArchive::EndField(const CString& FieldName)
 {
 	// 二进制格式通常不需要字段结束标记
 	return SSerializationResult(true);
@@ -426,12 +426,12 @@ SSerializationResult CBinarySerializationArchive::ReadHeader()
 
 	if (!Header.IsValid())
 	{
-		return SSerializationResult(false, TString("Invalid binary header magic: ") + TString::FromHex(Header.Magic));
+		return SSerializationResult(false, CString("Invalid binary header magic: ") + CString::FromHex(Header.Magic));
 	}
 
 	if (Header.Version > 1)
 	{
-		return SSerializationResult(false, TString("Unsupported binary version: ") + TString::FromInt(Header.Version));
+		return SSerializationResult(false, CString("Unsupported binary version: ") + CString::FromInt(Header.Version));
 	}
 
 	// 更新上下文标志

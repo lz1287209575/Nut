@@ -215,23 +215,23 @@ double CPythonValue::ToDouble() const
 	return 0.0;
 }
 
-TString CPythonValue::ToString() const
+CString CPythonValue::ToString() const
 {
 	if (!IsValid())
-		return TString();
+		return CString();
 
 	PyObject* str_obj = PyObject_Str(PyObjectPtr);
 	if (!str_obj)
 	{
 		PyErr_Clear();
-		return TString();
+		return CString();
 	}
 
 	const char* utf8_str = PyUnicode_AsUTF8(str_obj);
-	TString result;
+	CString result;
 	if (utf8_str)
 	{
-		result = TString(utf8_str);
+		result = CString(utf8_str);
 	}
 
 	Py_DECREF(str_obj);
@@ -292,9 +292,9 @@ void CPythonValue::SetArrayElement(int32_t Index, const CScriptValue& Value)
 	}
 }
 
-TArray<TString, CMemoryManager> CPythonValue::GetObjectKeys() const
+TArray<CString, CMemoryManager> CPythonValue::GetObjectKeys() const
 {
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 	if (!IsObject())
 		return Keys;
 
@@ -320,7 +320,7 @@ TArray<TString, CMemoryManager> CPythonValue::GetObjectKeys() const
 				const char* key_str = PyUnicode_AsUTF8(key);
 				if (key_str)
 				{
-					Keys.Add(TString(key_str));
+					Keys.Add(CString(key_str));
 				}
 			}
 		}
@@ -330,7 +330,7 @@ TArray<TString, CMemoryManager> CPythonValue::GetObjectKeys() const
 	return Keys;
 }
 
-CScriptValue CPythonValue::GetObjectProperty(const TString& Key) const
+CScriptValue CPythonValue::GetObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return CScriptValue();
@@ -358,7 +358,7 @@ CScriptValue CPythonValue::GetObjectProperty(const TString& Key) const
 	return CScriptValue();
 }
 
-void CPythonValue::SetObjectProperty(const TString& Key, const CScriptValue& Value)
+void CPythonValue::SetObjectProperty(const CString& Key, const CScriptValue& Value)
 {
 	if (!IsObject())
 		return;
@@ -385,7 +385,7 @@ void CPythonValue::SetObjectProperty(const TString& Key, const CScriptValue& Val
 	}
 }
 
-bool CPythonValue::HasObjectProperty(const TString& Key) const
+bool CPythonValue::HasObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return false;
@@ -455,7 +455,7 @@ SScriptExecutionResult CPythonValue::CallFunction(const TArray<CScriptValue, CMe
 				const char* exc_str = PyUnicode_AsUTF8(str_exc);
 				if (exc_str)
 				{
-					Result.ErrorMessage = TString(exc_str);
+					Result.ErrorMessage = CString(exc_str);
 				}
 				Py_DECREF(str_exc);
 			}
@@ -491,7 +491,7 @@ bool CPythonValue::IsValid() const
 	return PyObjectPtr != nullptr;
 }
 
-CPythonValue CPythonValue::CallMethod(const TString& MethodName, const TArray<CPythonValue, CMemoryManager>& Args)
+CPythonValue CPythonValue::CallMethod(const CString& MethodName, const TArray<CPythonValue, CMemoryManager>& Args)
 {
 	if (!IsValid())
 		return CPythonValue();
@@ -528,7 +528,7 @@ CPythonValue CPythonValue::CallMethod(const TString& MethodName, const TArray<CP
 	return CPythonValue();
 }
 
-CPythonValue CPythonValue::GetAttribute(const TString& AttributeName)
+CPythonValue CPythonValue::GetAttribute(const CString& AttributeName)
 {
 	if (!IsValid())
 		return CPythonValue();
@@ -543,7 +543,7 @@ CPythonValue CPythonValue::GetAttribute(const TString& AttributeName)
 	return CPythonValue();
 }
 
-void CPythonValue::SetAttribute(const TString& AttributeName, const CPythonValue& Value)
+void CPythonValue::SetAttribute(const CString& AttributeName, const CPythonValue& Value)
 {
 	if (!IsValid() || !Value.IsValid())
 		return;
@@ -555,7 +555,7 @@ void CPythonValue::SetAttribute(const TString& AttributeName, const CPythonValue
 	}
 }
 
-bool CPythonValue::HasAttribute(const TString& AttributeName) const
+bool CPythonValue::HasAttribute(const CString& AttributeName) const
 {
 	if (!IsValid())
 		return false;
@@ -589,7 +589,7 @@ void CPythonValue::CopyFrom(const CPythonValue& Other)
 
 // === CPythonModule 实现 ===
 
-CPythonModule::CPythonModule(const TString& InName)
+CPythonModule::CPythonModule(const CString& InName)
     : ModuleName(InName),
       bLoaded(false),
       ModuleObject(nullptr),
@@ -601,7 +601,7 @@ CPythonModule::~CPythonModule()
 	Unload();
 }
 
-SScriptExecutionResult CPythonModule::Load(const TString& ModulePath)
+SScriptExecutionResult CPythonModule::Load(const CString& ModulePath)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -633,7 +633,7 @@ SScriptExecutionResult CPythonModule::Unload()
 	return Result;
 }
 
-CScriptValue CPythonModule::GetGlobal(const TString& Name) const
+CScriptValue CPythonModule::GetGlobal(const CString& Name) const
 {
 	if (GlobalObjects.Contains(Name))
 		return GlobalObjects[Name];
@@ -651,7 +651,7 @@ CScriptValue CPythonModule::GetGlobal(const TString& Name) const
 	return CScriptValue();
 }
 
-void CPythonModule::SetGlobal(const TString& Name, const CScriptValue& Value)
+void CPythonModule::SetGlobal(const CString& Name, const CScriptValue& Value)
 {
 	if (const CPythonValue* PyValue = dynamic_cast<const CPythonValue*>(&Value))
 	{
@@ -675,7 +675,7 @@ void CPythonModule::SetGlobal(const TString& Name, const CScriptValue& Value)
 	}
 }
 
-SScriptExecutionResult CPythonModule::ExecuteString(const TString& Code)
+SScriptExecutionResult CPythonModule::ExecuteString(const CString& Code)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -714,24 +714,24 @@ SScriptExecutionResult CPythonModule::ExecuteString(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CPythonModule::ExecuteFile(const TString& FilePath)
+SScriptExecutionResult CPythonModule::ExecuteFile(const CString& FilePath)
 {
 	// TODO: 读取文件内容并执行
 	return ExecuteString(TEXT("# File execution not implemented"));
 }
 
-void CPythonModule::RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CPythonModule::RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 创建Python函数包装器
 	NLOG_SCRIPT(Warning, "RegisterFunction not implemented for Python module");
 }
 
-void CPythonModule::RegisterObject(const TString& Name, const CScriptValue& Object)
+void CPythonModule::RegisterObject(const CString& Name, const CScriptValue& Object)
 {
 	SetGlobal(Name, Object);
 }
 
-bool CPythonModule::ImportModule(const TString& ModuleName)
+bool CPythonModule::ImportModule(const CString& ModuleName)
 {
 	PyObject* imported_module = PyImport_ImportModule(ModuleName.GetData());
 	if (imported_module)
@@ -749,7 +749,7 @@ bool CPythonModule::ImportModule(const TString& ModuleName)
 	return false;
 }
 
-void CPythonModule::AddToSysPath(const TString& Path)
+void CPythonModule::AddToSysPath(const CString& Path)
 {
 	PyObject* sys_path = PySys_GetObject("path");
 	if (sys_path && PyList_Check(sys_path))
@@ -763,12 +763,12 @@ void CPythonModule::AddToSysPath(const TString& Path)
 	}
 }
 
-PyObject* CPythonModule::CompilePythonCode(const TString& Code, const TString& Filename)
+PyObject* CPythonModule::CompilePythonCode(const CString& Code, const CString& Filename)
 {
 	return Py_CompileString(Code.GetData(), Filename.GetData(), Py_file_input);
 }
 
-SScriptExecutionResult CPythonModule::HandlePythonError(const TString& Operation)
+SScriptExecutionResult CPythonModule::HandlePythonError(const CString& Operation)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -786,7 +786,7 @@ SScriptExecutionResult CPythonModule::HandlePythonError(const TString& Operation
 				const char* exc_str = PyUnicode_AsUTF8(str_exc);
 				if (exc_str)
 				{
-					Result.ErrorMessage = TString::Format(TEXT("Python Error in {}: {}"), Operation.GetData(), exc_str);
+					Result.ErrorMessage = CString::Format(TEXT("Python Error in {}: {}"), Operation.GetData(), exc_str);
 				}
 				Py_DECREF(str_exc);
 			}
@@ -799,7 +799,7 @@ SScriptExecutionResult CPythonModule::HandlePythonError(const TString& Operation
 
 	if (Result.ErrorMessage.IsEmpty())
 	{
-		Result.ErrorMessage = TString::Format(TEXT("Python Error in operation: {}"), Operation.GetData());
+		Result.ErrorMessage = CString::Format(TEXT("Python Error in operation: {}"), Operation.GetData());
 	}
 
 	NLOG_SCRIPT(Error, "Python Module Error: {}", Result.ErrorMessage.GetData());
@@ -872,7 +872,7 @@ void CPythonContext::Shutdown()
 	NLOG_SCRIPT(Info, "Python context shut down");
 }
 
-TSharedPtr<CScriptModule> CPythonContext::CreateModule(const TString& Name)
+TSharedPtr<CScriptModule> CPythonContext::CreateModule(const CString& Name)
 {
 	if (!bInitialized)
 	{
@@ -893,7 +893,7 @@ TSharedPtr<CScriptModule> CPythonContext::CreateModule(const TString& Name)
 	return Module;
 }
 
-TSharedPtr<CScriptModule> CPythonContext::GetModule(const TString& Name) const
+TSharedPtr<CScriptModule> CPythonContext::GetModule(const CString& Name) const
 {
 	if (Modules.Contains(Name))
 		return Modules[Name];
@@ -901,7 +901,7 @@ TSharedPtr<CScriptModule> CPythonContext::GetModule(const TString& Name) const
 	return nullptr;
 }
 
-void CPythonContext::DestroyModule(const TString& Name)
+void CPythonContext::DestroyModule(const CString& Name)
 {
 	if (Modules.Contains(Name))
 	{
@@ -910,7 +910,7 @@ void CPythonContext::DestroyModule(const TString& Name)
 	}
 }
 
-SScriptExecutionResult CPythonContext::ExecuteString(const TString& Code, const TString& ModuleName)
+SScriptExecutionResult CPythonContext::ExecuteString(const CString& Code, const CString& ModuleName)
 {
 	if (ModuleName.IsEmpty() || ModuleName == TEXT("__main__"))
 	{
@@ -926,7 +926,7 @@ SScriptExecutionResult CPythonContext::ExecuteString(const TString& Code, const 
 	return Module->ExecuteString(Code);
 }
 
-SScriptExecutionResult CPythonContext::ExecuteFile(const TString& FilePath, const TString& ModuleName)
+SScriptExecutionResult CPythonContext::ExecuteFile(const CString& FilePath, const CString& ModuleName)
 {
 	// TODO: 读取文件并执行
 	return ExecuteString(TEXT("# File execution not implemented"), ModuleName);
@@ -964,13 +964,13 @@ void CPythonContext::ResetTimeout()
 	StartTime = GetCurrentTimeMilliseconds();
 }
 
-void CPythonContext::RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CPythonContext::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 创建Python函数包装器并注册到全局命名空间
 	NLOG_SCRIPT(Warning, "RegisterGlobalFunction not implemented for Python context");
 }
 
-void CPythonContext::RegisterGlobalObject(const TString& Name, const CScriptValue& Object)
+void CPythonContext::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
 {
 	if (!GlobalNamespace)
 		return;
@@ -983,12 +983,12 @@ void CPythonContext::RegisterGlobalObject(const TString& Name, const CScriptValu
 	}
 }
 
-void CPythonContext::RegisterGlobalConstant(const TString& Name, const CScriptValue& Value)
+void CPythonContext::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
 {
 	RegisterGlobalObject(Name, Value);
 }
 
-void CPythonContext::SetPythonPath(const TArray<TString, CMemoryManager>& Paths)
+void CPythonContext::SetPythonPath(const TArray<CString, CMemoryManager>& Paths)
 {
 	PythonPaths = Paths;
 
@@ -1011,7 +1011,7 @@ void CPythonContext::SetPythonPath(const TArray<TString, CMemoryManager>& Paths)
 	}
 }
 
-SScriptExecutionResult CPythonContext::ExecutePython(const TString& PythonCode, PyObject* LocalNamespace)
+SScriptExecutionResult CPythonContext::ExecutePython(const CString& PythonCode, PyObject* LocalNamespace)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -1041,12 +1041,12 @@ SScriptExecutionResult CPythonContext::ExecutePython(const TString& PythonCode, 
 	return Result;
 }
 
-bool CPythonContext::ImportModule(const TString& ModuleName, const TString& Alias)
+bool CPythonContext::ImportModule(const CString& ModuleName, const CString& Alias)
 {
 	PyObject* imported_module = PyImport_ImportModule(ModuleName.GetData());
 	if (imported_module)
 	{
-		const TString& name = Alias.IsEmpty() ? ModuleName : Alias;
+		const CString& name = Alias.IsEmpty() ? ModuleName : Alias;
 		if (GlobalNamespace)
 		{
 			PyDict_SetItemString(GlobalNamespace, name.GetData(), imported_module);
@@ -1100,7 +1100,7 @@ void CPythonContext::ShutdownPython()
 	MainThreadState = nullptr;
 }
 
-SScriptExecutionResult CPythonContext::HandlePythonError(const TString& Operation)
+SScriptExecutionResult CPythonContext::HandlePythonError(const CString& Operation)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -1118,7 +1118,7 @@ SScriptExecutionResult CPythonContext::HandlePythonError(const TString& Operatio
 				const char* exc_str = PyUnicode_AsUTF8(str_exc);
 				if (exc_str)
 				{
-					Result.ErrorMessage = TString::Format(TEXT("Python Error in {}: {}"), Operation.GetData(), exc_str);
+					Result.ErrorMessage = CString::Format(TEXT("Python Error in {}: {}"), Operation.GetData(), exc_str);
 				}
 				Py_DECREF(str_exc);
 			}
@@ -1131,7 +1131,7 @@ SScriptExecutionResult CPythonContext::HandlePythonError(const TString& Operatio
 
 	if (Result.ErrorMessage.IsEmpty())
 	{
-		Result.ErrorMessage = TString::Format(TEXT("Python Error in operation: {}"), Operation.GetData());
+		Result.ErrorMessage = CString::Format(TEXT("Python Error in operation: {}"), Operation.GetData());
 	}
 
 	NLOG_SCRIPT(Error, "Python Context Error: {}", Result.ErrorMessage.GetData());
@@ -1181,7 +1181,7 @@ CPythonEngine::~CPythonEngine()
 	Shutdown();
 }
 
-TString CPythonEngine::GetVersion() const
+CString CPythonEngine::GetVersion() const
 {
 	return GetPythonVersionString();
 }
@@ -1288,7 +1288,7 @@ CScriptValue CPythonEngine::CreateFloat(float Value)
 	return CPythonValue(PyFloat_FromDouble(Value));
 }
 
-CScriptValue CPythonEngine::CreateString(const TString& Value)
+CScriptValue CPythonEngine::CreateString(const CString& Value)
 {
 	return CPythonValue(PyUnicode_FromString(Value.GetData()));
 }
@@ -1303,7 +1303,7 @@ CScriptValue CPythonEngine::CreateObject()
 	return CPythonValue(PyDict_New());
 }
 
-SScriptExecutionResult CPythonEngine::CheckSyntax(const TString& Code)
+SScriptExecutionResult CPythonEngine::CheckSyntax(const CString& Code)
 {
 	SScriptExecutionResult Result;
 
@@ -1331,7 +1331,7 @@ SScriptExecutionResult CPythonEngine::CheckSyntax(const TString& Code)
 					const char* exc_str = PyUnicode_AsUTF8(str_exc);
 					if (exc_str)
 					{
-						Result.ErrorMessage = TString(exc_str);
+						Result.ErrorMessage = CString(exc_str);
 					}
 					Py_DECREF(str_exc);
 				}
@@ -1346,15 +1346,15 @@ SScriptExecutionResult CPythonEngine::CheckSyntax(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CPythonEngine::CompileFile(const TString& FilePath, const TString& OutputPath)
+SScriptExecutionResult CPythonEngine::CompileFile(const CString& FilePath, const CString& OutputPath)
 {
 	return CompilePythonFile(FilePath, OutputPath);
 }
 
-TString CPythonEngine::GetPythonVersionString()
+CString CPythonEngine::GetPythonVersionString()
 {
 	const char* version = Py_GetVersion();
-	return TString(version ? version : "Unknown");
+	return CString(version ? version : "Unknown");
 }
 
 bool CPythonEngine::IsPythonAvailable()
@@ -1407,7 +1407,7 @@ void CPythonEngine::ShutdownPythonInterpreter()
 	NLOG_SCRIPT(Info, "Python interpreter shut down");
 }
 
-SScriptExecutionResult CPythonEngine::CompilePythonFile(const TString& InputPath, const TString& OutputPath)
+SScriptExecutionResult CPythonEngine::CompilePythonFile(const CString& InputPath, const CString& OutputPath)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -1418,12 +1418,12 @@ SScriptExecutionResult CPythonEngine::CompilePythonFile(const TString& InputPath
 	return Result;
 }
 
-void CPythonEngine::SetInterpreterOptions(const THashMap<TString, TString, CMemoryManager>& Options)
+void CPythonEngine::SetInterpreterOptions(const THashMap<CString, CString, CMemoryManager>& Options)
 {
 	InterpreterOptions = Options;
 }
 
-bool CPythonEngine::InstallPythonPackage(const TString& PackageName, const TString& Version)
+bool CPythonEngine::InstallPythonPackage(const CString& PackageName, const CString& Version)
 {
 	// TODO: 通过pip安装Python包
 	NLOG_SCRIPT(Warning, "InstallPythonPackage not implemented");
@@ -1470,7 +1470,7 @@ PyObject* CPythonTypeConverter::ToPyObject<double>(const double& Value)
 }
 
 template <>
-PyObject* CPythonTypeConverter::ToPyObject<TString>(const TString& Value)
+PyObject* CPythonTypeConverter::ToPyObject<CString>(const CString& Value)
 {
 	return PyUnicode_FromString(Value.GetData());
 }
@@ -1511,17 +1511,17 @@ double CPythonTypeConverter::FromPyObject<double>(PyObject* PyObj)
 }
 
 template <>
-TString CPythonTypeConverter::FromPyObject<TString>(PyObject* PyObj)
+CString CPythonTypeConverter::FromPyObject<CString>(PyObject* PyObj)
 {
 	if (!PyObj)
-		return TString();
+		return CString();
 
 	PyObject* str_obj = PyObject_Str(PyObj);
 	if (!str_obj)
-		return TString();
+		return CString();
 
 	const char* utf8_str = PyUnicode_AsUTF8(str_obj);
-	TString result = utf8_str ? TString(utf8_str) : TString();
+	CString result = utf8_str ? CString(utf8_str) : CString();
 
 	Py_DECREF(str_obj);
 	return result;
@@ -1604,7 +1604,7 @@ CConfigValue CPythonTypeConverter::PythonToConfigValue(PyObject* PyObj)
 	return CConfigValue();
 }
 
-TString CPythonTypeConverter::GetPythonTypeName(PyObject* PyObj)
+CString CPythonTypeConverter::GetPythonTypeName(PyObject* PyObj)
 {
 	if (!PyObj)
 		return TEXT("NoneType");
@@ -1612,7 +1612,7 @@ TString CPythonTypeConverter::GetPythonTypeName(PyObject* PyObj)
 	PyTypeObject* type = Py_TYPE(PyObj);
 	if (type && type->tp_name)
 	{
-		return TString(type->tp_name);
+		return CString(type->tp_name);
 	}
 
 	return TEXT("Unknown");
@@ -1629,7 +1629,7 @@ PyObject* CPythonTypeConverter::CreatePythonList(const TArray<PyObject*, CMemory
 	return list;
 }
 
-PyObject* CPythonTypeConverter::CreatePythonDict(const THashMap<TString, PyObject*, CMemoryManager>& Elements)
+PyObject* CPythonTypeConverter::CreatePythonDict(const THashMap<CString, PyObject*, CMemoryManager>& Elements)
 {
 	PyObject* dict = PyDict_New();
 	for (const auto& pair : Elements)
@@ -1658,9 +1658,9 @@ TArray<PyObject*, CMemoryManager> CPythonTypeConverter::GetPythonListElements(Py
 	return Elements;
 }
 
-THashMap<TString, PyObject*, CMemoryManager> CPythonTypeConverter::GetPythonDictItems(PyObject* PyDict)
+THashMap<CString, PyObject*, CMemoryManager> CPythonTypeConverter::GetPythonDictItems(PyObject* PyDict)
 {
-	THashMap<TString, PyObject*, CMemoryManager> Items;
+	THashMap<CString, PyObject*, CMemoryManager> Items;
 
 	if (PyDict_Check(PyDict))
 	{
@@ -1675,7 +1675,7 @@ THashMap<TString, PyObject*, CMemoryManager> CPythonTypeConverter::GetPythonDict
 				if (key_str)
 				{
 					Py_INCREF(value);
-					Items.Add(TString(key_str), value);
+					Items.Add(CString(key_str), value);
 				}
 			}
 		}

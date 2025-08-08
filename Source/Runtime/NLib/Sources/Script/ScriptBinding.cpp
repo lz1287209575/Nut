@@ -36,7 +36,7 @@ void CMetaScriptBindingManager::ScanAndBindReflectionClasses()
 	    auto Binder = MakeShared<CMetaReflectionClassBinder>(ClassReflection);
 	    if (Binder->ShouldBind())
 	    {
-	        TString ClassName(ClassReflection->Name);
+	        CString ClassName(ClassReflection->Name);
 	        ClassBinders.Add(ClassName, Binder);
 
 	        NLOG_SCRIPT(Debug, "Registered script binding for class: {} (ScriptName: {})",
@@ -85,7 +85,7 @@ CScriptValue CMetaScriptBindingManager::WrapObject(NObject* Object, TSharedPtr<C
 		return CScriptValue();
 	}
 
-	TString ClassName(ClassReflection->Name);
+	CString ClassName(ClassReflection->Name);
 	auto FoundBinder = ClassBinders.Find(ClassName);
 	if (FoundBinder && FoundBinder->Value->IsVisible())
 	{

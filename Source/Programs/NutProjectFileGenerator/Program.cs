@@ -135,6 +135,12 @@ namespace NutProjectFileGenerator
 
             // 设置输出目录
             outputDir ??= Path.Combine(projectRoot, "ProjectFiles");
+
+            if (!Directory.Exists(outputDir))
+            {
+                Directory.CreateDirectory(outputDir);
+            }
+
             logger.Info($"📁 输出目录: {outputDir}");
 
             // 构建解决方案信息

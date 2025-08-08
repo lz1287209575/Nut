@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Events/Delegate.h"
 #include "Logging/LogCategory.h"

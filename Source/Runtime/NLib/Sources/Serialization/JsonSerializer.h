@@ -49,7 +49,7 @@ public:
 	SSerializationResult Serialize(uint64_t& Value) override;
 	SSerializationResult Serialize(float& Value) override;
 	SSerializationResult Serialize(double& Value) override;
-	SSerializationResult Serialize(TString& Value) override;
+	SSerializationResult Serialize(CString& Value) override;
 
 public:
 	// === JSON特有的序列化方法 ===
@@ -113,10 +113,10 @@ public:
 protected:
 	// === CSerializationArchive 虚函数实现 ===
 
-	SSerializationResult BeginObject(const TString& TypeName) override;
-	SSerializationResult EndObject(const TString& TypeName) override;
-	SSerializationResult BeginField(const TString& FieldName) override;
-	SSerializationResult EndField(const TString& FieldName) override;
+	SSerializationResult BeginObject(const CString& TypeName) override;
+	SSerializationResult EndObject(const CString& TypeName) override;
+	SSerializationResult BeginField(const CString& FieldName) override;
+	SSerializationResult EndField(const CString& FieldName) override;
 
 private:
 	// === 内部实现 ===
@@ -144,12 +144,12 @@ private:
 	/**
 	 * @brief 导航到字段
 	 */
-	SSerializationResult NavigateToField(const TString& FieldName);
+	SSerializationResult NavigateToField(const CString& FieldName);
 
 	/**
 	 * @brief 从字段导航回来
 	 */
-	SSerializationResult NavigateFromField(const TString& FieldName);
+	SSerializationResult NavigateFromField(const CString& FieldName);
 
 	/**
 	 * @brief 确保当前值是对象
@@ -169,12 +169,12 @@ private:
 	struct SNavigationFrame
 	{
 		CConfigValue* Value = nullptr;
-		TString Key;
+		CString Key;
 		int32_t ArrayIndex = -1;
 		bool bIsArray = false;
 
 		SNavigationFrame() = default;
-		SNavigationFrame(CConfigValue* InValue, const TString& InKey = TString())
+		SNavigationFrame(CConfigValue* InValue, const CString& InKey = CString())
 		    : Value(InValue),
 		      Key(InKey)
 		{}
@@ -260,7 +260,7 @@ public:
 	 * @brief 序列化对象到JSON字符串
 	 */
 	template <typename T>
-	static TString SerializeToString(const T& Object, bool bPrettyPrint = true)
+	static CString SerializeToString(const T& Object, bool bPrettyPrint = true)
 	{
 		auto MemoryStream = MakeShared<NMemoryStream>();
 		auto Result = SerializeToStream(Object, MemoryStream, bPrettyPrint);
@@ -268,12 +268,12 @@ public:
 		if (Result.bSuccess)
 		{
 			const auto& Buffer = MemoryStream->GetBuffer();
-			return TString(reinterpret_cast<const char*>(Buffer.GetData()), Buffer.Size());
+			return CString(reinterpret_cast<const char*>(Buffer.GetData()), Buffer.Size());
 		}
 		else
 		{
 			NLOG_SERIALIZATION(Error, "Failed to serialize object to JSON: {}", Result.ErrorMessage.GetData());
-			return TString();
+			return CString();
 		}
 	}
 
@@ -281,7 +281,7 @@ public:
 	 * @brief 从JSON字符串反序列化对象
 	 */
 	template <typename T>
-	static bool DeserializeFromString(T& Object, const TString& JsonString)
+	static bool DeserializeFromString(T& Object, const CString& JsonString)
 	{
 		auto MemoryStream = MakeShared<NMemoryStream>(reinterpret_cast<const uint8_t*>(JsonString.GetData()),
 		                                              JsonString.Length());
@@ -298,12 +298,12 @@ public:
 	/**
 	 * @brief 序列化ConfigValue到JSON字符串
 	 */
-	static TString ConfigValueToJson(const CConfigValue& Value, bool bPrettyPrint = true);
+	static CString ConfigValueToJson(const CConfigValue& Value, bool bPrettyPrint = true);
 
 	/**
 	 * @brief 从JSON字符串解析为ConfigValue
 	 */
-	static CConfigValue JsonToConfigValue(const TString& JsonString);
+	static CConfigValue JsonToConfigValue(const CString& JsonString);
 };
 
 // === 类型别名 ===

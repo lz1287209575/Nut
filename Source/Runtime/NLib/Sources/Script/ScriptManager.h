@@ -13,14 +13,14 @@ namespace NLib
 struct SScriptEngineRegistry
 {
 	EScriptLanguage Language;
-	TString Name;
-	TString Version;
-	TString Description;
+	CString Name;
+	CString Version;
+	CString Description;
 	TSharedPtr<CScriptEngine> Engine;
 	bool bIsDefault = false;
 
 	SScriptEngineRegistry() = default;
-	SScriptEngineRegistry(EScriptLanguage InLanguage, const TString& InName, TSharedPtr<CScriptEngine> InEngine)
+	SScriptEngineRegistry(EScriptLanguage InLanguage, const CString& InName, TSharedPtr<CScriptEngine> InEngine)
 	    : Language(InLanguage),
 	      Name(InName),
 	      Engine(InEngine)
@@ -72,19 +72,19 @@ public:
 	 * @brief 注册脚本引擎
 	 */
 	bool RegisterEngine(EScriptLanguage Language,
-	                    const TString& Name,
+	                    const CString& Name,
 	                    TSharedPtr<CScriptEngine> Engine,
 	                    bool bSetAsDefault = false);
 
 	/**
 	 * @brief 注销脚本引擎
 	 */
-	void UnregisterEngine(EScriptLanguage Language, const TString& Name = TString());
+	void UnregisterEngine(EScriptLanguage Language, const CString& Name = CString());
 
 	/**
 	 * @brief 获取脚本引擎
 	 */
-	TSharedPtr<CScriptEngine> GetEngine(EScriptLanguage Language, const TString& Name = TString()) const;
+	TSharedPtr<CScriptEngine> GetEngine(EScriptLanguage Language, const CString& Name = CString()) const;
 
 	/**
 	 * @brief 获取默认脚本引擎
@@ -94,7 +94,7 @@ public:
 	/**
 	 * @brief 设置默认脚本引擎
 	 */
-	bool SetDefaultEngine(EScriptLanguage Language, const TString& Name);
+	bool SetDefaultEngine(EScriptLanguage Language, const CString& Name);
 
 	/**
 	 * @brief 获取所有已注册的引擎
@@ -145,71 +145,71 @@ public:
 	 * @brief 执行脚本字符串
 	 */
 	SScriptExecutionResult ExecuteString(EScriptLanguage Language,
-	                                     const TString& Code,
+	                                     const CString& Code,
 	                                     const SScriptConfig& Config = SScriptConfig());
 
 	/**
 	 * @brief 执行脚本文件
 	 */
 	SScriptExecutionResult ExecuteFile(EScriptLanguage Language,
-	                                   const TString& FilePath,
+	                                   const CString& FilePath,
 	                                   const SScriptConfig& Config = SScriptConfig());
 
 	/**
 	 * @brief 检查脚本语法
 	 */
-	SScriptExecutionResult CheckSyntax(EScriptLanguage Language, const TString& Code);
+	SScriptExecutionResult CheckSyntax(EScriptLanguage Language, const CString& Code);
 
 	/**
 	 * @brief 编译脚本文件
 	 */
 	SScriptExecutionResult CompileFile(EScriptLanguage Language,
-	                                   const TString& FilePath,
-	                                   const TString& OutputPath = TString());
+	                                   const CString& FilePath,
+	                                   const CString& OutputPath = CString());
 
 	// === 全局绑定管理 ===
 
 	/**
 	 * @brief 注册全局函数
 	 */
-	void RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function);
+	void RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function);
 
 	/**
 	 * @brief 注册全局对象
 	 */
-	void RegisterGlobalObject(const TString& Name, const CScriptValue& Object);
+	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object);
 
 	/**
 	 * @brief 注册全局常量
 	 */
-	void RegisterGlobalConstant(const TString& Name, const CScriptValue& Value);
+	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value);
 
 	/**
 	 * @brief 移除全局绑定
 	 */
-	void UnregisterGlobal(const TString& Name);
+	void UnregisterGlobal(const CString& Name);
 
 	/**
 	 * @brief 获取全局绑定列表
 	 */
-	TArray<TString, CMemoryManager> GetGlobalBindings() const;
+	TArray<CString, CMemoryManager> GetGlobalBindings() const;
 
 	// === 模块管理 ===
 
 	/**
 	 * @brief 添加模块搜索路径
 	 */
-	void AddModulePath(const TString& Path);
+	void AddModulePath(const CString& Path);
 
 	/**
 	 * @brief 移除模块搜索路径
 	 */
-	void RemoveModulePath(const TString& Path);
+	void RemoveModulePath(const CString& Path);
 
 	/**
 	 * @brief 获取模块搜索路径
 	 */
-	TArray<TString, CMemoryManager> GetModulePaths() const;
+	TArray<CString, CMemoryManager> GetModulePaths() const;
 
 	/**
 	 * @brief 清空模块搜索路径
@@ -219,7 +219,7 @@ public:
 	/**
 	 * @brief 预加载模块
 	 */
-	SScriptExecutionResult PreloadModule(EScriptLanguage Language, const TString& ModulePath);
+	SScriptExecutionResult PreloadModule(EScriptLanguage Language, const CString& ModulePath);
 
 	// === 统计和监控 ===
 
@@ -286,7 +286,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnEngineUnregistered, EScriptLanguage /*Language*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnContextCreated, TSharedPtr<CScriptContext> /*Context*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnContextDestroyed, TSharedPtr<CScriptContext> /*Context*/);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnScriptError, EScriptLanguage /*Language*/, const TString& /*ErrorMessage*/);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnScriptError, EScriptLanguage /*Language*/, const CString& /*ErrorMessage*/);
 
 	FOnEngineRegistered OnEngineRegistered;
 	FOnEngineUnregistered OnEngineUnregistered;
@@ -299,26 +299,26 @@ private:
 
 	void RegisterBuiltinEngines();
 	void ApplyGlobalBindings(TSharedPtr<CScriptContext> Context);
-	TString GenerateContextId() const;
+	CString GenerateContextId() const;
 
 private:
 	mutable CThreadSafeMutex Mutex;
 
 	// 引擎注册表
 	THashMap<EScriptLanguage, TArray<SScriptEngineRegistry, CMemoryManager>, CMemoryManager> EngineRegistry;
-	THashMap<EScriptLanguage, TString, CMemoryManager> DefaultEngines;
+	THashMap<EScriptLanguage, CString, CMemoryManager> DefaultEngines;
 
 	// 活跃上下文
-	THashMap<TString, TSharedPtr<CScriptContext>, CMemoryManager> ActiveContexts;
+	THashMap<CString, TSharedPtr<CScriptContext>, CMemoryManager> ActiveContexts;
 
 	// 全局绑定
-	THashMap<TString, TSharedPtr<CScriptFunction>, CMemoryManager> GlobalFunctions;
-	THashMap<TString, CScriptValue, CMemoryManager> GlobalObjects;
-	THashMap<TString, CScriptValue, CMemoryManager> GlobalConstants;
+	THashMap<CString, TSharedPtr<CScriptFunction>, CMemoryManager> GlobalFunctions;
+	THashMap<CString, CScriptValue, CMemoryManager> GlobalObjects;
+	THashMap<CString, CScriptValue, CMemoryManager> GlobalConstants;
 
 	// 配置和路径
 	SScriptConfig GlobalConfig;
-	TArray<TString, CMemoryManager> ModulePaths;
+	TArray<CString, CMemoryManager> ModulePaths;
 
 	// 统计信息
 	mutable SScriptStatistics Statistics;
@@ -341,7 +341,7 @@ inline CScriptManager& GetScriptManager()
 /**
  * @brief 执行脚本文件的便利函数
  */
-inline SScriptExecutionResult ExecuteScriptFile(EScriptLanguage Language, const TString& FilePath)
+inline SScriptExecutionResult ExecuteScriptFile(EScriptLanguage Language, const CString& FilePath)
 {
 	return GetScriptManager().ExecuteFile(Language, FilePath);
 }
@@ -349,7 +349,7 @@ inline SScriptExecutionResult ExecuteScriptFile(EScriptLanguage Language, const 
 /**
  * @brief 执行脚本字符串的便利函数
  */
-inline SScriptExecutionResult ExecuteScriptString(EScriptLanguage Language, const TString& Code)
+inline SScriptExecutionResult ExecuteScriptString(EScriptLanguage Language, const CString& Code)
 {
 	return GetScriptManager().ExecuteString(Language, Code);
 }

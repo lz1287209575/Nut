@@ -63,11 +63,11 @@ inline bool IsConfigModuleInitialized()
  * @param bOptional 是否为可选文件
  * @return 是否加载成功
  */
-inline bool LoadConfigFile(const TString& FilePath,
+inline bool LoadConfigFile(const CString& FilePath,
                            EConfigPriority Priority = EConfigPriority::Normal,
                            bool bOptional = false)
 {
-	TString FileName = FilePath;
+	CString FileName = FilePath;
 	int32_t LastSlash = FileName.LastIndexOf('/');
 	if (LastSlash >= 0)
 	{
@@ -84,7 +84,7 @@ inline bool LoadConfigFile(const TString& FilePath,
  * @param Priority 配置优先级
  * @return 是否加载成功
  */
-inline bool LoadEnvironmentConfig(const TString& Prefix = TString(), EConfigPriority Priority = EConfigPriority::High)
+inline bool LoadEnvironmentConfig(const CString& Prefix = CString(), EConfigPriority Priority = EConfigPriority::High)
 {
 	return NConfigManager::GetInstance().AddEnvironmentVariables(Prefix, Priority);
 }
@@ -118,9 +118,9 @@ inline bool LoadCommandLineConfig(int argc, char* argv[], EConfigPriority Priori
  * @param argv 命令行参数数组
  * @return 是否成功
  */
-inline bool InitializeStandardConfig(const TString& DefaultConfigPath,
-                                     const TString& UserConfigPath = TString(),
-                                     const TString& EnvPrefix = TString(),
+inline bool InitializeStandardConfig(const CString& DefaultConfigPath,
+                                     const CString& UserConfigPath = CString(),
+                                     const CString& EnvPrefix = CString(),
                                      int argc = 0,
                                      char* argv[] = nullptr)
 {
@@ -166,7 +166,7 @@ inline bool InitializeStandardConfig(const TString& DefaultConfigPath,
  * @param Key 配置键
  * @param Type 期望的类型
  */
-inline void ValidateConfigType(const TString& Key, EConfigValueType Type)
+inline void ValidateConfigType(const CString& Key, EConfigValueType Type)
 {
 	NConfigManager::GetInstance().AddValidator(Key, CreateTypeValidator(Type));
 }
@@ -178,7 +178,7 @@ inline void ValidateConfigType(const TString& Key, EConfigValueType Type)
  * @param MinValue 最小值
  * @param MaxValue 最大值
  */
-inline void ValidateConfigIntRange(const TString& Key, int64_t MinValue, int64_t MaxValue)
+inline void ValidateConfigIntRange(const CString& Key, int64_t MinValue, int64_t MaxValue)
 {
 	NConfigManager::GetInstance().AddValidator(Key, CreateIntRangeValidator(MinValue, MaxValue));
 }
@@ -190,7 +190,7 @@ inline void ValidateConfigIntRange(const TString& Key, int64_t MinValue, int64_t
  * @param MinValue 最小值
  * @param MaxValue 最大值
  */
-inline void ValidateConfigFloatRange(const TString& Key, double MinValue, double MaxValue)
+inline void ValidateConfigFloatRange(const CString& Key, double MinValue, double MaxValue)
 {
 	NConfigManager::GetInstance().AddValidator(Key, CreateFloatRangeValidator(MinValue, MaxValue));
 }
@@ -202,7 +202,7 @@ inline void ValidateConfigFloatRange(const TString& Key, double MinValue, double
  */
 inline bool ValidateAllConfigurations()
 {
-	TArray<TString, CMemoryManager> Errors;
+	TArray<CString, CMemoryManager> Errors;
 	bool bValid = NConfigManager::GetInstance().ValidateAllConfigs(Errors);
 
 	if (!bValid)
@@ -246,7 +246,7 @@ inline void ReloadAllConfigurations()
  * @param SourceName 配置源名称
  * @return 是否重载成功
  */
-inline bool ReloadConfiguration(const TString& SourceName)
+inline bool ReloadConfiguration(const CString& SourceName)
 {
 	return NConfigManager::GetInstance().ReloadConfigSource(SourceName);
 }
@@ -260,7 +260,7 @@ inline bool ReloadConfiguration(const TString& SourceName)
  * @param bPrettyPrint 是否格式化输出
  * @return 是否导出成功
  */
-inline bool ExportCurrentConfig(const TString& FilePath, bool bPrettyPrint = true)
+inline bool ExportCurrentConfig(const CString& FilePath, bool bPrettyPrint = true)
 {
 	return NConfigManager::GetInstance().ExportConfig(FilePath, bPrettyPrint);
 }
@@ -270,7 +270,7 @@ inline bool ExportCurrentConfig(const TString& FilePath, bool bPrettyPrint = tru
  *
  * @return 诊断报告字符串
  */
-inline TString GenerateConfigDiagnostics()
+inline CString GenerateConfigDiagnostics()
 {
 	return NConfigManager::GetInstance().GenerateConfigReport();
 }
@@ -335,7 +335,7 @@ using TRangeValidator = TRangeValidator<T>;
  * NLib::EnableConfigAutoReload(true, 2.0); // 每2秒检查一次
  *
  * // 4. 使用配置
- * TString Host = CONFIG_GET_STRING("server.host", "localhost");
+ * CString Host = CONFIG_GET_STRING("server.host", "localhost");
  * int32_t Port = CONFIG_GET_INT("server.port", 8080);
  * bool Debug = CONFIG_GET_BOOL("debug.enabled", false);
  *

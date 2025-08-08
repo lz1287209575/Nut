@@ -183,13 +183,13 @@ double CCSharpValue::ToDouble() const
 	return 0.0;
 }
 
-TString CCSharpValue::ToString() const
+CString CCSharpValue::ToString() const
 {
 	if (!IsValid())
-		return TString();
+		return CString();
 
 	// TODO: 调用.NET对象的ToString方法
-	return TString::Format(TEXT("C# Object: {}"), DotNetTypeName.GetData());
+	return CString::Format(TEXT("C# Object: {}"), DotNetTypeName.GetData());
 }
 
 int32_t CCSharpValue::GetArrayLength() const
@@ -218,9 +218,9 @@ void CCSharpValue::SetArrayElement(int32_t Index, const CScriptValue& Value)
 	// TODO: 设置.NET数组元素
 }
 
-TArray<TString, CMemoryManager> CCSharpValue::GetObjectKeys() const
+TArray<CString, CMemoryManager> CCSharpValue::GetObjectKeys() const
 {
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 	if (!IsObject())
 		return Keys;
 
@@ -229,7 +229,7 @@ TArray<TString, CMemoryManager> CCSharpValue::GetObjectKeys() const
 	return Keys;
 }
 
-CScriptValue CCSharpValue::GetObjectProperty(const TString& Key) const
+CScriptValue CCSharpValue::GetObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return CScriptValue();
@@ -238,7 +238,7 @@ CScriptValue CCSharpValue::GetObjectProperty(const TString& Key) const
 	return GetProperty(Key);
 }
 
-void CCSharpValue::SetObjectProperty(const TString& Key, const CScriptValue& Value)
+void CCSharpValue::SetObjectProperty(const CString& Key, const CScriptValue& Value)
 {
 	if (!IsObject())
 		return;
@@ -250,7 +250,7 @@ void CCSharpValue::SetObjectProperty(const TString& Key, const CScriptValue& Val
 	}
 }
 
-bool CCSharpValue::HasObjectProperty(const TString& Key) const
+bool CCSharpValue::HasObjectProperty(const CString& Key) const
 {
 	if (!IsObject())
 		return false;
@@ -291,7 +291,7 @@ bool CCSharpValue::IsValid() const
 	return DotNetObject != nullptr && !DotNetTypeName.IsEmpty();
 }
 
-CCSharpValue CCSharpValue::CallMethod(const TString& MethodName, const TArray<CCSharpValue, CMemoryManager>& Args)
+CCSharpValue CCSharpValue::CallMethod(const CString& MethodName, const TArray<CCSharpValue, CMemoryManager>& Args)
 {
 	if (!IsValid())
 		return CCSharpValue();
@@ -301,7 +301,7 @@ CCSharpValue CCSharpValue::CallMethod(const TString& MethodName, const TArray<CC
 	return CCSharpValue();
 }
 
-CCSharpValue CCSharpValue::GetProperty(const TString& PropertyName)
+CCSharpValue CCSharpValue::GetProperty(const CString& PropertyName)
 {
 	if (!IsValid())
 		return CCSharpValue();
@@ -311,7 +311,7 @@ CCSharpValue CCSharpValue::GetProperty(const TString& PropertyName)
 	return CCSharpValue();
 }
 
-void CCSharpValue::SetProperty(const TString& PropertyName, const CCSharpValue& Value)
+void CCSharpValue::SetProperty(const CString& PropertyName, const CCSharpValue& Value)
 {
 	if (!IsValid())
 		return;
@@ -323,7 +323,7 @@ void CCSharpValue::SetProperty(const TString& PropertyName, const CCSharpValue& 
 void CCSharpValue::CreateReference(void* InDotNetObject, const char* InTypeName)
 {
 	DotNetObject = InDotNetObject;
-	DotNetTypeName = TString(InTypeName ? InTypeName : "System.Object");
+	DotNetTypeName = CString(InTypeName ? InTypeName : "System.Object");
 	ReferenceCount = 1;
 
 	// TODO: 增加.NET对象引用计数或GC句柄
@@ -358,7 +358,7 @@ void CCSharpValue::CopyFrom(const CCSharpValue& Other)
 
 // === CCSharpModule 实现 ===
 
-CCSharpModule::CCSharpModule(void* InAssemblyContext, const TString& InName)
+CCSharpModule::CCSharpModule(void* InAssemblyContext, const CString& InName)
     : AssemblyContext(InAssemblyContext),
       ModuleName(InName),
       bLoaded(false),
@@ -370,7 +370,7 @@ CCSharpModule::~CCSharpModule()
 	Unload();
 }
 
-SScriptExecutionResult CCSharpModule::Load(const TString& ModulePath)
+SScriptExecutionResult CCSharpModule::Load(const CString& ModulePath)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -407,7 +407,7 @@ SScriptExecutionResult CCSharpModule::Unload()
 	return Result;
 }
 
-CScriptValue CCSharpModule::GetGlobal(const TString& Name) const
+CScriptValue CCSharpModule::GetGlobal(const CString& Name) const
 {
 	if (GlobalObjects.Contains(Name))
 		return GlobalObjects[Name];
@@ -415,7 +415,7 @@ CScriptValue CCSharpModule::GetGlobal(const TString& Name) const
 	return CScriptValue();
 }
 
-void CCSharpModule::SetGlobal(const TString& Name, const CScriptValue& Value)
+void CCSharpModule::SetGlobal(const CString& Name, const CScriptValue& Value)
 {
 	if (const CCSharpValue* CSValue = dynamic_cast<const CCSharpValue*>(&Value))
 	{
@@ -429,7 +429,7 @@ void CCSharpModule::SetGlobal(const TString& Name, const CScriptValue& Value)
 	}
 }
 
-SScriptExecutionResult CCSharpModule::ExecuteString(const TString& Code)
+SScriptExecutionResult CCSharpModule::ExecuteString(const CString& Code)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -447,31 +447,31 @@ SScriptExecutionResult CCSharpModule::ExecuteString(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CCSharpModule::ExecuteFile(const TString& FilePath)
+SScriptExecutionResult CCSharpModule::ExecuteFile(const CString& FilePath)
 {
 	// TODO: 读取文件并执行
 	return ExecuteString(TEXT("// File execution not implemented"));
 }
 
-void CCSharpModule::RegisterFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CCSharpModule::RegisterFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 注册C++函数到.NET
 	NLOG_SCRIPT(Warning, "RegisterFunction not implemented for C# module");
 }
 
-void CCSharpModule::RegisterObject(const TString& Name, const CScriptValue& Object)
+void CCSharpModule::RegisterObject(const CString& Name, const CScriptValue& Object)
 {
 	SetGlobal(Name, Object);
 }
 
-bool CCSharpModule::CompileCSharpCode(const TString& SourceCode, const TString& AssemblyName)
+bool CCSharpModule::CompileCSharpCode(const CString& SourceCode, const CString& AssemblyName)
 {
 	// TODO: 使用Roslyn编译器编译C#代码
 	NLOG_SCRIPT(Warning, "C# code compilation not implemented");
 	return false;
 }
 
-CCSharpValue CCSharpModule::CreateInstance(const TString& TypeName, const TArray<CCSharpValue, CMemoryManager>& Args)
+CCSharpValue CCSharpModule::CreateInstance(const CString& TypeName, const TArray<CCSharpValue, CMemoryManager>& Args)
 {
 	if (!bLoaded || !LoadedAssembly)
 		return CCSharpValue();
@@ -481,8 +481,8 @@ CCSharpValue CCSharpModule::CreateInstance(const TString& TypeName, const TArray
 	return CCSharpValue();
 }
 
-CCSharpValue CCSharpModule::CallStaticMethod(const TString& TypeName,
-                                             const TString& MethodName,
+CCSharpValue CCSharpModule::CallStaticMethod(const CString& TypeName,
+                                             const CString& MethodName,
                                              const TArray<CCSharpValue, CMemoryManager>& Args)
 {
 	if (!bLoaded || !LoadedAssembly)
@@ -493,11 +493,11 @@ CCSharpValue CCSharpModule::CallStaticMethod(const TString& TypeName,
 	return CCSharpValue();
 }
 
-SScriptExecutionResult CCSharpModule::HandleDotNetError(const TString& Operation, const TString& ErrorMessage)
+SScriptExecutionResult CCSharpModule::HandleDotNetError(const CString& Operation, const CString& ErrorMessage)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
-	Result.ErrorMessage = TString::Format(TEXT(".NET Error in operation '{}': {}"),
+	Result.ErrorMessage = CString::Format(TEXT(".NET Error in operation '{}': {}"),
 	                                      Operation.GetData(),
 	                                      ErrorMessage.IsEmpty() ? TEXT("Unknown error") : ErrorMessage.GetData());
 
@@ -561,7 +561,7 @@ void CCSharpContext::Shutdown()
 	NLOG_SCRIPT(Info, "C# context shut down");
 }
 
-TSharedPtr<CScriptModule> CCSharpContext::CreateModule(const TString& Name)
+TSharedPtr<CScriptModule> CCSharpContext::CreateModule(const CString& Name)
 {
 	if (!HostHandle)
 	{
@@ -581,7 +581,7 @@ TSharedPtr<CScriptModule> CCSharpContext::CreateModule(const TString& Name)
 	return Module;
 }
 
-TSharedPtr<CScriptModule> CCSharpContext::GetModule(const TString& Name) const
+TSharedPtr<CScriptModule> CCSharpContext::GetModule(const CString& Name) const
 {
 	if (Modules.Contains(Name))
 		return Modules[Name];
@@ -589,7 +589,7 @@ TSharedPtr<CScriptModule> CCSharpContext::GetModule(const TString& Name) const
 	return nullptr;
 }
 
-void CCSharpContext::DestroyModule(const TString& Name)
+void CCSharpContext::DestroyModule(const CString& Name)
 {
 	if (Modules.Contains(Name))
 	{
@@ -598,7 +598,7 @@ void CCSharpContext::DestroyModule(const TString& Name)
 	}
 }
 
-SScriptExecutionResult CCSharpContext::ExecuteString(const TString& Code, const TString& ModuleName)
+SScriptExecutionResult CCSharpContext::ExecuteString(const CString& Code, const CString& ModuleName)
 {
 	if (ModuleName.IsEmpty() || ModuleName == TEXT("__main__"))
 	{
@@ -614,7 +614,7 @@ SScriptExecutionResult CCSharpContext::ExecuteString(const TString& Code, const 
 	return Module->ExecuteString(Code);
 }
 
-SScriptExecutionResult CCSharpContext::ExecuteFile(const TString& FilePath, const TString& ModuleName)
+SScriptExecutionResult CCSharpContext::ExecuteFile(const CString& FilePath, const CString& ModuleName)
 {
 	// TODO: 读取文件并执行
 	return ExecuteString(TEXT("// File execution not implemented"), ModuleName);
@@ -638,24 +638,24 @@ void CCSharpContext::ResetTimeout()
 	StartTime = GetCurrentTimeMilliseconds();
 }
 
-void CCSharpContext::RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CCSharpContext::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	// TODO: 注册全局函数到.NET
 	NLOG_SCRIPT(Warning, "RegisterGlobalFunction not implemented for C# context");
 }
 
-void CCSharpContext::RegisterGlobalObject(const TString& Name, const CScriptValue& Object)
+void CCSharpContext::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
 {
 	// TODO: 注册全局对象到.NET
 	NLOG_SCRIPT(Warning, "RegisterGlobalObject not implemented for C# context");
 }
 
-void CCSharpContext::RegisterGlobalConstant(const TString& Name, const CScriptValue& Value)
+void CCSharpContext::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
 {
 	RegisterGlobalObject(Name, Value);
 }
 
-SScriptExecutionResult CCSharpContext::ExecuteCSharp(const TString& CSharpCode, const TString& AssemblyName)
+SScriptExecutionResult CCSharpContext::ExecuteCSharp(const CString& CSharpCode, const CString& AssemblyName)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -675,7 +675,7 @@ SScriptExecutionResult CCSharpContext::ExecuteCSharp(const TString& CSharpCode, 
 	return Result;
 }
 
-void* CCSharpContext::LoadAssembly(const TString& AssemblyPath)
+void* CCSharpContext::LoadAssembly(const CString& AssemblyPath)
 {
 	if (!AssemblyLoadContext)
 		return nullptr;
@@ -685,7 +685,7 @@ void* CCSharpContext::LoadAssembly(const TString& AssemblyPath)
 	return nullptr;
 }
 
-void CCSharpContext::SetRuntimeConfig(const THashMap<TString, TString, CMemoryManager>& InConfig)
+void CCSharpContext::SetRuntimeConfig(const THashMap<CString, CString, CMemoryManager>& InConfig)
 {
 	RuntimeConfig = InConfig;
 }
@@ -777,11 +777,11 @@ void CCSharpContext::ShutdownDotNet()
 	memset(&DotNetFunctions, 0, sizeof(DotNetFunctions));
 }
 
-SScriptExecutionResult CCSharpContext::HandleDotNetError(const TString& Operation, const TString& ErrorMessage)
+SScriptExecutionResult CCSharpContext::HandleDotNetError(const CString& Operation, const CString& ErrorMessage)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
-	Result.ErrorMessage = TString::Format(TEXT(".NET Error in operation '{}': {}"),
+	Result.ErrorMessage = CString::Format(TEXT(".NET Error in operation '{}': {}"),
 	                                      Operation.GetData(),
 	                                      ErrorMessage.IsEmpty() ? TEXT("Unknown error") : ErrorMessage.GetData());
 
@@ -811,7 +811,7 @@ CCSharpEngine::~CCSharpEngine()
 	Shutdown();
 }
 
-TString CCSharpEngine::GetVersion() const
+CString CCSharpEngine::GetVersion() const
 {
 	return GetDotNetVersionString();
 }
@@ -920,7 +920,7 @@ CScriptValue CCSharpEngine::CreateFloat(float Value)
 	return CCSharpValue();
 }
 
-CScriptValue CCSharpEngine::CreateString(const TString& Value)
+CScriptValue CCSharpEngine::CreateString(const CString& Value)
 {
 	// TODO: 创建.NET String对象
 	return CCSharpValue();
@@ -938,7 +938,7 @@ CScriptValue CCSharpEngine::CreateObject()
 	return CCSharpValue();
 }
 
-SScriptExecutionResult CCSharpEngine::CheckSyntax(const TString& Code)
+SScriptExecutionResult CCSharpEngine::CheckSyntax(const CString& Code)
 {
 	// TODO: 使用Roslyn进行语法检查
 	SScriptExecutionResult Result;
@@ -946,12 +946,12 @@ SScriptExecutionResult CCSharpEngine::CheckSyntax(const TString& Code)
 	return Result;
 }
 
-SScriptExecutionResult CCSharpEngine::CompileFile(const TString& FilePath, const TString& OutputPath)
+SScriptExecutionResult CCSharpEngine::CompileFile(const CString& FilePath, const CString& OutputPath)
 {
 	return CompileCSharpFile(FilePath, OutputPath);
 }
 
-TString CCSharpEngine::GetDotNetVersionString()
+CString CCSharpEngine::GetDotNetVersionString()
 {
 	// TODO: 获取.NET运行时版本
 	return TEXT(".NET Core 6.0+");
@@ -986,9 +986,9 @@ void CCSharpEngine::ShutdownDotNetRuntime()
 	bDotNetRuntimeInitialized = false;
 }
 
-SScriptExecutionResult CCSharpEngine::CompileCSharpFile(const TString& InputPath,
-                                                        const TString& OutputPath,
-                                                        const TArray<TString, CMemoryManager>& References)
+SScriptExecutionResult CCSharpEngine::CompileCSharpFile(const CString& InputPath,
+                                                        const CString& OutputPath,
+                                                        const TArray<CString, CMemoryManager>& References)
 {
 	SScriptExecutionResult Result;
 	Result.Result = EScriptResult::Error;
@@ -999,7 +999,7 @@ SScriptExecutionResult CCSharpEngine::CompileCSharpFile(const TString& InputPath
 	return Result;
 }
 
-void CCSharpEngine::SetCompilerOptions(const THashMap<TString, TString, CMemoryManager>& Options)
+void CCSharpEngine::SetCompilerOptions(const THashMap<CString, CString, CMemoryManager>& Options)
 {
 	CompilerOptions = Options;
 }
@@ -1039,7 +1039,7 @@ void* CCSharpTypeConverter::ToDotNetValue<float>(const float& Value)
 }
 
 template <>
-void* CCSharpTypeConverter::ToDotNetValue<TString>(const TString& Value)
+void* CCSharpTypeConverter::ToDotNetValue<CString>(const CString& Value)
 {
 	// TODO: 创建.NET String对象
 	return nullptr;
@@ -1067,10 +1067,10 @@ float CCSharpTypeConverter::FromDotNetValue<float>(void* DotNetValue)
 }
 
 template <>
-TString CCSharpTypeConverter::FromDotNetValue<TString>(void* DotNetValue)
+CString CCSharpTypeConverter::FromDotNetValue<CString>(void* DotNetValue)
 {
 	// TODO: 从.NET String对象获取值
-	return TString();
+	return CString();
 }
 
 CCSharpValue CCSharpTypeConverter::ToCSharpValue(const CScriptValue& ScriptValue)
@@ -1114,7 +1114,7 @@ CConfigValue CCSharpTypeConverter::DotNetToConfigValue(void* DotNetValue)
 	return CConfigValue();
 }
 
-TString CCSharpTypeConverter::GetDotNetTypeName(void* DotNetValue)
+CString CCSharpTypeConverter::GetDotNetTypeName(void* DotNetValue)
 {
 	// TODO: 获取.NET对象的类型名称
 	return TEXT("System.Object");

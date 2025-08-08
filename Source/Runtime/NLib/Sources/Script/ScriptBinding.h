@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/THashMap.h"
-#include "Core/TString.h"
+#include "Core/Object.h"
 #include "Memory/Memory.h"
 #include "Reflection/ReflectionRegistry.h"
 #include "Reflection/ReflectionStructures.h"
@@ -136,20 +136,20 @@ public:
 	/**
 	 * @brief 获取脚本中的名称（可能与C++名称不同）
 	 */
-	static TString GetScriptName(const char* CppName, EScriptBindingFlags Flags)
+	static CString GetScriptName(const char* CppName, EScriptBindingFlags Flags)
 	{
 		// TODO: 从meta数据中解析ScriptName
 		// 例如：NFUNCTION(meta=(ScriptName="MyFunction"))
-		return TString(CppName);
+		return CString(CppName);
 	}
 
 	/**
 	 * @brief 获取脚本分类
 	 */
-	static TString GetScriptCategory(const char* Category, EScriptBindingFlags Flags)
+	static CString GetScriptCategory(const char* Category, EScriptBindingFlags Flags)
 	{
 		// TODO: 从meta数据中解析ScriptCategory
-		return Category ? TString(Category) : TString();
+		return Category ? CString(Category) : CString();
 	}
 };
 
@@ -193,7 +193,7 @@ public:
 		return typeid(T);
 	}
 
-	TString GetScriptTypeName() const override
+	CString GetScriptTypeName() const override
 	{
 		// 可以从反射信息中获取meta指定的脚本类型名
 		return GetScriptTypeNameForType<T>();
@@ -205,7 +205,7 @@ protected:
 	virtual bool IsValidScriptValue(const CScriptValue& ScriptValue) const = 0;
 
 	template <typename U>
-	TString GetScriptTypeNameForType() const
+	CString GetScriptTypeNameForType() const
 	{
 		if constexpr (std::is_same_v<U, bool>)
 			return TEXT("boolean");
@@ -213,7 +213,7 @@ protected:
 			return TEXT("number");
 		else if constexpr (std::is_floating_point_v<U>)
 			return TEXT("number");
-		else if constexpr (std::is_same_v<U, TString>)
+		else if constexpr (std::is_same_v<U, CString>)
 			return TEXT("string");
 		else
 			return TEXT("object");
@@ -259,7 +259,7 @@ public:
 		return CallReflectionFunction(Args);
 	}
 
-	TString GetSignature() const override
+	CString GetSignature() const override
 	{
 		if (!FunctionReflection)
 			return TEXT("invalid_function()");
@@ -267,18 +267,18 @@ public:
 		return GenerateScriptSignature();
 	}
 
-	TString GetDocumentation() const override
+	CString GetDocumentation() const override
 	{
 		if (!FunctionReflection || !FunctionReflection->ToolTip)
-			return TString();
+			return CString();
 
-		return TString(FunctionReflection->ToolTip);
+		return CString(FunctionReflection->ToolTip);
 	}
 
 	/**
 	 * @brief 获取脚本中的函数名
 	 */
-	TString GetScriptName() const
+	CString GetScriptName() const
 	{
 		return ScriptName;
 	}
@@ -333,20 +333,20 @@ private:
 		catch (const std::exception& e)
 		{
 			return SScriptExecutionResult(EScriptResult::RuntimeError,
-			                              TString(TEXT("Function execution failed: ")) + TString(e.what()));
+			                              CString(TEXT("Function execution failed: ")) + CString(e.what()));
 		}
 	}
 
-	TString GenerateScriptSignature() const
+	CString GenerateScriptSignature() const
 	{
-		TString Signature = TString(FunctionReflection->ReturnTypeName) + TEXT(" ") + ScriptName + TEXT("(");
+		CString Signature = CString(FunctionReflection->ReturnTypeName) + TEXT(" ") + ScriptName + TEXT("(");
 
 		for (size_t i = 0; i < FunctionReflection->Parameters.size(); ++i)
 		{
 			if (i > 0)
 				Signature += TEXT(", ");
 			const auto& Param = FunctionReflection->Parameters[i];
-			Signature += TString(Param.TypeName) + TEXT(" ") + TString(Param.Name);
+			Signature += CString(Param.TypeName) + TEXT(" ") + CString(Param.Name);
 		}
 
 		Signature += TEXT(")");
@@ -362,7 +362,7 @@ private:
 private:
 	const SFunctionReflection* FunctionReflection = nullptr;
 	EScriptBindingFlags BindingFlags = EScriptBindingFlags::None;
-	TString ScriptName;
+	CString ScriptName;
 	NObject* TargetObject = nullptr;
 };
 
@@ -438,7 +438,7 @@ public:
 	/**
 	 * @brief 获取脚本中的属性名
 	 */
-	TString GetScriptName() const
+	CString GetScriptName() const
 	{
 		return ScriptName;
 	}
@@ -454,7 +454,7 @@ public:
 private:
 	const SPropertyReflection* PropertyReflection = nullptr;
 	EScriptBindingFlags BindingFlags = EScriptBindingFlags::None;
-	TString ScriptName;
+	CString ScriptName;
 };
 
 /**
@@ -524,7 +524,7 @@ public:
 	/**
 	 * @brief 获取脚本中的类名
 	 */
-	TString GetScriptName() const
+	CString GetScriptName() const
 	{
 		return ScriptName;
 	}
@@ -588,7 +588,7 @@ private:
 				if (Wrapper->IsStatic())
 				{
 					// 静态方法注册为全局函数
-					TString GlobalName = ScriptName + TEXT("_") + Wrapper->GetScriptName();
+					CString GlobalName = ScriptName + TEXT("_") + Wrapper->GetScriptName();
 					StaticMethods.Add(GlobalName, Wrapper);
 				}
 				else
@@ -624,11 +624,11 @@ private:
 private:
 	const SClassReflection* ClassReflection = nullptr;
 	EScriptBindingFlags BindingFlags = EScriptBindingFlags::None;
-	TString ScriptName;
+	CString ScriptName;
 
-	THashMap<TString, TSharedPtr<CMetaReflectionPropertyAccessor>, CMemoryManager> Properties;
-	THashMap<TString, TSharedPtr<CMetaReflectionFunctionWrapper>, CMemoryManager> InstanceMethods;
-	THashMap<TString, TSharedPtr<CMetaReflectionFunctionWrapper>, CMemoryManager> StaticMethods;
+	THashMap<CString, TSharedPtr<CMetaReflectionPropertyAccessor>, CMemoryManager> Properties;
+	THashMap<CString, TSharedPtr<CMetaReflectionFunctionWrapper>, CMemoryManager> InstanceMethods;
+	THashMap<CString, TSharedPtr<CMetaReflectionFunctionWrapper>, CMemoryManager> StaticMethods;
 };
 
 /**
@@ -687,7 +687,7 @@ public:
 		if (!ClassReflection)
 			return CScriptValue();
 
-		TString ClassName(ClassReflection->Name);
+		CString ClassName(ClassReflection->Name);
 		auto FoundBinder = ClassBinders.Find(ClassName);
 		if (FoundBinder && FoundBinder->Value->IsVisible())
 		{
@@ -698,7 +698,7 @@ public:
 	}
 
 private:
-	THashMap<TString, TSharedPtr<CMetaReflectionClassBinder>, CMemoryManager> ClassBinders;
+	THashMap<CString, TSharedPtr<CMetaReflectionClassBinder>, CMemoryManager> ClassBinders;
 };
 
 /**

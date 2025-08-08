@@ -33,7 +33,7 @@ void CScriptBindingRegistry::RegisterClassBinding(const char* ClassName, const S
 		return;
 	}
 
-	TString ClassNameStr(ClassName);
+	CString ClassNameStr(ClassName);
 	ClassBindings.Add(ClassNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for class: {}", ClassName);
@@ -49,7 +49,7 @@ void CScriptBindingRegistry::RegisterFunctionBinding(const char* ClassName,
 		return;
 	}
 
-	TString Key = TString(ClassName) + TEXT("::") + TString(FunctionName);
+	CString Key = CString(ClassName) + TEXT("::") + CString(FunctionName);
 	FunctionBindings.Add(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for function: {}::{}", ClassName, FunctionName);
@@ -65,7 +65,7 @@ void CScriptBindingRegistry::RegisterPropertyBinding(const char* ClassName,
 		return;
 	}
 
-	TString Key = TString(ClassName) + TEXT("::") + TString(PropertyName);
+	CString Key = CString(ClassName) + TEXT("::") + CString(PropertyName);
 	PropertyBindings.Add(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for property: {}::{}", ClassName, PropertyName);
@@ -79,7 +79,7 @@ void CScriptBindingRegistry::RegisterEnumBinding(const char* EnumName, const SSc
 		return;
 	}
 
-	TString EnumNameStr(EnumName);
+	CString EnumNameStr(EnumName);
 	EnumBindings.Add(EnumNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for enum: {}", EnumName);
@@ -90,7 +90,7 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetClassBindingInfo(const char
 	if (!ClassName)
 		return nullptr;
 
-	TString ClassNameStr(ClassName);
+	CString ClassNameStr(ClassName);
 	auto Found = ClassBindings.Find(ClassNameStr);
 	return Found ? &Found->Value : nullptr;
 }
@@ -101,7 +101,7 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetFunctionBindingInfo(const c
 	if (!ClassName || !FunctionName)
 		return nullptr;
 
-	TString Key = TString(ClassName) + TEXT("::") + TString(FunctionName);
+	CString Key = CString(ClassName) + TEXT("::") + CString(FunctionName);
 	auto Found = FunctionBindings.Find(Key);
 	return Found ? &Found->Value : nullptr;
 }
@@ -112,25 +112,25 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetPropertyBindingInfo(const c
 	if (!ClassName || !PropertyName)
 		return nullptr;
 
-	TString Key = TString(ClassName) + TEXT("::") + TString(PropertyName);
+	CString Key = CString(ClassName) + TEXT("::") + CString(PropertyName);
 	auto Found = PropertyBindings.Find(Key);
 	return Found ? &Found->Value : nullptr;
 }
 
-TString CScriptBindingRegistry::GenerateBindingCode(EScriptLanguage Language) const
+CString CScriptBindingRegistry::GenerateBindingCode(EScriptLanguage Language) const
 {
 	auto FoundGenerator = Generators.Find(Language);
 	if (!FoundGenerator)
 	{
 		NLOG_SCRIPT(Error, "No binding generator found for language {}", static_cast<int>(Language));
-		return TString();
+		return CString();
 	}
 
 	auto ScriptableClasses = GetScriptBindableClasses();
 	return FoundGenerator->Value->GenerateBindingFile(ScriptableClasses);
 }
 
-void CScriptBindingRegistry::GenerateAllBindings(const TString& OutputDirectory) const
+void CScriptBindingRegistry::GenerateAllBindings(const CString& OutputDirectory) const
 {
 	NLOG_SCRIPT(Info, "Generating script bindings to directory: {}", OutputDirectory.GetData());
 
@@ -145,10 +145,10 @@ void CScriptBindingRegistry::GenerateAllBindings(const TString& OutputDirectory)
 		EScriptLanguage Language = GeneratorPair.Key;
 		auto Generator = GeneratorPair.Value;
 
-		TString BindingCode = Generator->GenerateBindingFile(GetScriptBindableClasses());
+		CString BindingCode = Generator->GenerateBindingFile(GetScriptBindableClasses());
 		if (!BindingCode.IsEmpty())
 		{
-			TString FileName;
+			CString FileName;
 			switch (Language)
 			{
 			case EScriptLanguage::Lua:
@@ -164,11 +164,11 @@ void CScriptBindingRegistry::GenerateAllBindings(const TString& OutputDirectory)
 				FileName = TEXT("NLibBindings.cs");
 				break;
 			default:
-				FileName = TString(TEXT("NLibBindings_")) + TString::FromInt(static_cast<int>(Language));
+				FileName = CString(TEXT("NLibBindings_")) + CString::FromInt(static_cast<int>(Language));
 				break;
 			}
 
-			TString FilePath = NPath::Combine(OutputDirectory, FileName);
+			CString FilePath = NPath::Combine(OutputDirectory, FileName);
 			auto WriteResult = NFileSystem::WriteFileAsString(FilePath, BindingCode);
 
 			if (WriteResult.IsSuccess())
@@ -192,7 +192,7 @@ TArray<const SClassReflection*, CMemoryManager> CScriptBindingRegistry::GetScrip
 	// 遍历所有已注册的类
 	for (const auto& ClassBindingPair : ClassBindings)
 	{
-		const TString& ClassName = ClassBindingPair.Key;
+		const CString& ClassName = ClassBindingPair.Key;
 		const SScriptBindingInfo& BindingInfo = ClassBindingPair.Value;
 
 		if (BindingInfo.ShouldBind())
@@ -215,35 +215,35 @@ TArray<const SClassReflection*, CMemoryManager> CScriptBindingRegistry::GetScrip
 
 // === CLuaBindingGenerator 实现 ===
 
-TString CLuaBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
+CString CLuaBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
                                                    const SScriptBindingInfo& BindingInfo)
 {
 	if (!ClassReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::Lua))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString Code;
-	TString ClassName = BindingInfo.ScriptName.IsEmpty() ? TString(ClassReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
+	CString ClassName = BindingInfo.ScriptName.IsEmpty() ? CString(ClassReflection->Name) : BindingInfo.ScriptName;
 
-	Code += TString(TEXT("-- ")) + ClassName + TEXT(" class binding\n");
-	Code += TString(TEXT("local ")) + ClassName + TEXT(" = {}\n");
+	Code += CString(TEXT("-- ")) + ClassName + TEXT(" class binding\n");
+	Code += CString(TEXT("local ")) + ClassName + TEXT(" = {}\n");
 	Code += ClassName + TEXT(".__index = ") + ClassName + TEXT("\n\n");
 
 	// 构造函数
 	if (BindingInfo.bScriptCreatable && ClassReflection->Constructor)
 	{
-		Code += TString(TEXT("function ")) + ClassName + TEXT(".new(...)\n");
+		Code += CString(TEXT("function ")) + ClassName + TEXT(".new(...)\n");
 		Code += TEXT("    local instance = setmetatable({}, ") + ClassName + TEXT(")\n");
 		Code += TEXT("    -- Call C++ constructor\n");
-		Code += TEXT("    instance._cppObject = NLib.CreateObject(\"") + TString(ClassReflection->Name) +
+		Code += TEXT("    instance._cppObject = NLib.CreateObject(\"") + CString(ClassReflection->Name) +
 		        TEXT("\", ...)\n");
 		Code += TEXT("    return instance\n");
 		Code += TEXT("end\n\n");
 	}
 
 	// 析构函数
-	Code += TString(TEXT("function ")) + ClassName + TEXT(":__gc()\n");
+	Code += CString(TEXT("function ")) + ClassName + TEXT(":__gc()\n");
 	Code += TEXT("    if self._cppObject then\n");
 	Code += TEXT("        NLib.DestroyObject(self._cppObject)\n");
 	Code += TEXT("    end\n");
@@ -276,37 +276,37 @@ TString CLuaBindingGenerator::GenerateClassBinding(const SClassReflection* Class
 	}
 
 	// 注册到全局
-	Code += TString(TEXT("-- Register ")) + ClassName + TEXT(" globally\n");
-	Code += TString(TEXT("_G.")) + ClassName + TEXT(" = ") + ClassName + TEXT("\n\n");
+	Code += CString(TEXT("-- Register ")) + ClassName + TEXT(" globally\n");
+	Code += CString(TEXT("_G.")) + ClassName + TEXT(" = ") + ClassName + TEXT("\n\n");
 
 	return Code;
 }
 
-TString CLuaBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+CString CLuaBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
                                                       const SScriptBindingInfo& BindingInfo,
-                                                      const TString& ClassName)
+                                                      const CString& ClassName)
 {
 	if (!FunctionReflection || !BindingInfo.bScriptCallable || !BindingInfo.SupportsLanguage(EScriptLanguage::Lua))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString FunctionName = BindingInfo.ScriptName.IsEmpty() ? TString(FunctionReflection->Name)
+	CString FunctionName = BindingInfo.ScriptName.IsEmpty() ? CString(FunctionReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
+	CString Code;
 
 	if (BindingInfo.bScriptStatic)
 	{
 		// 静态函数
-		Code += TString(TEXT("function ")) + ClassName + TEXT(".") + FunctionName + TEXT("(...)\n");
+		Code += CString(TEXT("function ")) + ClassName + TEXT(".") + FunctionName + TEXT("(...)\n");
 		Code += TEXT("    return NLib.CallStaticFunction(\"") + ClassName + TEXT("\", \"") +
-		        TString(FunctionReflection->Name) + TEXT("\", ...)\n");
+		        CString(FunctionReflection->Name) + TEXT("\", ...)\n");
 	}
 	else
 	{
 		// 实例方法
-		Code += TString(TEXT("function ")) + ClassName + TEXT(":") + FunctionName + TEXT("(...)\n");
-		Code += TEXT("    return NLib.CallMethod(self._cppObject, \"") + TString(FunctionReflection->Name) +
+		Code += CString(TEXT("function ")) + ClassName + TEXT(":") + FunctionName + TEXT("(...)\n");
+		Code += TEXT("    return NLib.CallMethod(self._cppObject, \"") + CString(FunctionReflection->Name) +
 		        TEXT("\", ...)\n");
 	}
 
@@ -315,25 +315,25 @@ TString CLuaBindingGenerator::GenerateFunctionBinding(const SFunctionReflection*
 	return Code;
 }
 
-TString CLuaBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+CString CLuaBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
                                                       const SScriptBindingInfo& BindingInfo,
-                                                      const TString& ClassName)
+                                                      const CString& ClassName)
 {
 	if (!PropertyReflection || (!BindingInfo.bScriptReadable && !BindingInfo.bScriptWritable) ||
 	    !BindingInfo.SupportsLanguage(EScriptLanguage::Lua))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString PropertyName = BindingInfo.ScriptName.IsEmpty() ? TString(PropertyReflection->Name)
+	CString PropertyName = BindingInfo.ScriptName.IsEmpty() ? CString(PropertyReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
+	CString Code;
 
 	if (BindingInfo.bScriptReadable)
 	{
 		// Getter
-		Code += TString(TEXT("function ")) + ClassName + TEXT(":get") + PropertyName + TEXT("()\n");
-		Code += TEXT("    return NLib.GetProperty(self._cppObject, \"") + TString(PropertyReflection->Name) +
+		Code += CString(TEXT("function ")) + ClassName + TEXT(":get") + PropertyName + TEXT("()\n");
+		Code += TEXT("    return NLib.GetProperty(self._cppObject, \"") + CString(PropertyReflection->Name) +
 		        TEXT("\")\n");
 		Code += TEXT("end\n\n");
 	}
@@ -341,8 +341,8 @@ TString CLuaBindingGenerator::GeneratePropertyBinding(const SPropertyReflection*
 	if (BindingInfo.bScriptWritable)
 	{
 		// Setter
-		Code += TString(TEXT("function ")) + ClassName + TEXT(":set") + PropertyName + TEXT("(value)\n");
-		Code += TEXT("    NLib.SetProperty(self._cppObject, \"") + TString(PropertyReflection->Name) +
+		Code += CString(TEXT("function ")) + ClassName + TEXT(":set") + PropertyName + TEXT("(value)\n");
+		Code += TEXT("    NLib.SetProperty(self._cppObject, \"") + CString(PropertyReflection->Name) +
 		        TEXT("\", value)\n");
 		Code += TEXT("end\n\n");
 	}
@@ -350,36 +350,36 @@ TString CLuaBindingGenerator::GeneratePropertyBinding(const SPropertyReflection*
 	return Code;
 }
 
-TString CLuaBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
+CString CLuaBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
                                                   const SScriptBindingInfo& BindingInfo)
 {
 	if (!EnumReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::Lua))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString EnumName = BindingInfo.ScriptName.IsEmpty() ? TString(EnumReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString EnumName = BindingInfo.ScriptName.IsEmpty() ? CString(EnumReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
-	Code += TString(TEXT("-- ")) + EnumName + TEXT(" enum\n");
-	Code += TString(TEXT("local ")) + EnumName + TEXT(" = {\n");
+	Code += CString(TEXT("-- ")) + EnumName + TEXT(" enum\n");
+	Code += CString(TEXT("local ")) + EnumName + TEXT(" = {\n");
 
 	for (size_t i = 0; i < EnumReflection->ValueCount; ++i)
 	{
 		const SEnumValueReflection& ValueInfo = EnumReflection->Values[i];
-		Code += TString(TEXT("    ")) + TString(ValueInfo.Name) + TEXT(" = ") +
-		        TString::FromInt(static_cast<int32_t>(ValueInfo.Value)) + TEXT(",\n");
+		Code += CString(TEXT("    ")) + CString(ValueInfo.Name) + TEXT(" = ") +
+		        CString::FromInt(static_cast<int32_t>(ValueInfo.Value)) + TEXT(",\n");
 	}
 
 	Code += TEXT("}\n\n");
-	Code += TString(TEXT("_G.")) + EnumName + TEXT(" = ") + EnumName + TEXT("\n\n");
+	Code += CString(TEXT("_G.")) + EnumName + TEXT(" = ") + EnumName + TEXT("\n\n");
 
 	return Code;
 }
 
-TString CLuaBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
+CString CLuaBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
 {
-	TString Code;
+	CString Code;
 
 	Code += TEXT("-- NLib Lua Bindings\n");
 	Code += TEXT("-- Auto-generated by NutHeaderTools\n");
@@ -401,19 +401,19 @@ TString CLuaBindingGenerator::GenerateBindingFile(const TArray<const SClassRefle
 
 // === CTypeScriptBindingGenerator 实现 ===
 
-TString CTypeScriptBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
+CString CTypeScriptBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
                                                           const SScriptBindingInfo& BindingInfo)
 {
 	if (!ClassReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::TypeScript))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString ClassName = BindingInfo.ScriptName.IsEmpty() ? TString(ClassReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString ClassName = BindingInfo.ScriptName.IsEmpty() ? CString(ClassReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
 	// 生成类型定义
-	Code += TString(TEXT("declare class ")) + ClassName + TEXT(" {\n");
+	Code += CString(TEXT("declare class ")) + ClassName + TEXT(" {\n");
 
 	// 构造函数
 	if (BindingInfo.bScriptCreatable && ClassReflection->Constructor)
@@ -454,19 +454,19 @@ TString CTypeScriptBindingGenerator::GenerateClassBinding(const SClassReflection
 	return Code;
 }
 
-TString CTypeScriptBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+CString CTypeScriptBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
                                                              const SScriptBindingInfo& BindingInfo,
-                                                             const TString& ClassName)
+                                                             const CString& ClassName)
 {
 	if (!FunctionReflection || !BindingInfo.bScriptCallable ||
 	    !BindingInfo.SupportsLanguage(EScriptLanguage::TypeScript))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString FunctionName = BindingInfo.ScriptName.IsEmpty() ? TString(FunctionReflection->Name)
+	CString FunctionName = BindingInfo.ScriptName.IsEmpty() ? CString(FunctionReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code = TEXT("    ");
+	CString Code = TEXT("    ");
 
 	if (BindingInfo.bScriptStatic)
 	{
@@ -481,7 +481,7 @@ TString CTypeScriptBindingGenerator::GenerateFunctionBinding(const SFunctionRefl
 		if (i > 0)
 			Code += TEXT(", ");
 		const auto& Param = FunctionReflection->Parameters[i];
-		Code += TString(Param.Name) + TEXT(": ") + ConvertTypeToTypeScript(*Param.TypeInfo);
+		Code += CString(Param.Name) + TEXT(": ") + ConvertTypeToTypeScript(*Param.TypeInfo);
 	}
 
 	Code += TEXT("): ") + ConvertTypeToTypeScript(*FunctionReflection->ReturnTypeInfo) + TEXT(";\n");
@@ -489,19 +489,19 @@ TString CTypeScriptBindingGenerator::GenerateFunctionBinding(const SFunctionRefl
 	return Code;
 }
 
-TString CTypeScriptBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+CString CTypeScriptBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
                                                              const SScriptBindingInfo& BindingInfo,
-                                                             const TString& ClassName)
+                                                             const CString& ClassName)
 {
 	if (!PropertyReflection || (!BindingInfo.bScriptReadable && !BindingInfo.bScriptWritable) ||
 	    !BindingInfo.SupportsLanguage(EScriptLanguage::TypeScript))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString PropertyName = BindingInfo.ScriptName.IsEmpty() ? TString(PropertyReflection->Name)
+	CString PropertyName = BindingInfo.ScriptName.IsEmpty() ? CString(PropertyReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code = TEXT("    ");
+	CString Code = TEXT("    ");
 
 	if (BindingInfo.bScriptReadable && !BindingInfo.bScriptWritable)
 	{
@@ -513,24 +513,24 @@ TString CTypeScriptBindingGenerator::GeneratePropertyBinding(const SPropertyRefl
 	return Code;
 }
 
-TString CTypeScriptBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
+CString CTypeScriptBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
                                                          const SScriptBindingInfo& BindingInfo)
 {
 	if (!EnumReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::TypeScript))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString EnumName = BindingInfo.ScriptName.IsEmpty() ? TString(EnumReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString EnumName = BindingInfo.ScriptName.IsEmpty() ? CString(EnumReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
-	Code += TString(TEXT("declare enum ")) + EnumName + TEXT(" {\n");
+	Code += CString(TEXT("declare enum ")) + EnumName + TEXT(" {\n");
 
 	for (size_t i = 0; i < EnumReflection->ValueCount; ++i)
 	{
 		const SEnumValueReflection& ValueInfo = EnumReflection->Values[i];
-		Code += TString(TEXT("    ")) + TString(ValueInfo.Name) + TEXT(" = ") +
-		        TString::FromInt(static_cast<int32_t>(ValueInfo.Value)) + TEXT(",\n");
+		Code += CString(TEXT("    ")) + CString(ValueInfo.Name) + TEXT(" = ") +
+		        CString::FromInt(static_cast<int32_t>(ValueInfo.Value)) + TEXT(",\n");
 	}
 
 	Code += TEXT("}\n\n");
@@ -538,9 +538,9 @@ TString CTypeScriptBindingGenerator::GenerateEnumBinding(const SEnumReflection* 
 	return Code;
 }
 
-TString CTypeScriptBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
+CString CTypeScriptBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
 {
-	TString Code;
+	CString Code;
 
 	Code += TEXT("// NLib TypeScript Bindings\n");
 	Code += TEXT("// Auto-generated by NutHeaderTools\n");
@@ -560,7 +560,7 @@ TString CTypeScriptBindingGenerator::GenerateBindingFile(const TArray<const SCla
 	return Code;
 }
 
-TString CTypeScriptBindingGenerator::ConvertTypeToTypeScript(const std::type_info& TypeInfo) const
+CString CTypeScriptBindingGenerator::ConvertTypeToTypeScript(const std::type_info& TypeInfo) const
 {
 	// 简化的类型转换，实际实现需要更完整
 	if (TypeInfo == typeid(bool))
@@ -568,7 +568,7 @@ TString CTypeScriptBindingGenerator::ConvertTypeToTypeScript(const std::type_inf
 	else if (TypeInfo == typeid(int32_t) || TypeInfo == typeid(int64_t) || TypeInfo == typeid(float) ||
 	         TypeInfo == typeid(double))
 		return TEXT("number");
-	else if (TypeInfo == typeid(TString))
+	else if (TypeInfo == typeid(CString))
 		return TEXT("string");
 	else if (TypeInfo == typeid(void))
 		return TEXT("void");
@@ -576,35 +576,35 @@ TString CTypeScriptBindingGenerator::ConvertTypeToTypeScript(const std::type_inf
 		return TEXT("any");
 }
 
-TString CTypeScriptBindingGenerator::GenerateTypeDefinition(const SClassReflection* ClassReflection,
+CString CTypeScriptBindingGenerator::GenerateTypeDefinition(const SClassReflection* ClassReflection,
                                                             const SScriptBindingInfo& BindingInfo) const
 {
 	return GenerateClassBinding(ClassReflection, BindingInfo);
 }
 
-TString CTypeScriptBindingGenerator::GenerateInterfaceDefinition(const SClassReflection* ClassReflection) const
+CString CTypeScriptBindingGenerator::GenerateInterfaceDefinition(const SClassReflection* ClassReflection) const
 {
-	TString Code;
-	Code += TString(TEXT("interface I")) + TString(ClassReflection->Name) + TEXT(" {\n");
+	CString Code;
+	Code += CString(TEXT("interface I")) + CString(ClassReflection->Name) + TEXT(" {\n");
 
 	for (size_t i = 0; i < ClassReflection->PropertyCount; ++i)
 	{
 		const SPropertyReflection& PropInfo = ClassReflection->Properties[i];
-		Code += TString(TEXT("    ")) + TString(PropInfo.Name) + TEXT(": ") +
+		Code += CString(TEXT("    ")) + CString(PropInfo.Name) + TEXT(": ") +
 		        ConvertTypeToTypeScript(*PropInfo.TypeInfo) + TEXT(";\n");
 	}
 
 	for (size_t i = 0; i < ClassReflection->FunctionCount; ++i)
 	{
 		const SFunctionReflection& FuncInfo = ClassReflection->Functions[i];
-		Code += TString(TEXT("    ")) + TString(FuncInfo.Name) + TEXT("(");
+		Code += CString(TEXT("    ")) + CString(FuncInfo.Name) + TEXT("(");
 
 		for (size_t j = 0; j < FuncInfo.Parameters.size(); ++j)
 		{
 			if (j > 0)
 				Code += TEXT(", ");
 			const auto& Param = FuncInfo.Parameters[j];
-			Code += TString(Param.Name) + TEXT(": ") + ConvertTypeToTypeScript(*Param.TypeInfo);
+			Code += CString(Param.Name) + TEXT(": ") + ConvertTypeToTypeScript(*Param.TypeInfo);
 		}
 
 		Code += TEXT("): ") + ConvertTypeToTypeScript(*FuncInfo.ReturnTypeInfo) + TEXT(";\n");
@@ -616,27 +616,27 @@ TString CTypeScriptBindingGenerator::GenerateInterfaceDefinition(const SClassRef
 
 // === CCSharpBindingGenerator 实现 ===
 
-TString CCSharpBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
+CString CCSharpBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
                                                       const SScriptBindingInfo& BindingInfo)
 {
 	if (!ClassReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::CSharp))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString ClassName = BindingInfo.ScriptName.IsEmpty() ? TString(ClassReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString ClassName = BindingInfo.ScriptName.IsEmpty() ? CString(ClassReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
 	Code += TEXT("using System;\n");
 	Code += TEXT("using System.Runtime.InteropServices;\n");
 	Code += TEXT("using NLib.Interop;\n\n");
 
 	Code += TEXT("namespace NLib.Generated\n{\n");
-	Code += TString(TEXT("    public class ")) + ClassName;
+	Code += CString(TEXT("    public class ")) + ClassName;
 
 	if (ClassReflection->BaseClassName && strlen(ClassReflection->BaseClassName) > 0)
 	{
-		Code += TString(TEXT(" : ")) + TString(ClassReflection->BaseClassName);
+		Code += CString(TEXT(" : ")) + CString(ClassReflection->BaseClassName);
 	}
 	else
 	{
@@ -647,9 +647,9 @@ TString CCSharpBindingGenerator::GenerateClassBinding(const SClassReflection* Cl
 
 	if (BindingInfo.bScriptCreatable && ClassReflection->Constructor)
 	{
-		Code += TString(TEXT("        public ")) + ClassName + TEXT("()\n");
+		Code += CString(TEXT("        public ")) + ClassName + TEXT("()\n");
 		Code += TEXT("        {\n");
-		Code += TString(TEXT("            _nativePtr = NLibInterop.CreateObject(\"")) + TString(ClassReflection->Name) +
+		Code += CString(TEXT("            _nativePtr = NLibInterop.CreateObject(\"")) + CString(ClassReflection->Name) +
 		        TEXT("\");\n");
 		Code += TEXT("        }\n\n");
 	}
@@ -688,18 +688,18 @@ TString CCSharpBindingGenerator::GenerateClassBinding(const SClassReflection* Cl
 	return Code;
 }
 
-TString CCSharpBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+CString CCSharpBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
 	if (!FunctionReflection || !BindingInfo.bScriptCallable || !BindingInfo.SupportsLanguage(EScriptLanguage::CSharp))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString FunctionName = BindingInfo.ScriptName.IsEmpty() ? TString(FunctionReflection->Name)
+	CString FunctionName = BindingInfo.ScriptName.IsEmpty() ? CString(FunctionReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
+	CString Code;
 
 	Code += TEXT("        public ");
 	if (BindingInfo.bScriptStatic)
@@ -713,49 +713,49 @@ TString CCSharpBindingGenerator::GenerateFunctionBinding(const SFunctionReflecti
 		if (i > 0)
 			Code += TEXT(", ");
 		const auto& Param = FunctionReflection->Parameters[i];
-		Code += ConvertTypeToCSharp(*Param.TypeInfo) + TEXT(" ") + TString(Param.Name);
+		Code += ConvertTypeToCSharp(*Param.TypeInfo) + TEXT(" ") + CString(Param.Name);
 	}
 
 	Code += TEXT(")\n        {\n");
 
 	if (BindingInfo.bScriptStatic)
 	{
-		Code += TString(TEXT("            return NLibInterop.CallStaticMethod<")) +
+		Code += CString(TEXT("            return NLibInterop.CallStaticMethod<")) +
 		        ConvertTypeToCSharp(*FunctionReflection->ReturnTypeInfo) + TEXT(">(\"") + ClassName + TEXT("\", \"") +
-		        TString(FunctionReflection->Name) + TEXT("\"");
+		        CString(FunctionReflection->Name) + TEXT("\"");
 	}
 	else
 	{
-		Code += TString(TEXT("            return NLibInterop.CallMethod<")) +
+		Code += CString(TEXT("            return NLibInterop.CallMethod<")) +
 		        ConvertTypeToCSharp(*FunctionReflection->ReturnTypeInfo) + TEXT(">(_nativePtr, \"") +
-		        TString(FunctionReflection->Name) + TEXT("\"");
+		        CString(FunctionReflection->Name) + TEXT("\"");
 	}
 
 	for (size_t i = 0; i < FunctionReflection->Parameters.size(); ++i)
 	{
 		const auto& Param = FunctionReflection->Parameters[i];
-		Code += TEXT(", ") + TString(Param.Name);
+		Code += TEXT(", ") + CString(Param.Name);
 	}
 
 	Code += TEXT(");\n        }\n\n");
 	return Code;
 }
 
-TString CCSharpBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+CString CCSharpBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
 	if (!PropertyReflection || (!BindingInfo.bScriptReadable && !BindingInfo.bScriptWritable) ||
 	    !BindingInfo.SupportsLanguage(EScriptLanguage::CSharp))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString PropertyName = BindingInfo.ScriptName.IsEmpty() ? TString(PropertyReflection->Name)
+	CString PropertyName = BindingInfo.ScriptName.IsEmpty() ? CString(PropertyReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
+	CString Code;
 
-	Code += TString(TEXT("        public ")) + ConvertTypeToCSharp(*PropertyReflection->TypeInfo) + TEXT(" ") +
+	Code += CString(TEXT("        public ")) + ConvertTypeToCSharp(*PropertyReflection->TypeInfo) + TEXT(" ") +
 	        PropertyName + TEXT("\n");
 	Code += TEXT("        {\n");
 
@@ -763,12 +763,12 @@ TString CCSharpBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 	{
 		Code += TEXT("            get => NLibInterop.GetProperty<") +
 		        ConvertTypeToCSharp(*PropertyReflection->TypeInfo) + TEXT(">(_nativePtr, \"") +
-		        TString(PropertyReflection->Name) + TEXT("\");\n");
+		        CString(PropertyReflection->Name) + TEXT("\");\n");
 	}
 
 	if (BindingInfo.bScriptWritable)
 	{
-		Code += TEXT("            set => NLibInterop.SetProperty(_nativePtr, \"") + TString(PropertyReflection->Name) +
+		Code += TEXT("            set => NLibInterop.SetProperty(_nativePtr, \"") + CString(PropertyReflection->Name) +
 		        TEXT("\", value);\n");
 	}
 
@@ -776,24 +776,24 @@ TString CCSharpBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 	return Code;
 }
 
-TString CCSharpBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
+CString CCSharpBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
                                                      const SScriptBindingInfo& BindingInfo)
 {
 	if (!EnumReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::CSharp))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString EnumName = BindingInfo.ScriptName.IsEmpty() ? TString(EnumReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString EnumName = BindingInfo.ScriptName.IsEmpty() ? CString(EnumReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
-	Code += TString(TEXT("    public enum ")) + EnumName + TEXT("\n    {\n");
+	Code += CString(TEXT("    public enum ")) + EnumName + TEXT("\n    {\n");
 
 	for (size_t i = 0; i < EnumReflection->ValueCount; ++i)
 	{
 		const SEnumValueReflection& ValueInfo = EnumReflection->Values[i];
-		Code += TString(TEXT("        ")) + TString(ValueInfo.Name) + TEXT(" = ") +
-		        TString::FromInt(static_cast<int32_t>(ValueInfo.Value));
+		Code += CString(TEXT("        ")) + CString(ValueInfo.Name) + TEXT(" = ") +
+		        CString::FromInt(static_cast<int32_t>(ValueInfo.Value));
 
 		if (i < EnumReflection->ValueCount - 1)
 			Code += TEXT(",");
@@ -804,9 +804,9 @@ TString CCSharpBindingGenerator::GenerateEnumBinding(const SEnumReflection* Enum
 	return Code;
 }
 
-TString CCSharpBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
+CString CCSharpBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
 {
-	TString Code;
+	CString Code;
 
 	Code += TEXT("// NLib C# Bindings\n");
 	Code += TEXT("// Auto-generated by NutHeaderTools\n\n");
@@ -824,7 +824,7 @@ TString CCSharpBindingGenerator::GenerateBindingFile(const TArray<const SClassRe
 	return Code;
 }
 
-TString CCSharpBindingGenerator::ConvertTypeToCSharp(const std::type_info& TypeInfo) const
+CString CCSharpBindingGenerator::ConvertTypeToCSharp(const std::type_info& TypeInfo) const
 {
 	if (TypeInfo == typeid(bool))
 		return TEXT("bool");
@@ -836,7 +836,7 @@ TString CCSharpBindingGenerator::ConvertTypeToCSharp(const std::type_info& TypeI
 		return TEXT("float");
 	else if (TypeInfo == typeid(double))
 		return TEXT("double");
-	else if (TypeInfo == typeid(TString))
+	else if (TypeInfo == typeid(CString))
 		return TEXT("string");
 	else if (TypeInfo == typeid(void))
 		return TEXT("void");
@@ -844,87 +844,87 @@ TString CCSharpBindingGenerator::ConvertTypeToCSharp(const std::type_info& TypeI
 		return TEXT("object");
 }
 
-TString CCSharpBindingGenerator::GenerateCSharpClass(const SClassReflection* ClassReflection,
+CString CCSharpBindingGenerator::GenerateCSharpClass(const SClassReflection* ClassReflection,
                                                      const SScriptBindingInfo& BindingInfo) const
 {
 	return GenerateClassBinding(ClassReflection, BindingInfo);
 }
 
-TString CCSharpBindingGenerator::GeneratePInvokeDeclarations(const SClassReflection* ClassReflection) const
+CString CCSharpBindingGenerator::GeneratePInvokeDeclarations(const SClassReflection* ClassReflection) const
 {
-	TString Code;
+	CString Code;
 	Code += TEXT("    [DllImport(\"NLib\")]\n");
-	Code += TString(TEXT("    public static extern IntPtr Create")) + TString(ClassReflection->Name) + TEXT("();\n");
+	Code += CString(TEXT("    public static extern IntPtr Create")) + CString(ClassReflection->Name) + TEXT("();\n");
 	return Code;
 }
 
 // === 空的Python绑定生成器实现（占位符） ===
 
-TString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
+CString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
                                                       const SScriptBindingInfo& BindingInfo)
 {
 	NLOG_SCRIPT(Warning, "Python binding generation not implemented yet");
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+CString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+CString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
+CString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
                                                      const SScriptBindingInfo& BindingInfo)
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
+CString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeInfo) const
+CString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeInfo) const
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GeneratePythonClass(const SClassReflection* ClassReflection,
+CString CPythonBindingGenerator::GeneratePythonClass(const SClassReflection* ClassReflection,
                                                      const SScriptBindingInfo& BindingInfo) const
 {
-	return TString();
+	return CString();
 }
 
-TString CPythonBindingGenerator::GeneratePythonStub(const SClassReflection* ClassReflection) const
+CString CPythonBindingGenerator::GeneratePythonStub(const SClassReflection* ClassReflection) const
 {
-	return TString();
+	return CString();
 }
 
 // === CPythonBindingGenerator 实现 ===
 
-TString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
+CString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
                                                       const SScriptBindingInfo& BindingInfo)
 {
 	if (!ClassReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::Python))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString ClassName = BindingInfo.ScriptName.IsEmpty() ? TString(ClassReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString ClassName = BindingInfo.ScriptName.IsEmpty() ? CString(ClassReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
 	// Python 类定义开始
-	Code += TString::Format(TEXT("class {}:\n"), ClassName.GetData());
+	Code += CString::Format(TEXT("class {}:\n"), ClassName.GetData());
 	Code += TEXT("    \"\"\"\n");
-	Code += TString::Format(TEXT("    NLib {} class binding\n"), ClassName.GetData());
+	Code += CString::Format(TEXT("    NLib {} class binding\n"), ClassName.GetData());
 	Code += TEXT("    Auto-generated by NutHeaderTools\n");
 	Code += TEXT("    \"\"\"\n\n");
 
@@ -945,10 +945,10 @@ TString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* Cl
 				hasProperties = true;
 			}
 
-			TString PropName = PropBindingInfo->ScriptName.IsEmpty() ? TString(PropInfo.Name)
+			CString PropName = PropBindingInfo->ScriptName.IsEmpty() ? CString(PropInfo.Name)
 			                                                         : PropBindingInfo->ScriptName;
-			TString PropType = ConvertTypeToPython(*PropInfo.TypeInfo);
-			Code += TString::Format(TEXT("    {}: {}\n"), PropName.GetData(), PropType.GetData());
+			CString PropType = ConvertTypeToPython(*PropInfo.TypeInfo);
+			Code += CString::Format(TEXT("    {}: {}\n"), PropName.GetData(), PropType.GetData());
 		}
 	}
 
@@ -1003,7 +1003,7 @@ TString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* Cl
 
 	// 特殊方法
 	Code += TEXT("    def __str__(self):\n");
-	Code += TString::Format(TEXT("        return f\"<{} object at {{hex(id(self))}}>\"\n"), ClassName.GetData());
+	Code += CString::Format(TEXT("        return f\"<{} object at {{hex(id(self))}}>\"\n"), ClassName.GetData());
 	Code += TEXT("\n");
 
 	Code += TEXT("    def __repr__(self):\n");
@@ -1012,18 +1012,18 @@ TString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* Cl
 	return Code;
 }
 
-TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
+CString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
 	if (!FunctionReflection || !BindingInfo.bScriptCallable || !BindingInfo.SupportsLanguage(EScriptLanguage::Python))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString FunctionName = BindingInfo.ScriptName.IsEmpty() ? TString(FunctionReflection->Name)
+	CString FunctionName = BindingInfo.ScriptName.IsEmpty() ? CString(FunctionReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
+	CString Code;
 
 	// 静态方法装饰器
 	if (BindingInfo.bScriptStatic)
@@ -1049,10 +1049,10 @@ TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflecti
 		if (i > 0)
 			Code += TEXT(", ");
 		const auto& Param = FunctionReflection->Parameters[i];
-		Code += TString(Param.Name);
+		Code += CString(Param.Name);
 
 		// 类型注解
-		TString ParamType = ConvertTypeToPython(*Param.TypeInfo);
+		CString ParamType = ConvertTypeToPython(*Param.TypeInfo);
 		if (!ParamType.IsEmpty())
 		{
 			Code += TEXT(": ") + ParamType;
@@ -1062,7 +1062,7 @@ TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflecti
 	Code += TEXT(")");
 
 	// 返回类型注解
-	TString ReturnType = ConvertTypeToPython(*FunctionReflection->ReturnTypeInfo);
+	CString ReturnType = ConvertTypeToPython(*FunctionReflection->ReturnTypeInfo);
 	if (!ReturnType.IsEmpty())
 	{
 		Code += TEXT(" -> ") + ReturnType;
@@ -1072,23 +1072,23 @@ TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflecti
 
 	// 文档字符串
 	Code += TEXT("        \"\"\"\n");
-	Code += TString::Format(TEXT("        {} method binding\n"), FunctionName.GetData());
+	Code += CString::Format(TEXT("        {} method binding\n"), FunctionName.GetData());
 
 	if (!FunctionReflection->Parameters.empty())
 	{
 		Code += TEXT("        \n        Args:\n");
 		for (const auto& Param : FunctionReflection->Parameters)
 		{
-			TString ParamType = ConvertTypeToPython(*Param.TypeInfo);
-			Code += TString::Format(TEXT("            {} ({}): Parameter\n"), Param.Name, ParamType.GetData());
+			CString ParamType = ConvertTypeToPython(*Param.TypeInfo);
+			Code += CString::Format(TEXT("            {} ({}): Parameter\n"), Param.Name, ParamType.GetData());
 		}
 	}
 
 	if (*FunctionReflection->ReturnTypeInfo != typeid(void))
 	{
-		TString RetType = ConvertTypeToPython(*FunctionReflection->ReturnTypeInfo);
+		CString RetType = ConvertTypeToPython(*FunctionReflection->ReturnTypeInfo);
 		Code += TEXT("        \n        Returns:\n");
-		Code += TString::Format(TEXT("            {}: Return value\n"), RetType.GetData());
+		Code += CString::Format(TEXT("            {}: Return value\n"), RetType.GetData());
 	}
 
 	Code += TEXT("        \"\"\"\n");
@@ -1100,26 +1100,26 @@ TString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflecti
 	return Code;
 }
 
-TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
+CString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
                                                          const SScriptBindingInfo& BindingInfo,
-                                                         const TString& ClassName)
+                                                         const CString& ClassName)
 {
 	if (!PropertyReflection || (!BindingInfo.bScriptReadable && !BindingInfo.bScriptWritable) ||
 	    !BindingInfo.SupportsLanguage(EScriptLanguage::Python))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString PropertyName = BindingInfo.ScriptName.IsEmpty() ? TString(PropertyReflection->Name)
+	CString PropertyName = BindingInfo.ScriptName.IsEmpty() ? CString(PropertyReflection->Name)
 	                                                        : BindingInfo.ScriptName;
-	TString Code;
-	TString PropertyType = ConvertTypeToPython(*PropertyReflection->TypeInfo);
+	CString Code;
+	CString PropertyType = ConvertTypeToPython(*PropertyReflection->TypeInfo);
 
 	// Getter方法
 	if (BindingInfo.bScriptReadable)
 	{
 		Code += TEXT("    @property\n");
-		Code += TString::Format(TEXT("    def {}(self)"), PropertyName.GetData());
+		Code += CString::Format(TEXT("    def {}(self)"), PropertyName.GetData());
 
 		if (!PropertyType.IsEmpty())
 		{
@@ -1127,7 +1127,7 @@ TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 		}
 
 		Code += TEXT(":\n");
-		Code += TString::Format(TEXT("        \"\"\"Get {} property\"\"\"\n"), PropertyName.GetData());
+		Code += CString::Format(TEXT("        \"\"\"Get {} property\"\"\"\n"), PropertyName.GetData());
 		Code += TEXT("        # Get native C++ property\n");
 		Code += TEXT("        pass  # Implementation provided by C++ binding\n\n");
 	}
@@ -1135,8 +1135,8 @@ TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 	// Setter方法
 	if (BindingInfo.bScriptWritable)
 	{
-		Code += TString::Format(TEXT("    @{}.setter\n"), PropertyName.GetData());
-		Code += TString::Format(TEXT("    def {}(self, value"), PropertyName.GetData());
+		Code += CString::Format(TEXT("    @{}.setter\n"), PropertyName.GetData());
+		Code += CString::Format(TEXT("    def {}(self, value"), PropertyName.GetData());
 
 		if (!PropertyType.IsEmpty())
 		{
@@ -1144,7 +1144,7 @@ TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 		}
 
 		Code += TEXT("):\n");
-		Code += TString::Format(TEXT("        \"\"\"Set {} property\"\"\"\n"), PropertyName.GetData());
+		Code += CString::Format(TEXT("        \"\"\"Set {} property\"\"\"\n"), PropertyName.GetData());
 		Code += TEXT("        # Set native C++ property\n");
 		Code += TEXT("        pass  # Implementation provided by C++ binding\n\n");
 	}
@@ -1152,29 +1152,29 @@ TString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflecti
 	return Code;
 }
 
-TString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
+CString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
                                                      const SScriptBindingInfo& BindingInfo)
 {
 	if (!EnumReflection || !BindingInfo.ShouldBind() || !BindingInfo.SupportsLanguage(EScriptLanguage::Python))
 	{
-		return TString();
+		return CString();
 	}
 
-	TString EnumName = BindingInfo.ScriptName.IsEmpty() ? TString(EnumReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString EnumName = BindingInfo.ScriptName.IsEmpty() ? CString(EnumReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
 	// 使用Python Enum类
 	Code += TEXT("from enum import Enum, IntEnum\n\n");
-	Code += TString::Format(TEXT("class {}(IntEnum):\n"), EnumName.GetData());
+	Code += CString::Format(TEXT("class {}(IntEnum):\n"), EnumName.GetData());
 	Code += TEXT("    \"\"\"\n");
-	Code += TString::Format(TEXT("    {} enumeration\n"), EnumName.GetData());
+	Code += CString::Format(TEXT("    {} enumeration\n"), EnumName.GetData());
 	Code += TEXT("    Auto-generated by NutHeaderTools\n");
 	Code += TEXT("    \"\"\"\n");
 
 	for (size_t i = 0; i < EnumReflection->ValueCount; ++i)
 	{
 		const SEnumValueReflection& ValueInfo = EnumReflection->Values[i];
-		Code += TString::Format(TEXT("    {} = {}\n"), ValueInfo.Name, static_cast<int32_t>(ValueInfo.Value));
+		Code += CString::Format(TEXT("    {} = {}\n"), ValueInfo.Name, static_cast<int32_t>(ValueInfo.Value));
 	}
 
 	Code += TEXT("\n");
@@ -1182,9 +1182,9 @@ TString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* Enum
 	return Code;
 }
 
-TString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
+CString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
 {
-	TString Code;
+	CString Code;
 
 	Code += TEXT("#!/usr/bin/env python3\n");
 	Code += TEXT("\"\"\"\n");
@@ -1231,9 +1231,9 @@ TString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassRe
 		    ClassReflection->Name);
 		if (BindingInfo && BindingInfo->ShouldBind() && BindingInfo->SupportsLanguage(EScriptLanguage::Python))
 		{
-			TString ClassName = BindingInfo->ScriptName.IsEmpty() ? TString(ClassReflection->Name)
+			CString ClassName = BindingInfo->ScriptName.IsEmpty() ? CString(ClassReflection->Name)
 			                                                      : BindingInfo->ScriptName;
-			Code += TString::Format(TEXT("    \"{}\",\n"), ClassName.GetData());
+			Code += CString::Format(TEXT("    \"{}\",\n"), ClassName.GetData());
 		}
 	}
 
@@ -1242,7 +1242,7 @@ TString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassRe
 	return Code;
 }
 
-TString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeInfo) const
+CString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeInfo) const
 {
 	// Python类型转换映射
 	if (TypeInfo == typeid(bool))
@@ -1251,7 +1251,7 @@ TString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeI
 		return TEXT("int");
 	else if (TypeInfo == typeid(float) || TypeInfo == typeid(double))
 		return TEXT("float");
-	else if (TypeInfo == typeid(TString))
+	else if (TypeInfo == typeid(CString))
 		return TEXT("str");
 	else if (TypeInfo == typeid(void))
 		return TEXT("None");
@@ -1259,14 +1259,14 @@ TString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeI
 		return TEXT("Any");
 }
 
-TString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassReflection,
+CString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassReflection,
                                                   const SScriptBindingInfo& BindingInfo) const
 {
 	// 生成.pyi类型存根文件
-	TString ClassName = BindingInfo.ScriptName.IsEmpty() ? TString(ClassReflection->Name) : BindingInfo.ScriptName;
-	TString Code;
+	CString ClassName = BindingInfo.ScriptName.IsEmpty() ? CString(ClassReflection->Name) : BindingInfo.ScriptName;
+	CString Code;
 
-	Code += TString::Format(TEXT("class {}:\n"), ClassName.GetData());
+	Code += CString::Format(TEXT("class {}:\n"), ClassName.GetData());
 
 	// 属性类型注解
 	for (size_t i = 0; i < ClassReflection->PropertyCount; ++i)
@@ -1278,10 +1278,10 @@ TString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassR
 		if (PropBindingInfo && PropBindingInfo->ShouldBind() &&
 		    PropBindingInfo->SupportsLanguage(EScriptLanguage::Python))
 		{
-			TString PropName = PropBindingInfo->ScriptName.IsEmpty() ? TString(PropInfo.Name)
+			CString PropName = PropBindingInfo->ScriptName.IsEmpty() ? CString(PropInfo.Name)
 			                                                         : PropBindingInfo->ScriptName;
-			TString PropType = ConvertTypeToPython(*PropInfo.TypeInfo);
-			Code += TString::Format(TEXT("    {}: {}\n"), PropName.GetData(), PropType.GetData());
+			CString PropType = ConvertTypeToPython(*PropInfo.TypeInfo);
+			Code += CString::Format(TEXT("    {}: {}\n"), PropName.GetData(), PropType.GetData());
 		}
 	}
 
@@ -1295,7 +1295,7 @@ TString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassR
 		if (FuncBindingInfo && FuncBindingInfo->ShouldBind() &&
 		    FuncBindingInfo->SupportsLanguage(EScriptLanguage::Python))
 		{
-			TString FunctionName = FuncBindingInfo->ScriptName.IsEmpty() ? TString(FuncInfo.Name)
+			CString FunctionName = FuncBindingInfo->ScriptName.IsEmpty() ? CString(FuncInfo.Name)
 			                                                             : FuncBindingInfo->ScriptName;
 			Code += TEXT("    def ") + FunctionName + TEXT("(");
 
@@ -1311,7 +1311,7 @@ TString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassR
 				if (j > 0)
 					Code += TEXT(", ");
 				const auto& Param = FuncInfo.Parameters[j];
-				Code += TString(Param.Name) + TEXT(": ") + ConvertTypeToPython(*Param.TypeInfo);
+				Code += CString(Param.Name) + TEXT(": ") + ConvertTypeToPython(*Param.TypeInfo);
 			}
 
 			Code += TEXT(") -> ") + ConvertTypeToPython(*FuncInfo.ReturnTypeInfo) + TEXT(": ...\n");
@@ -1321,9 +1321,9 @@ TString CPythonBindingGenerator::GenerateTypeStub(const SClassReflection* ClassR
 	return Code;
 }
 
-TString CPythonBindingGenerator::GeneratePyiFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) const
+CString CPythonBindingGenerator::GeneratePyiFile(const TArray<const SClassReflection*, CMemoryManager>& Classes) const
 {
-	TString Code;
+	CString Code;
 
 	Code += TEXT("# NLib Python Type Stubs\n");
 	Code += TEXT("# Auto-generated by NutHeaderTools\n\n");

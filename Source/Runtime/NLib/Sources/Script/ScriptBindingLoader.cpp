@@ -26,7 +26,7 @@ void CScriptBindingLoader::RegisterClassBinding(const char* ClassName, const SSc
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString ClassNameStr(ClassName);
+	CString ClassNameStr(ClassName);
 	ClassBindings.Add(ClassNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug,
@@ -47,7 +47,7 @@ void CScriptBindingLoader::RegisterFunctionBinding(const char* ClassName,
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString Key = GenerateBindingKey(ClassName, FunctionName);
+	CString Key = GenerateBindingKey(ClassName, FunctionName);
 	FunctionBindings.Add(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug,
@@ -69,7 +69,7 @@ void CScriptBindingLoader::RegisterPropertyBinding(const char* ClassName,
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString Key = GenerateBindingKey(ClassName, PropertyName);
+	CString Key = GenerateBindingKey(ClassName, PropertyName);
 	PropertyBindings.Add(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug,
@@ -89,7 +89,7 @@ void CScriptBindingLoader::RegisterEnumBinding(const char* EnumName, const SScri
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString EnumNameStr(EnumName);
+	CString EnumNameStr(EnumName);
 	EnumBindings.Add(EnumNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug,
@@ -105,7 +105,7 @@ const SScriptBindingInfo* CScriptBindingLoader::GetClassBindingInfo(const char* 
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString ClassNameStr(ClassName);
+	CString ClassNameStr(ClassName);
 	auto Found = ClassBindings.Find(ClassNameStr);
 	return Found ? &Found->Value : nullptr;
 }
@@ -118,7 +118,7 @@ const SScriptBindingInfo* CScriptBindingLoader::GetFunctionBindingInfo(const cha
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString Key = GenerateBindingKey(ClassName, FunctionName);
+	CString Key = GenerateBindingKey(ClassName, FunctionName);
 	auto Found = FunctionBindings.Find(Key);
 	return Found ? &Found->Value : nullptr;
 }
@@ -131,7 +131,7 @@ const SScriptBindingInfo* CScriptBindingLoader::GetPropertyBindingInfo(const cha
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString Key = GenerateBindingKey(ClassName, PropertyName);
+	CString Key = GenerateBindingKey(ClassName, PropertyName);
 	auto Found = PropertyBindings.Find(Key);
 	return Found ? &Found->Value : nullptr;
 }
@@ -143,14 +143,14 @@ const SScriptBindingInfo* CScriptBindingLoader::GetEnumBindingInfo(const char* E
 
 	std::lock_guard<std::mutex> Lock(BindingMutex);
 
-	TString EnumNameStr(EnumName);
+	CString EnumNameStr(EnumName);
 	auto Found = EnumBindings.Find(EnumNameStr);
 	return Found ? &Found->Value : nullptr;
 }
 
 bool CScriptBindingLoader::LoadScriptBindings(EScriptLanguage Language,
                                               TSharedPtr<CScriptContext> Context,
-                                              const TString& BindingDirectory)
+                                              const CString& BindingDirectory)
 {
 	if (!Context)
 	{
@@ -178,12 +178,12 @@ bool CScriptBindingLoader::LoadScriptBindings(EScriptLanguage Language,
 	}
 }
 
-bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, const TString& BindingDirectory)
+bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, const CString& BindingDirectory)
 {
 	NLOG_SCRIPT(Info, "Loading Lua script bindings from: {}", BindingDirectory.GetData());
 
 	// 查找所有.lua绑定文件
-	TString LuaBindingDir = NPath::Combine(BindingDirectory, TEXT("Lua"));
+	CString LuaBindingDir = NPath::Combine(BindingDirectory, TEXT("Lua"));
 	if (!NFileSystem::DirectoryExists(LuaBindingDir))
 	{
 		NLOG_SCRIPT(Warning, "Lua binding directory not found: {}", LuaBindingDir.GetData());
@@ -191,7 +191,7 @@ bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, c
 	}
 
 	// 首先加载NLib核心API
-	TString NLibApiFile = NPath::Combine(LuaBindingDir, TEXT("NLibAPI.lua"));
+	CString NLibApiFile = NPath::Combine(LuaBindingDir, TEXT("NLibAPI.lua"));
 	if (NFileSystem::FileExists(NLibApiFile))
 	{
 		if (!LoadBindingFile(NLibApiFile, EScriptLanguage::Lua, Context))
@@ -225,13 +225,13 @@ bool CScriptBindingLoader::LoadLuaBindings(TSharedPtr<CScriptContext> Context, c
 	return LoadedCount > 0;
 }
 
-bool CScriptBindingLoader::LoadTypeScriptBindings(TSharedPtr<CScriptContext> Context, const TString& BindingDirectory)
+bool CScriptBindingLoader::LoadTypeScriptBindings(TSharedPtr<CScriptContext> Context, const CString& BindingDirectory)
 {
 	NLOG_SCRIPT(Info, "Loading TypeScript type definitions from: {}", BindingDirectory.GetData());
 
 	// TypeScript绑定主要是类型定义文件，不需要在运行时加载
 	// 这里主要是验证文件存在性
-	TString TypeScriptBindingDir = NPath::Combine(BindingDirectory, TEXT("TypeScript"));
+	CString TypeScriptBindingDir = NPath::Combine(BindingDirectory, TEXT("TypeScript"));
 	if (!NFileSystem::DirectoryExists(TypeScriptBindingDir))
 	{
 		NLOG_SCRIPT(Warning, "TypeScript binding directory not found: {}", TypeScriptBindingDir.GetData());
@@ -254,7 +254,7 @@ TArray<const SClassReflection*, CMemoryManager> CScriptBindingLoader::GetScriptB
 	// 遍历所有已注册的类绑定
 	for (const auto& ClassBindingPair : ClassBindings)
 	{
-		const TString& ClassName = ClassBindingPair.Key;
+		const CString& ClassName = ClassBindingPair.Key;
 		const SScriptBindingInfo& BindingInfo = ClassBindingPair.Value;
 
 		if (BindingInfo.ShouldBind())
@@ -286,7 +286,7 @@ TArray<const SClassReflection*, CMemoryManager> CScriptBindingLoader::GetClasses
 	// 遍历所有已注册的类绑定
 	for (const auto& ClassBindingPair : ClassBindings)
 	{
-		const TString& ClassName = ClassBindingPair.Key;
+		const CString& ClassName = ClassBindingPair.Key;
 		const SScriptBindingInfo& BindingInfo = ClassBindingPair.Value;
 
 		if (BindingInfo.ShouldBind() && BindingInfo.SupportsLanguage(Language))
@@ -464,7 +464,7 @@ void CScriptBindingLoader::PrintBindingInfo() const
 	NLOG_SCRIPT(Info, "Classes: {}", ClassBindings.Size());
 	for (const auto& ClassPair : ClassBindings)
 	{
-		const TString& ClassName = ClassPair.Key;
+		const CString& ClassName = ClassPair.Key;
 		const SScriptBindingInfo& Info = ClassPair.Value;
 
 		NLOG_SCRIPT(Info,
@@ -478,7 +478,7 @@ void CScriptBindingLoader::PrintBindingInfo() const
 	NLOG_SCRIPT(Info, "Functions: {}", FunctionBindings.Size());
 	for (const auto& FunctionPair : FunctionBindings)
 	{
-		const TString& Key = FunctionPair.Key;
+		const CString& Key = FunctionPair.Key;
 		const SScriptBindingInfo& Info = FunctionPair.Value;
 
 		NLOG_SCRIPT(Info, "  {} (Callable: {}, Static: {})", Key.GetData(), Info.bScriptCallable, Info.bScriptStatic);
@@ -487,7 +487,7 @@ void CScriptBindingLoader::PrintBindingInfo() const
 	NLOG_SCRIPT(Info, "Properties: {}", PropertyBindings.Size());
 	for (const auto& PropertyPair : PropertyBindings)
 	{
-		const TString& Key = PropertyPair.Key;
+		const CString& Key = PropertyPair.Key;
 		const SScriptBindingInfo& Info = PropertyPair.Value;
 
 		NLOG_SCRIPT(
@@ -510,12 +510,12 @@ CScriptBindingLoader::SBindingStats CScriptBindingLoader::GetBindingStats() cons
 	return Stats;
 }
 
-TString CScriptBindingLoader::GenerateBindingKey(const char* ClassName, const char* MemberName) const
+CString CScriptBindingLoader::GenerateBindingKey(const char* ClassName, const char* MemberName) const
 {
-	return TString(ClassName) + TEXT("::") + TString(MemberName);
+	return CString(ClassName) + TEXT("::") + CString(MemberName);
 }
 
-bool CScriptBindingLoader::LoadBindingFile(const TString& FilePath,
+bool CScriptBindingLoader::LoadBindingFile(const CString& FilePath,
                                            EScriptLanguage Language,
                                            TSharedPtr<CScriptContext> Context)
 {

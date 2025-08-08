@@ -120,7 +120,7 @@ inline void DestroyContext(TSharedPtr<Context> ScriptContext)
 /**
  * @brief 执行脚本文件
  */
-inline Result ExecuteFile(Language ScriptLanguage, const TString& FilePath, const Config& ScriptConfig = Config())
+inline Result ExecuteFile(Language ScriptLanguage, const CString& FilePath, const Config& ScriptConfig = Config())
 {
 	return GetManager().ExecuteFile(ScriptLanguage, FilePath, ScriptConfig);
 }
@@ -128,7 +128,7 @@ inline Result ExecuteFile(Language ScriptLanguage, const TString& FilePath, cons
 /**
  * @brief 执行脚本字符串
  */
-inline Result ExecuteString(Language ScriptLanguage, const TString& Code, const Config& ScriptConfig = Config())
+inline Result ExecuteString(Language ScriptLanguage, const CString& Code, const Config& ScriptConfig = Config())
 {
 	return GetManager().ExecuteString(ScriptLanguage, Code, ScriptConfig);
 }
@@ -136,7 +136,7 @@ inline Result ExecuteString(Language ScriptLanguage, const TString& Code, const 
 /**
  * @brief 检查脚本语法
  */
-inline Result CheckSyntax(Language ScriptLanguage, const TString& Code)
+inline Result CheckSyntax(Language ScriptLanguage, const CString& Code)
 {
 	return GetManager().CheckSyntax(ScriptLanguage, Code);
 }
@@ -144,7 +144,7 @@ inline Result CheckSyntax(Language ScriptLanguage, const TString& Code)
 /**
  * @brief 编译脚本文件
  */
-inline Result CompileFile(Language ScriptLanguage, const TString& FilePath, const TString& OutputPath = TString())
+inline Result CompileFile(Language ScriptLanguage, const CString& FilePath, const CString& OutputPath = CString())
 {
 	return GetManager().CompileFile(ScriptLanguage, FilePath, OutputPath);
 }
@@ -152,7 +152,7 @@ inline Result CompileFile(Language ScriptLanguage, const TString& FilePath, cons
 /**
  * @brief 注册全局函数
  */
-inline void RegisterGlobalFunction(const TString& Name, TSharedPtr<Function> ScriptFunction)
+inline void RegisterGlobalFunction(const CString& Name, TSharedPtr<Function> ScriptFunction)
 {
 	GetManager().RegisterGlobalFunction(Name, ScriptFunction);
 }
@@ -160,7 +160,7 @@ inline void RegisterGlobalFunction(const TString& Name, TSharedPtr<Function> Scr
 /**
  * @brief 注册全局对象
  */
-inline void RegisterGlobalObject(const TString& Name, const Value& Object)
+inline void RegisterGlobalObject(const CString& Name, const Value& Object)
 {
 	GetManager().RegisterGlobalObject(Name, Object);
 }
@@ -168,7 +168,7 @@ inline void RegisterGlobalObject(const TString& Name, const Value& Object)
 /**
  * @brief 注册全局常量
  */
-inline void RegisterGlobalConstant(const TString& Name, const Value& ConstantValue)
+inline void RegisterGlobalConstant(const CString& Name, const Value& ConstantValue)
 {
 	GetManager().RegisterGlobalConstant(Name, ConstantValue);
 }
@@ -252,7 +252,7 @@ inline bool IsAvailable()
 /**
  * @brief 获取Lua版本
  */
-inline TString GetVersion()
+inline CString GetVersion()
 {
 	return CLuaScriptEngine::GetLuaVersionString();
 }
@@ -271,7 +271,7 @@ inline TSharedPtr<LuaContext> CreateLuaContext(Flags ContextFlags = Flags::Enabl
 /**
  * @brief 执行Lua脚本文件
  */
-inline Result ExecuteLuaFile(const TString& FilePath)
+inline Result ExecuteLuaFile(const CString& FilePath)
 {
 	return ExecuteFile(Language::Lua, FilePath);
 }
@@ -279,7 +279,7 @@ inline Result ExecuteLuaFile(const TString& FilePath)
 /**
  * @brief 执行Lua脚本字符串
  */
-inline Result ExecuteLuaString(const TString& Code)
+inline Result ExecuteLuaString(const CString& Code)
 {
 	return ExecuteString(Language::Lua, Code);
 }
@@ -287,7 +287,7 @@ inline Result ExecuteLuaString(const TString& Code)
 /**
  * @brief 检查Lua脚本语法
  */
-inline Result CheckLuaSyntax(const TString& Code)
+inline Result CheckLuaSyntax(const CString& Code)
 {
 	return CheckSyntax(Language::Lua, Code);
 }
@@ -324,7 +324,7 @@ public:
 	 * @brief 执行脚本并返回结果
 	 */
 	template <typename ReturnType>
-	TResult<ReturnType> Execute(const TString& Code)
+	TResult<ReturnType> Execute(const CString& Code)
 	{
 		if (!Context)
 		{
@@ -352,7 +352,7 @@ public:
 		}
 		catch (const std::exception& e)
 		{
-			return TResult<ReturnType>::CreateError(TString(TEXT("Type conversion failed: ")) + TString(e.what()));
+			return TResult<ReturnType>::CreateError(CString(TEXT("Type conversion failed: ")) + CString(e.what()));
 		}
 	}
 
@@ -360,7 +360,7 @@ public:
 	 * @brief 调用脚本函数
 	 */
 	template <typename ReturnType, typename... Args>
-	TResult<ReturnType> CallFunction(const TString& FunctionName, Args&&... Arguments)
+	TResult<ReturnType> CallFunction(const CString& FunctionName, Args&&... Arguments)
 	{
 		if (!Context)
 		{
@@ -370,7 +370,7 @@ public:
 		auto Function = Context->GetGlobal(FunctionName);
 		if (!Function.IsFunction())
 		{
-			return TResult<ReturnType>::CreateError(TString(TEXT("Function not found: ")) + FunctionName);
+			return TResult<ReturnType>::CreateError(CString(TEXT("Function not found: ")) + FunctionName);
 		}
 
 		TArray<Value, CMemoryManager> Args;
@@ -396,7 +396,7 @@ public:
 		}
 		catch (const std::exception& e)
 		{
-			return TResult<ReturnType>::CreateError(TString(TEXT("Type conversion failed: ")) + TString(e.what()));
+			return TResult<ReturnType>::CreateError(CString(TEXT("Type conversion failed: ")) + CString(e.what()));
 		}
 	}
 
@@ -404,7 +404,7 @@ public:
 	 * @brief 设置全局变量
 	 */
 	template <typename T>
-	void SetGlobal(const TString& Name, const T& Value)
+	void SetGlobal(const CString& Name, const T& Value)
 	{
 		if (Context)
 		{
@@ -416,7 +416,7 @@ public:
 	 * @brief 获取全局变量
 	 */
 	template <typename T>
-	TResult<T> GetGlobal(const TString& Name)
+	TResult<T> GetGlobal(const CString& Name)
 	{
 		if (!Context)
 		{
@@ -431,7 +431,7 @@ public:
 		}
 		catch (const std::exception& e)
 		{
-			return TResult<T>::CreateError(TString(TEXT("Type conversion failed: ")) + TString(e.what()));
+			return TResult<T>::CreateError(CString(TEXT("Type conversion failed: ")) + CString(e.what()));
 		}
 	}
 
@@ -483,7 +483,7 @@ inline void ShutdownScriptSystem()
 /**
  * @brief 执行Lua脚本文件
  */
-inline SScriptExecutionResult ExecuteLuaFile(const TString& FilePath)
+inline SScriptExecutionResult ExecuteLuaFile(const CString& FilePath)
 {
 	return Script::Lua::ExecuteLuaFile(FilePath);
 }
@@ -491,7 +491,7 @@ inline SScriptExecutionResult ExecuteLuaFile(const TString& FilePath)
 /**
  * @brief 执行Lua脚本字符串
  */
-inline SScriptExecutionResult ExecuteLuaString(const TString& Code)
+inline SScriptExecutionResult ExecuteLuaString(const CString& Code)
 {
 	return Script::Lua::ExecuteLuaString(Code);
 }

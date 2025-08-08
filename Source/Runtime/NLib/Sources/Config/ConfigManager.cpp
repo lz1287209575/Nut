@@ -150,7 +150,7 @@ bool NConfigManager::AddEnvironmentVariables(const CString& Prefix, EConfigPrior
 
 	std::lock_guard<std::mutex> Lock(SourcesMutex);
 
-	TString SourceName = TString("Environment_") + (Prefix.IsEmpty() ? TString("All") : Prefix);
+	CString SourceName = CString("Environment_") + (Prefix.IsEmpty() ? CString("All") : Prefix);
 
 	// 检查是否已存在
 	for (const auto& Source : ConfigSources)
@@ -200,7 +200,7 @@ bool NConfigManager::AddCommandLineArgs(int argc, char* argv[], EConfigPriority 
 	}
 
 	// 创建配置源
-	SConfigSource NewSource(TString("CommandLine"), EConfigSourceType::CommandLine, TString(), Priority);
+	SConfigSource NewSource(CString("CommandLine"), EConfigSourceType::CommandLine, CString(), Priority);
 	NewSource.bAutoReload = false; // 命令行参数不支持自动重载
 	NewSource.Data = ParseCommandLineArgs(argc, argv);
 	NewSource.bIsLoaded = true;
@@ -237,7 +237,7 @@ bool NConfigManager::AddMemoryConfig(const CString& Name, const CConfigValue& Co
 	}
 
 	// 创建配置源
-	SConfigSource NewSource(Name, EConfigSourceType::Memory, TString(), Priority);
+	SConfigSource NewSource(Name, EConfigSourceType::Memory, CString(), Priority);
 	NewSource.bAutoReload = false; // 内存配置不支持自动重载
 	NewSource.Data = Config;
 	NewSource.bIsLoaded = true;
@@ -403,7 +403,7 @@ void NConfigManager::SetConfig(const CString& Key, const CConfigValue& Value, co
 	if (!TargetSource)
 	{
 		// 创建新的内存配置源
-		SConfigSource NewSource(SourceName, EConfigSourceType::Memory, TString(), EConfigPriority::High);
+		SConfigSource NewSource(SourceName, EConfigSourceType::Memory, CString(), EConfigPriority::High);
 		NewSource.bAutoReload = false;
 		NewSource.Data = CConfigObject();
 		NewSource.bIsLoaded = true;
@@ -439,9 +439,9 @@ bool NConfigManager::HasConfig(const CString& Key) const
 	return MergedConfig.HasPath(Key);
 }
 
-TArray<TString, CMemoryManager> NConfigManager::GetAllKeys() const
+TArray<CString, CMemoryManager> NConfigManager::GetAllKeys() const
 {
-	TArray<TString, CMemoryManager> Keys;
+	TArray<CString, CMemoryManager> Keys;
 
 	if (!bIsInitialized.load())
 	{
@@ -454,7 +454,7 @@ TArray<TString, CMemoryManager> NConfigManager::GetAllKeys() const
 	std::lock_guard<std::mutex> SourcesLock(SourcesMutex);
 	for (const auto& Source : ConfigSources)
 	{
-		CollectKeysFromValue(Source.Data, TString(), Keys);
+		CollectKeysFromValue(Source.Data, CString(), Keys);
 	}
 
 	// 去重
@@ -487,7 +487,7 @@ CConfigObject NConfigManager::GetConfigsWithPrefix(const CString& Prefix) const
 	{
 		if (Key.StartsWith(Prefix))
 		{
-			TString RelativeKey = Key.Substring(Prefix.Length());
+			CString RelativeKey = Key.Substring(Prefix.Length());
 			if (RelativeKey.StartsWith("."))
 			{
 				RelativeKey = RelativeKey.Substring(1);
@@ -532,7 +532,7 @@ void NConfigManager::RemoveValidator(const CString& Key)
 	Validators.Remove(Key);
 }
 
-bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErrors) const
+bool NConfigManager::ValidateAllConfigs(TArray<CString, CMemoryManager>& OutErrors) const
 {
 	OutErrors.Clear();
 
@@ -548,11 +548,11 @@ bool NConfigManager::ValidateAllConfigs(TArray<TString, CMemoryManager>& OutErro
 
 	for (const auto& ValidatorPair : Validators)
 	{
-		const TString& Key = ValidatorPair.Key;
+		const CString& Key = ValidatorPair.Key;
 		const auto& Validator = ValidatorPair.Value;
 
 		CConfigValue Value = GetConfig(Key);
-		TString ErrorMessage;
+		CString ErrorMessage;
 
 		if (!Validator->Validate(Key, Value, ErrorMessage))
 		{
@@ -648,45 +648,45 @@ CConfigValue NConfigManager::GetMergedConfig() const
 
 // === 调试和诊断 ===
 
-TString NConfigManager::GenerateConfigReport() const
+CString NConfigManager::GenerateConfigReport() const
 {
 	if (!bIsInitialized.load())
 	{
-		return TString("ConfigManager not initialized");
+		return CString("ConfigManager not initialized");
 	}
 
-	TString Report = TString("=== Configuration Report ===\n\n");
+	CString Report = CString("=== Configuration Report ===\n\n");
 
 	std::lock_guard<std::mutex> SourcesLock(SourcesMutex);
 
-	Report += TString("Config Sources (") + TString::FromInt(ConfigSources.Size()) + TString("):\n");
+	Report += CString("Config Sources (") + CString::FromInt(ConfigSources.Size()) + CString("):\n");
 	for (const auto& Source : ConfigSources)
 	{
-		Report += TString("  - ") + Source.Name;
-		Report += TString(" (") + GetSourceTypeName(Source.Type) + TString(")");
-		Report += TString(" Priority: ") + TString::FromInt(static_cast<int>(Source.Priority));
-		Report += TString(" Loaded: ") + (Source.bIsLoaded ? TString("Yes") : TString("No"));
+		Report += CString("  - ") + Source.Name;
+		Report += CString(" (") + GetSourceTypeName(Source.Type) + CString(")");
+		Report += CString(" Priority: ") + CString::FromInt(static_cast<int>(Source.Priority));
+		Report += CString(" Loaded: ") + (Source.bIsLoaded ? CString("Yes") : CString("No"));
 		if (!Source.Location.IsEmpty())
 		{
-			Report += TString(" Location: ") + Source.Location;
+			Report += CString(" Location: ") + Source.Location;
 		}
-		Report += TString("\n");
+		Report += CString("\n");
 	}
 
-	Report += TString("\nValidators (") + TString::FromInt(Validators.Size()) + TString("):\n");
+	Report += CString("\nValidators (") + CString::FromInt(Validators.Size()) + CString("):\n");
 	std::lock_guard<std::mutex> ConfigLock(ConfigMutex);
 	for (const auto& ValidatorPair : Validators)
 	{
-		Report += TString("  - ") + ValidatorPair.Key;
-		Report += TString(": ") + ValidatorPair.Value->GetDescription();
-		Report += TString("\n");
+		Report += CString("  - ") + ValidatorPair.Key;
+		Report += CString(": ") + ValidatorPair.Value->GetDescription();
+		Report += CString("\n");
 	}
 
-	Report += TString("\nCache Entries: ") + TString::FromInt(ConfigCache.Size()) + TString("\n");
-	Report += TString("Auto Reload: ") + (bAutoReloadEnabled.load() ? TString("Enabled") : TString("Disabled")) +
-	          TString("\n");
-	Report += TString("File Watch Interval: ") + TString::FromDouble(FileWatchInterval.GetTotalSeconds()) +
-	          TString(" seconds\n");
+	Report += CString("\nCache Entries: ") + CString::FromInt(ConfigCache.Size()) + CString("\n");
+	Report += CString("Auto Reload: ") + (bAutoReloadEnabled.load() ? CString("Enabled") : CString("Disabled")) +
+	          CString("\n");
+	Report += CString("File Watch Interval: ") + CString::FromDouble(FileWatchInterval.GetTotalSeconds()) +
+	          CString(" seconds\n");
 
 	return Report;
 }
@@ -703,7 +703,7 @@ bool NConfigManager::ExportConfig(const CString& FilePath, bool bPrettyPrint) co
 
 	std::lock_guard<std::mutex> Lock(ConfigMutex);
 
-	TString JsonString = MergedConfig.ToJsonString(bPrettyPrint);
+	CString JsonString = MergedConfig.ToJsonString(bPrettyPrint);
 
 	std::ofstream File(FilePath.GetData());
 	if (!File.is_open())
@@ -751,7 +751,7 @@ NConfigManager::SConfigStats NConfigManager::GetConfigStats() const
 	Stats.ValidatedConfigs = Validators.Size();
 
 	// 验证失败计数需要运行验证
-	TArray<TString, CMemoryManager> Errors;
+	TArray<CString, CMemoryManager> Errors;
 	ValidateAllConfigs(Errors);
 	Stats.FailedValidations = Errors.Size();
 
@@ -850,18 +850,18 @@ CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 
 	for (int i = 1; i < argc; ++i)
 	{
-		TString Arg(argv[i]);
+		CString Arg(argv[i]);
 
 		// 处理 --key=value 格式
 		if (Arg.StartsWith("--"))
 		{
-			TString KeyValue = Arg.Substring(2);
+			CString KeyValue = Arg.Substring(2);
 			int32_t EqualPos = KeyValue.IndexOf('=');
 
 			if (EqualPos >= 0)
 			{
-				TString Key = KeyValue.Substring(0, EqualPos);
-				TString Value = KeyValue.Substring(EqualPos + 1);
+				CString Key = KeyValue.Substring(0, EqualPos);
+				CString Value = KeyValue.Substring(EqualPos + 1);
 
 				// 尝试解析值类型
 				CConfigValue ConfigVal = ParseStringValue(Value);
@@ -876,8 +876,8 @@ CConfigValue NConfigManager::ParseCommandLineArgs(int argc, char* argv[])
 		// 处理 -key value 格式
 		else if (Arg.StartsWith("-") && i + 1 < argc)
 		{
-			TString Key = Arg.Substring(1);
-			TString Value(argv[i + 1]);
+			CString Key = Arg.Substring(1);
+			CString Value(argv[i + 1]);
 
 			CConfigValue ConfigVal = ParseStringValue(Value);
 			Result.Insert(Key, ConfigVal);
@@ -897,13 +897,13 @@ CConfigValue NConfigManager::ParseEnvironmentVariables(const CString& Prefix)
 	extern char** environ;
 	for (char** env = environ; *env != nullptr; ++env)
 	{
-		TString EnvVar(*env);
+		CString EnvVar(*env);
 		int32_t EqualPos = EnvVar.IndexOf('=');
 
 		if (EqualPos >= 0)
 		{
-			TString Key = EnvVar.Substring(0, EqualPos);
-			TString Value = EnvVar.Substring(EqualPos + 1);
+			CString Key = EnvVar.Substring(0, EqualPos);
+			CString Value = EnvVar.Substring(EqualPos + 1);
 
 			// 检查前缀匹配
 			if (Prefix.IsEmpty() || Key.StartsWith(Prefix))
@@ -1026,22 +1026,22 @@ CDateTime NConfigManager::GetFileModificationTime(const CString& FilePath) const
 	}
 }
 
-TString NConfigManager::GetSourceTypeName(EConfigSourceType Type) const
+CString NConfigManager::GetSourceTypeName(EConfigSourceType Type) const
 {
 	switch (Type)
 	{
 	case EConfigSourceType::File:
-		return TString("File");
+		return CString("File");
 	case EConfigSourceType::CommandLine:
-		return TString("CommandLine");
+		return CString("CommandLine");
 	case EConfigSourceType::Environment:
-		return TString("Environment");
+		return CString("Environment");
 	case EConfigSourceType::Memory:
-		return TString("Memory");
+		return CString("Memory");
 	case EConfigSourceType::Remote:
-		return TString("Remote");
+		return CString("Remote");
 	default:
-		return TString("Unknown");
+		return CString("Unknown");
 	}
 }
 
@@ -1090,7 +1090,7 @@ void NConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObje
 {
 	for (const auto& Pair : Source)
 	{
-		const TString& Key = Pair.Key;
+		const CString& Key = Pair.Key;
 		const CConfigValue& Value = Pair.Value;
 
 		if (Target.Contains(Key) && Target[Key].IsObject() && Value.IsObject())
@@ -1127,7 +1127,7 @@ void NConfigManager::CollectKeysFromValue(const CConfigValue& Value,
 		const auto& Array = Value.AsArray();
 		for (int32_t i = 0; i < Array.Size(); ++i)
 		{
-			TString FullKey = Prefix + TString("[") + TString::FromInt(i) + TString("]");
+			CString FullKey = Prefix + CString("[") + CString::FromInt(i) + CString("]");
 			OutKeys.PushBack(FullKey);
 			CollectKeysFromValue(Array[i], FullKey, OutKeys);
 		}

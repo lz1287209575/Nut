@@ -124,7 +124,7 @@ SFileStatus NFileSystem::GetFileStatus(const NPath& Path)
 		Status.bIsReadOnly = (Status.Permissions & EFilePermissions::OwnerWrite) == EFilePermissions::None;
 
 		// 检查隐藏属性（简化实现）
-		TString FileName = Path.GetFileName();
+		CString FileName = Path.GetFileName();
 		Status.bIsHidden = FileName.StartsWith(".");
 	}
 	catch (const std::exception& e)
@@ -429,7 +429,7 @@ SFileSystemResult NFileSystem::Move(const NPath& SourcePath, const NPath& Destin
 	}
 }
 
-SFileSystemResult NFileSystem::Rename(const NPath& Path, const TString& NewName)
+SFileSystemResult NFileSystem::Rename(const NPath& Path, const CString& NewName)
 {
 	NPath NewPath = Path.GetDirectoryName() / NewName;
 	return Move(Path, NewPath);
@@ -551,7 +551,7 @@ TArray<NPath, CMemoryManager> NFileSystem::ListDirectory(const NPath& DirectoryP
 				// 检查隐藏文件过滤
 				if (bShouldInclude && !Options.bIncludeHidden)
 				{
-					TString FileName = EntryPath.GetFileName();
+					CString FileName = EntryPath.GetFileName();
 					if (FileName.StartsWith("."))
 					{
 						bShouldInclude = false;
@@ -561,7 +561,7 @@ TArray<NPath, CMemoryManager> NFileSystem::ListDirectory(const NPath& DirectoryP
 				// 检查模式匹配
 				if (bShouldInclude && !Options.Pattern.IsEmpty())
 				{
-					TString FileName = EntryPath.GetFileName();
+					CString FileName = EntryPath.GetFileName();
 					if (!MatchPattern(FileName, Options.Pattern))
 					{
 						bShouldInclude = false;
@@ -584,7 +584,7 @@ TArray<NPath, CMemoryManager> NFileSystem::ListDirectory(const NPath& DirectoryP
 }
 
 TArray<NPath, CMemoryManager> NFileSystem::FindFiles(const NPath& DirectoryPath,
-                                                     const TString& Pattern,
+                                                     const CString& Pattern,
                                                      bool bRecursive)
 {
 	SDirectoryIterationOptions Options;
@@ -597,7 +597,7 @@ TArray<NPath, CMemoryManager> NFileSystem::FindFiles(const NPath& DirectoryPath,
 }
 
 TArray<NPath, CMemoryManager> NFileSystem::FindDirectories(const NPath& DirectoryPath,
-                                                           const TString& Pattern,
+                                                           const CString& Pattern,
                                                            bool bRecursive)
 {
 	SDirectoryIterationOptions Options;
@@ -658,7 +658,7 @@ SFileSystemResult NFileSystem::SetHidden(const NPath& Path, bool bHidden)
 	// 这里提供基本实现
 	if (bHidden)
 	{
-		TString FileName = Path.GetFileName();
+		CString FileName = Path.GetFileName();
 		if (!FileName.StartsWith("."))
 		{
 			NPath NewPath = Path.GetDirectoryName() / ("." + FileName);
@@ -667,7 +667,7 @@ SFileSystemResult NFileSystem::SetHidden(const NPath& Path, bool bHidden)
 	}
 	else
 	{
-		TString FileName = Path.GetFileName();
+		CString FileName = Path.GetFileName();
 		if (FileName.StartsWith("."))
 		{
 			NPath NewPath = Path.GetDirectoryName() / FileName.Substring(1);
@@ -786,7 +786,7 @@ NFileSystem::SDiskSpaceInfo NFileSystem::GetDiskSpaceInfo(const NPath& Path)
 
 // === 临时文件操作 ===
 
-NPath NFileSystem::CreateTempFile(const TString& Prefix, const TString& Extension)
+NPath NFileSystem::CreateTempFile(const CString& Prefix, const CString& Extension)
 {
 	try
 	{
@@ -797,14 +797,14 @@ NPath NFileSystem::CreateTempFile(const TString& Prefix, const TString& Extensio
 		std::mt19937 gen(rd());
 		std::uniform_int_distribution<> dis(1000, 9999);
 
-		TString FileName = Prefix + TString::FromInt(dis(gen)) + Extension;
+		CString FileName = Prefix + CString::FromInt(dis(gen)) + Extension;
 		NPath TempFile = TempDir / FileName;
 
 		// 确保文件名唯一
 		int32_t Counter = 0;
 		while (Exists(TempFile) && Counter < 1000)
 		{
-			FileName = Prefix + TString::FromInt(dis(gen)) + TString("_") + TString::FromInt(Counter) + Extension;
+			FileName = Prefix + CString::FromInt(dis(gen)) + CString("_") + CString::FromInt(Counter) + Extension;
 			TempFile = TempDir / FileName;
 			Counter++;
 		}
@@ -823,7 +823,7 @@ NPath NFileSystem::CreateTempFile(const TString& Prefix, const TString& Extensio
 	return NPath();
 }
 
-NPath NFileSystem::CreateTempDirectory(const TString& Prefix)
+NPath NFileSystem::CreateTempDirectory(const CString& Prefix)
 {
 	try
 	{
@@ -834,14 +834,14 @@ NPath NFileSystem::CreateTempDirectory(const TString& Prefix)
 		std::mt19937 gen(rd());
 		std::uniform_int_distribution<> dis(1000, 9999);
 
-		TString DirName = Prefix + TString::FromInt(dis(gen));
+		CString DirName = Prefix + CString::FromInt(dis(gen));
 		NPath TempSubDir = TempDir / DirName;
 
 		// 确保目录名唯一
 		int32_t Counter = 0;
 		while (Exists(TempSubDir) && Counter < 1000)
 		{
-			DirName = Prefix + TString::FromInt(dis(gen)) + TString("_") + TString::FromInt(Counter);
+			DirName = Prefix + CString::FromInt(dis(gen)) + CString("_") + CString::FromInt(Counter);
 			TempSubDir = TempDir / DirName;
 			Counter++;
 		}
@@ -862,7 +862,7 @@ NPath NFileSystem::CreateTempDirectory(const TString& Prefix)
 
 // === 文件内容快速操作 ===
 
-TString NFileSystem::ReadAllText(const NPath& Path)
+CString NFileSystem::ReadAllText(const NPath& Path)
 {
 	try
 	{
@@ -870,16 +870,16 @@ TString NFileSystem::ReadAllText(const NPath& Path)
 		if (!File.is_open())
 		{
 			NLOG_IO(Error, "Failed to open file for reading: {}", Path.GetData());
-			return TString();
+			return CString();
 		}
 
 		std::string Content((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
-		return TString(Content.c_str());
+		return CString(Content.c_str());
 	}
 	catch (const std::exception& e)
 	{
 		NLOG_IO(Error, "Failed to read file '{}': {}", Path.GetData(), e.what());
-		return TString();
+		return CString();
 	}
 }
 
@@ -915,7 +915,7 @@ TArray<uint8_t, CMemoryManager> NFileSystem::ReadAllBytes(const NPath& Path)
 	return Data;
 }
 
-SFileSystemResult NFileSystem::WriteAllText(const NPath& Path, const TString& Content, bool bOverwrite)
+SFileSystemResult NFileSystem::WriteAllText(const NPath& Path, const CString& Content, bool bOverwrite)
 {
 	try
 	{
@@ -1001,7 +1001,7 @@ SFileSystemResult NFileSystem::WriteAllBytes(const NPath& Path,
 	}
 }
 
-SFileSystemResult NFileSystem::AppendAllText(const NPath& Path, const TString& Content)
+SFileSystemResult NFileSystem::AppendAllText(const NPath& Path, const CString& Content)
 {
 	try
 	{
@@ -1065,7 +1065,7 @@ void NFileSystem::StopAllWatching()
 
 // === 工具函数 ===
 
-bool NFileSystem::MatchPattern(const TString& FileName, const TString& Pattern)
+bool NFileSystem::MatchPattern(const CString& FileName, const CString& Pattern)
 {
 	if (Pattern.IsEmpty())
 	{
@@ -1076,7 +1076,7 @@ bool NFileSystem::MatchPattern(const TString& FileName, const TString& Pattern)
 	try
 	{
 		// 将通配符模式转换为正则表达式
-		TString RegexPattern = Pattern;
+		CString RegexPattern = Pattern;
 		RegexPattern = RegexPattern.Replace(".", "\\.");
 		RegexPattern = RegexPattern.Replace("*", ".*");
 		RegexPattern = RegexPattern.Replace("?", ".");
@@ -1133,11 +1133,11 @@ uint64_t NFileSystem::CalculateDirectorySize(const NPath& DirectoryPath, bool bR
 	return TotalSize;
 }
 
-TString NFileSystem::CalculateChecksum(const NPath& Path, const TString& Algorithm)
+CString NFileSystem::CalculateChecksum(const NPath& Path, const CString& Algorithm)
 {
 	// 简化实现，实际应该使用专门的哈希库
 	NLOG_IO(Warning, "Checksum calculation not implemented yet for: {}", Path.GetData());
-	return TString();
+	return CString();
 }
 
 // === 内部实现 ===
@@ -1249,7 +1249,7 @@ std::filesystem::copy_options NFileSystem::ConvertCopyOptions(EFileCopyOptions O
 
 SFileSystemResult NFileSystem::CreateErrorResult(const std::exception& Exception)
 {
-	return SFileSystemResult(false, TString(Exception.what()));
+	return SFileSystemResult(false, CString(Exception.what()));
 }
 
 void NFileSystem::ListDirectoryRecursive(const NPath& DirectoryPath,
@@ -1286,7 +1286,7 @@ void NFileSystem::ListDirectoryRecursive(const NPath& DirectoryPath,
 			// 检查隐藏文件过滤
 			if (bShouldInclude && !Options.bIncludeHidden)
 			{
-				TString FileName = EntryPath.GetFileName();
+				CString FileName = EntryPath.GetFileName();
 				if (FileName.StartsWith("."))
 				{
 					bShouldInclude = false;
@@ -1296,7 +1296,7 @@ void NFileSystem::ListDirectoryRecursive(const NPath& DirectoryPath,
 			// 检查模式匹配
 			if (bShouldInclude && !Options.Pattern.IsEmpty())
 			{
-				TString FileName = EntryPath.GetFileName();
+				CString FileName = EntryPath.GetFileName();
 				if (!MatchPattern(FileName, Options.Pattern))
 				{
 					bShouldInclude = false;

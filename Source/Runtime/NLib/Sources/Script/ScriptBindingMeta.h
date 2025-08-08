@@ -172,7 +172,7 @@ class NGamePlayer : public NObject
 
 public:
     NPROPERTY(BlueprintReadWrite, meta=(ScriptReadable, ScriptWritable, ScriptName="PlayerName"))
-    TString Name;
+    CString Name;
 
     NPROPERTY(BlueprintReadOnly, meta=ScriptReadable)
     int32_t Health;
@@ -181,7 +181,7 @@ public:
     void TakeDamage(int32_t Amount);
 
     NFUNCTION(BlueprintCallable, meta=(ScriptCallable, ScriptStatic))
-    static NGamePlayer* CreatePlayer(const TString& PlayerName);
+    static NGamePlayer* CreatePlayer(const CString& PlayerName);
 };
 
 // 方式2: 使用便利宏
@@ -192,7 +192,7 @@ class NInventoryItem : public NObject
 
 public:
     NPROPERTY(BlueprintReadWrite, SCRIPT_PROPERTY())
-    TString ItemName;
+    CString ItemName;
 
     NPROPERTY(BlueprintReadOnly, SCRIPT_READONLY_PROPERTY())
     int32_t ItemCount;

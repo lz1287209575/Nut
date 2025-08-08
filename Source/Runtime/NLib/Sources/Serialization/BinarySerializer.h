@@ -65,7 +65,7 @@ public:
 	SSerializationResult Serialize(uint64_t& Value) override;
 	SSerializationResult Serialize(float& Value) override;
 	SSerializationResult Serialize(double& Value) override;
-	SSerializationResult Serialize(TString& Value) override;
+	SSerializationResult Serialize(CString& Value) override;
 
 public:
 	// === 二进制特有的序列化方法 ===
@@ -83,7 +83,7 @@ public:
 	/**
 	 * @brief 序列化字符串（带长度前缀）
 	 */
-	SSerializationResult SerializeStringWithLength(TString& Str);
+	SSerializationResult SerializeStringWithLength(CString& Str);
 
 	/**
 	 * @brief 序列化固定长度字符串
@@ -101,7 +101,7 @@ public:
 	/**
 	 * @brief 序列化加密数据块
 	 */
-	SSerializationResult SerializeEncryptedBlock(TArray<uint8_t, CMemoryManager>& Data, const TString& Key);
+	SSerializationResult SerializeEncryptedBlock(TArray<uint8_t, CMemoryManager>& Data, const CString& Key);
 
 public:
 	// === 对象引用支持 ===
@@ -128,20 +128,20 @@ public:
 	/**
 	 * @brief 序列化类型信息
 	 */
-	SSerializationResult SerializeTypeInfo(const TString& TypeName, uint32_t TypeHash);
+	SSerializationResult SerializeTypeInfo(const CString& TypeName, uint32_t TypeHash);
 
 	/**
 	 * @brief 验证类型信息
 	 */
-	SSerializationResult ValidateTypeInfo(const TString& ExpectedTypeName, uint32_t ExpectedTypeHash);
+	SSerializationResult ValidateTypeInfo(const CString& ExpectedTypeName, uint32_t ExpectedTypeHash);
 
 protected:
 	// === CSerializationArchive 虚函数实现 ===
 
-	SSerializationResult BeginObject(const TString& TypeName) override;
-	SSerializationResult EndObject(const TString& TypeName) override;
-	SSerializationResult BeginField(const TString& FieldName) override;
-	SSerializationResult EndField(const TString& FieldName) override;
+	SSerializationResult BeginObject(const CString& TypeName) override;
+	SSerializationResult EndObject(const CString& TypeName) override;
+	SSerializationResult BeginField(const CString& FieldName) override;
+	SSerializationResult EndField(const CString& FieldName) override;
 
 private:
 	// === 内部实现 ===
@@ -252,7 +252,7 @@ private:
 
 	// 嵌套计数
 	int32_t ObjectNestingLevel = 0;
-	TArray<TString, CMemoryManager> ObjectTypeStack;
+	TArray<CString, CMemoryManager> ObjectTypeStack;
 };
 
 /**

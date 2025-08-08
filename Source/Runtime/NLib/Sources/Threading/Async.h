@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Containers/TString.h"
 #include "Core/Object.h"
 #include "Core/SmartPointers.h"
 #include "Logging/LogCategory.h"
@@ -30,12 +29,12 @@ struct SAsyncConfig
 {
 	EAsyncPolicy Policy = EAsyncPolicy::ThreadPool;     // 执行策略
 	EThreadPriority Priority = EThreadPriority::Normal; // 线程优先级
-	TString TaskName = TString("AsyncTask");            // 任务名称
+	CString TaskName = CString("AsyncTask");            // 任务名称
 	TSharedPtr<NThreadPool> CustomThreadPool = nullptr; // 自定义线程池
 
 	SAsyncConfig() = default;
 
-	SAsyncConfig(EAsyncPolicy InPolicy, const TString& InTaskName = TString("AsyncTask"))
+	SAsyncConfig(EAsyncPolicy InPolicy, const CString& InTaskName = CString("AsyncTask"))
 	    : Policy(InPolicy),
 	      TaskName(InTaskName)
 	{}
@@ -509,7 +508,7 @@ inline std::mutex CAsync::DefaultPoolMutex;
  * @brief 快速异步执行
  */
 template <typename TFunc>
-auto Async(TFunc&& Function, const TString& TaskName = TString("AsyncTask"))
+auto Async(TFunc&& Function, const CString& TaskName = CString("AsyncTask"))
 {
 	SAsyncConfig Config(EAsyncPolicy::ThreadPool, TaskName);
 	return CAsync::Run(std::forward<TFunc>(Function), Config);
@@ -528,7 +527,7 @@ auto AsyncParallel(TFuncs&&... Functions)
  * @brief 快速延迟执行
  */
 template <typename TFunc>
-auto AsyncDelay(TFunc&& Function, const CTimespan& DelayTime, const TString& TaskName = TString("DelayedTask"))
+auto AsyncDelay(TFunc&& Function, const CTimespan& DelayTime, const CString& TaskName = CString("DelayedTask"))
 {
 	SAsyncConfig Config(EAsyncPolicy::ThreadPool, TaskName);
 	return CAsync::Delay(std::forward<TFunc>(Function), DelayTime, Config);

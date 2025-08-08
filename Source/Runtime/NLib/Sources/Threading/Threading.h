@@ -116,7 +116,7 @@ public:
 					    Sum += j * j;
 				    }
 			    },
-			    TString("PerfTestTask"));
+			    CString("PerfTestTask"));
 
 			Futures.Add(std::move(Future));
 		}
@@ -248,7 +248,7 @@ public:
 					    Function(Index);
 				    }
 			    },
-			    TString("ParallelForChunk"));
+			    CString("ParallelForChunk"));
 
 			Futures.Add(std::move(Future));
 		}
@@ -299,7 +299,7 @@ public:
 					    Function(Container[Index]);
 				    }
 			    },
-			    TString("ParallelForEachChunk"));
+			    CString("ParallelForEachChunk"));
 
 			Futures.Add(std::move(Future));
 		}
@@ -361,7 +361,7 @@ public:
 
 				    return Results;
 			    },
-			    TString("MapPhase"));
+			    CString("MapPhase"));
 
 			MapFutures.Add(std::move(Future));
 		}
@@ -425,7 +425,7 @@ public:
 				break;
 			}
 
-			TString CoroutineName = TString("ParallelForCoroutine") + TString::FromInt(i);
+			CString CoroutineName = CString("ParallelForCoroutine") + CString::FromInt(i);
 			auto Coroutine = StartCoroutine(
 			    [Function, ChunkStart, ChunkEnd]() {
 				    for (int32_t Index = ChunkStart; Index < ChunkEnd; ++Index)
@@ -483,7 +483,7 @@ public:
 				break;
 			}
 
-			TString CoroutineName = TString("ParallelForEachCoroutine") + TString::FromInt(i);
+			CString CoroutineName = CString("ParallelForEachCoroutine") + CString::FromInt(i);
 			auto Coroutine = StartCoroutine(
 			    [&Container, Function, ChunkStart, ChunkEnd]() {
 				    for (int32_t Index = ChunkStart; Index < ChunkEnd; ++Index)
@@ -515,7 +515,7 @@ public:
 	/**
 	 * @brief 生成线程系统综合报告
 	 */
-	static TString GenerateComprehensiveReport()
+	static CString GenerateComprehensiveReport()
 	{
 		auto MemoryInfo = GetMemoryInfo();
 		auto& Scheduler = GetCoroutineScheduler();
@@ -568,7 +568,7 @@ public:
 		         SchedulerStats.AverageSchedulingTime.GetTotalMilliseconds(),
 		         DEFAULT_COROUTINE_STACK_SIZE);
 
-		return TString(Buffer);
+		return CString(Buffer);
 	}
 };
 

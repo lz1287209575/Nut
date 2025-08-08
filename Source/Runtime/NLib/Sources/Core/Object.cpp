@@ -20,12 +20,9 @@ std::atomic<uint64_t> NObject::NextObjectId{1};
 // === 构造函数和析构函数 ===
 
 NObject::NObject()
-    : RefCount(1) // 创建时引用计数为1
-      ,
-      bMarked(false) // 初始未标记
-      ,
-      bIsValid(true) // 初始有效
-      ,
+    : RefCount(1), // 创建时引用计数为1,
+      bMarked(false), // 初始未标记
+      bIsValid(true), // 初始有效
       ObjectId(NextObjectId.fetch_add(1)) // 分配唯一ID
 {
 	// 注册到GC系统

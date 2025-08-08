@@ -95,7 +95,7 @@ void CScriptManager::Shutdown()
 // === 引擎管理 ===
 
 bool CScriptManager::RegisterEngine(EScriptLanguage Language,
-                                    const TString& Name,
+                                    const CString& Name,
                                     TSharedPtr<CScriptEngine> Engine,
                                     bool bSetAsDefault)
 {
@@ -163,7 +163,7 @@ bool CScriptManager::RegisterEngine(EScriptLanguage Language,
 	return true;
 }
 
-void CScriptManager::UnregisterEngine(EScriptLanguage Language, const TString& Name)
+void CScriptManager::UnregisterEngine(EScriptLanguage Language, const CString& Name)
 {
 	CThreadSafeLock Lock(Mutex);
 
@@ -222,7 +222,7 @@ void CScriptManager::UnregisterEngine(EScriptLanguage Language, const TString& N
 	OnEngineUnregistered.Broadcast(Language);
 }
 
-TSharedPtr<CScriptEngine> CScriptManager::GetEngine(EScriptLanguage Language, const TString& Name) const
+TSharedPtr<CScriptEngine> CScriptManager::GetEngine(EScriptLanguage Language, const CString& Name) const
 {
 	CThreadSafeLock Lock(Mutex);
 
@@ -260,11 +260,11 @@ TSharedPtr<CScriptEngine> CScriptManager::GetDefaultEngine(EScriptLanguage Langu
 		return nullptr;
 	}
 
-	const TString& DefaultName = DefaultEngines.Find(Language)->Value;
+	const CString& DefaultName = DefaultEngines.Find(Language)->Value;
 	return GetEngine(Language, DefaultName);
 }
 
-bool CScriptManager::SetDefaultEngine(EScriptLanguage Language, const TString& Name)
+bool CScriptManager::SetDefaultEngine(EScriptLanguage Language, const CString& Name)
 {
 	CThreadSafeLock Lock(Mutex);
 
@@ -349,7 +349,7 @@ TSharedPtr<CScriptContext> CScriptManager::CreateContext(const SScriptConfig& Co
 
 	// 注册上下文
 	CThreadSafeLock Lock(Mutex);
-	TString ContextId = GenerateContextId();
+	CString ContextId = GenerateContextId();
 	ActiveContexts.Add(ContextId, Context);
 	Statistics.ActiveContexts++;
 
@@ -428,7 +428,7 @@ void CScriptManager::DestroyAllContexts()
 // === 便利执行函数 ===
 
 SScriptExecutionResult CScriptManager::ExecuteString(EScriptLanguage Language,
-                                                     const TString& Code,
+                                                     const CString& Code,
                                                      const SScriptConfig& Config)
 {
 	auto Context = CreateContext(Config.Language != EScriptLanguage::None ? Config : SScriptConfig(Language));
@@ -457,14 +457,14 @@ SScriptExecutionResult CScriptManager::ExecuteString(EScriptLanguage Language,
 }
 
 SScriptExecutionResult CScriptManager::ExecuteFile(EScriptLanguage Language,
-                                                   const TString& FilePath,
+                                                   const CString& FilePath,
                                                    const SScriptConfig& Config)
 {
 	// 检查文件是否存在
 	if (!NFileSystem::FileExists(FilePath))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
-		                              TString(TEXT("Script file not found: ")) + FilePath);
+		                              CString(TEXT("Script file not found: ")) + FilePath);
 	}
 
 	auto Context = CreateContext(Config.Language != EScriptLanguage::None ? Config : SScriptConfig(Language));
@@ -492,7 +492,7 @@ SScriptExecutionResult CScriptManager::ExecuteFile(EScriptLanguage Language,
 	return Result;
 }
 
-SScriptExecutionResult CScriptManager::CheckSyntax(EScriptLanguage Language, const TString& Code)
+SScriptExecutionResult CScriptManager::CheckSyntax(EScriptLanguage Language, const CString& Code)
 {
 	auto Engine = GetDefaultEngine(Language);
 	if (!Engine)
@@ -504,8 +504,8 @@ SScriptExecutionResult CScriptManager::CheckSyntax(EScriptLanguage Language, con
 }
 
 SScriptExecutionResult CScriptManager::CompileFile(EScriptLanguage Language,
-                                                   const TString& FilePath,
-                                                   const TString& OutputPath)
+                                                   const CString& FilePath,
+                                                   const CString& OutputPath)
 {
 	auto Engine = GetDefaultEngine(Language);
 	if (!Engine)
@@ -551,9 +551,9 @@ void CScriptManager::ApplyGlobalBindings(TSharedPtr<CScriptContext> Context)
 	}
 }
 
-TString CScriptManager::GenerateContextId() const
+CString CScriptManager::GenerateContextId() const
 {
-	return TString(TEXT("ScriptContext_")) + TString::FromInt(NextContextId++);
+	return CString(TEXT("ScriptContext_")) + CString::FromInt(NextContextId++);
 }
 
 SScriptConfig CScriptManager::MergeConfig(const SScriptConfig& UserConfig) const
@@ -606,19 +606,19 @@ SScriptConfig CScriptManager::MergeConfig(const SScriptConfig& UserConfig) const
 
 // === 其他功能实现（简化版本，实际实现会更复杂） ===
 
-void CScriptManager::RegisterGlobalFunction(const TString& Name, TSharedPtr<CScriptFunction> Function)
+void CScriptManager::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	CThreadSafeLock Lock(Mutex);
 	GlobalFunctions.Add(Name, Function);
 }
 
-void CScriptManager::RegisterGlobalObject(const TString& Name, const CScriptValue& Object)
+void CScriptManager::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
 {
 	CThreadSafeLock Lock(Mutex);
 	GlobalObjects.Add(Name, Object);
 }
 
-void CScriptManager::RegisterGlobalConstant(const TString& Name, const CScriptValue& Value)
+void CScriptManager::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
 {
 	CThreadSafeLock Lock(Mutex);
 	GlobalConstants.Add(Name, Value);

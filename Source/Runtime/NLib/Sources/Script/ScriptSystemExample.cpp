@@ -41,12 +41,12 @@ void CGamePlayer::Heal(int32_t Amount)
 	NLOG_SCRIPT(Info, "Player '{}' healed {} points, health: {}", PlayerName.GetData(), Amount, Health);
 }
 
-TString CGamePlayer::GetPlayerInfo() const
+CString CGamePlayer::GetPlayerInfo() const
 {
-	return TString::Format(TEXT("Player: {} (Level: {}, Health: {})"), PlayerName.GetData(), Level, Health);
+	return CString::Format(TEXT("Player: {} (Level: {}, Health: {})"), PlayerName.GetData(), Level, Health);
 }
 
-CGamePlayer* CGamePlayer::CreatePlayer(const TString& Name, int32_t InitialLevel)
+CGamePlayer* CGamePlayer::CreatePlayer(const CString& Name, int32_t InitialLevel)
 {
 	auto Player = NewNObject<CGamePlayer>();
 	if (Player)
@@ -97,7 +97,7 @@ bool CGameItem::CanUse() const
 TSharedPtr<CLuaScriptEngine> CScriptSystemExample::LuaEngine = nullptr;
 TSharedPtr<CLuaScriptContext> CScriptSystemExample::LuaContext = nullptr;
 
-bool CScriptSystemExample::InitializeScriptSystem(const TString& BindingDirectory)
+bool CScriptSystemExample::InitializeScriptSystem(const CString& BindingDirectory)
 {
 	NLOG_SCRIPT(Info, "Initializing Script System Example...");
 
@@ -148,7 +148,7 @@ void CScriptSystemExample::RunLuaExample()
 	NLOG_SCRIPT(Info, "Running Lua Script Example...");
 
 	// 示例1: 基础脚本执行
-	TString BasicScript = TEXT(R"(
+	CString BasicScript = TEXT(R"(
             print("Hello from Lua!")
             local result = 10 + 20
             print("Calculation result:", result)
@@ -166,7 +166,7 @@ void CScriptSystemExample::RunLuaExample()
 	}
 
 	// 示例2: 使用NLib功能
-	TString NLibScript = TEXT(R"(
+	CString NLibScript = TEXT(R"(
             -- 测试NLib API（如果已加载）
             if NLib then
                 print("NLib is available!")
@@ -201,7 +201,7 @@ void CScriptSystemExample::DemonstrateScriptObjectInteraction()
 	// 通过脚本绑定加载器注册对象到脚本
 	// 注意：这需要实际的绑定系统支持
 
-	TString InteractionScript = TEXT(R"(
+	CString InteractionScript = TEXT(R"(
             -- 如果Player类已绑定，可以这样使用：
             -- local player = GetCppObject("CppPlayer")  -- 获取C++创建的对象
             -- if player then
@@ -234,7 +234,7 @@ void CScriptSystemExample::DemonstrateScriptObjectCreation()
 
 	NLOG_SCRIPT(Info, "Demonstrating Script Object Creation...");
 
-	TString CreationScript = TEXT(R"(
+	CString CreationScript = TEXT(R"(
             -- 如果Player类已绑定，可以这样创建对象：
             -- local player1 = Player.new()
             -- player1.Name = "LuaPlayer1"
