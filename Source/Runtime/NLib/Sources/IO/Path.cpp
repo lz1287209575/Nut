@@ -168,7 +168,7 @@ CString NPath::GetFileName() const
 
 		if (LastSeparator >= 0)
 		{
-			return PathString.Substring(LastSeparator + 1);
+			return PathString.SubString(LastSeparator + 1);
 		}
 
 		return PathString;
@@ -182,7 +182,7 @@ CString NPath::GetFileNameWithoutExtension() const
 
 	if (DotIndex > 0) // 不包括以.开头的文件
 	{
-		return FileName.Substring(0, DotIndex);
+		return FileName.SubString(0, DotIndex);
 	}
 
 	return FileName;
@@ -195,7 +195,7 @@ CString NPath::GetExtension() const
 
 	if (DotIndex > 0 && DotIndex < FileName.Length() - 1)
 	{
-		return FileName.Substring(DotIndex);
+		return FileName.SubString(DotIndex);
 	}
 
 	return CString();
@@ -221,7 +221,7 @@ NPath NPath::GetDirectoryName() const
 
 		if (LastSeparator > 0)
 		{
-			return NPath(PathString.Substring(0, LastSeparator));
+			return NPath(PathString.SubString(0, LastSeparator));
 		}
 
 		return NPath();
@@ -246,7 +246,7 @@ NPath NPath::GetRoot() const
 		// Windows: 查找盘符
 		if (PathString.Length() >= 2 && PathString[1] == FPathConstants::VolumeSeparator)
 		{
-			return NPath(PathString.Substring(0, 2) + FPathConstants::DirectorySeparatorString);
+			return NPath(PathString.SubString(0, 2) + FPathConstants::DirectorySeparatorString);
 		}
 #endif
 		// Unix: 根目录是 /

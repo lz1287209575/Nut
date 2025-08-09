@@ -559,6 +559,38 @@ private:
 	                         const CString& SourceName);
 
 	/**
+	 * @brief 从配置值中收集所有键
+	 */
+	void CollectKeysFromValue(const CConfigValue& Value,
+	                          const CString& Prefix,
+	                          TArray<CString>& OutKeys) const;
+
+	/**
+	 * @brief 获取配置源类型名称
+	 */
+	CString GetSourceTypeName(EConfigSourceType Type) const;
+
+	/**
+	 * @brief 统计配置值数量
+	 */
+	int32_t CountConfigValues(const CConfigValue& Value) const;
+
+	/**
+	 * @brief 合并配置对象
+	 */
+	void MergeConfigObjects(CConfigObject& Target, const CConfigObject& Source) const;
+
+	/**
+	 * @brief 获取文件修改时间
+	 */
+	CDateTime GetFileModificationTime(const CString& FilePath) const;
+
+	/**
+	 * @brief 解析字符串值
+	 */
+	CConfigValue ParseStringValue(const CString& Value) const;
+
+	/**
 	 * @brief 应用配置值
 	 */
 	void ApplyConfigValue(const CString& Key, const CConfigValue& Value, const CString& SourceName);

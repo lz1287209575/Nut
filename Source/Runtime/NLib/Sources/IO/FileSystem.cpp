@@ -670,7 +670,7 @@ SFileSystemResult NFileSystem::SetHidden(const NPath& Path, bool bHidden)
 		CString FileName = Path.GetFileName();
 		if (FileName.StartsWith("."))
 		{
-			NPath NewPath = Path.GetDirectoryName() / FileName.Substring(1);
+			NPath NewPath = Path.GetDirectoryName() / FileName.SubString(1);
 			return Move(Path, NewPath);
 		}
 	}

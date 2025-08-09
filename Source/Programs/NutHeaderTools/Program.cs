@@ -10,6 +10,9 @@ using NutBuildSystem.BuildTargets;
 using NutBuildSystem.IO;
 using NutBuildSystem.Logging;
 using NutBuildSystem.CommandLine;
+using NutHeaderTools.Parsers;
+using NutHeaderTools.Generators;
+using NutHeaderTools.Validators;
 
 namespace NutHeaderTools
 {
@@ -25,9 +28,15 @@ namespace NutHeaderTools
         private int generatedFileCount = 0;
         private ILogger logger = LoggerFactory.Default;
         private string projectRoot = string.Empty;
+        private readonly AdvancedMacroParser macroParser;
+        private readonly ReflectionCodeGenerator codeGenerator;
+        private readonly ReflectionValidator validator;
 
         public NutHeaderToolsApp() : base("NutHeaderTools - Nut Engine Code Generator")
         {
+            macroParser = new AdvancedMacroParser(logger);
+            codeGenerator = new ReflectionCodeGenerator(logger);
+            validator = new ReflectionValidator(logger);
         }
 
         static async Task<int> Main(string[] args)
@@ -181,7 +190,38 @@ namespace NutHeaderTools
 
             logger.Debug($"    文件包含NCLASS");
 
-            // 尝试不同的正则表达式，处理换行符和API宏
+            // 使用高级解析器解析类
+            var classMatches = ParseClassesWithAdvancedParser(content);
+            
+            foreach (var classMatch in classMatches)
+            {
+                logger.Debug($"    解析类 {classMatch.Name} : {classMatch.BaseClass}");
+
+                // 验证类信息
+                var validationResult = validator.ValidateClass(classMatch);
+                if (!validationResult.IsValid)
+                {
+                    logger.Warning($"    类 {classMatch.Name} 验证失败:");
+                    logger.Warning(validationResult.ToString());
+                }
+
+                // 解析NPROPERTY标记的属性
+                ParsePropertiesWithAdvancedParser(content, classMatch);
+
+                // 解析NFUNCTION标记的函数
+                ParseFunctionsWithAdvancedParser(content, classMatch);
+
+                info.Classes.Add(classMatch);
+            }
+
+            return info;
+        }
+
+        private List<ClassInfo> ParseClassesWithAdvancedParser(string content)
+        {
+            var classes = new List<ClassInfo>();
+            
+            // 使用改进的正则表达式
             string[] patterns = {
                 @"NCLASS\s*\([^)]*\)\s*\r?\n\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
                 @"NCLASS\s*\([^)]*\)\s*class\s+(?:\w+\s+)?(\w+)\s*(?::\s*public\s+(\w+))?",
@@ -192,41 +232,34 @@ namespace NutHeaderTools
                 @"NCLASS.*?class\s+(\w+)"
             };
 
-            MatchCollection? nclassMatches = null;
             foreach (string pattern in patterns)
             {
-                nclassMatches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.Singleline);
-                logger.Debug($"    模式 '{pattern}' 找到 {nclassMatches.Count} 个匹配");
-                if (nclassMatches.Count > 0) break;
-            }
-
-            logger.Debug($"    最终找到 {nclassMatches?.Count ?? 0} 个NCLASS匹配");
-
-            foreach (Match match in nclassMatches ?? Enumerable.Empty<Match>())
-            {
-                string className = match.Groups[1].Value;
-                string baseClass = match.Groups[2].Success ? match.Groups[2].Value : "NObject";
-                logger.Debug($"    解析类 {className} : {baseClass}");
-
-                ClassInfo classInfo = new ClassInfo
+                var matches = Regex.Matches(content, pattern, RegexOptions.Multiline | RegexOptions.Singleline);
+                logger.Debug($"    模式 '{pattern}' 找到 {matches.Count} 个匹配");
+                
+                foreach (Match match in matches)
                 {
-                    Name = className,
-                    BaseClass = baseClass
-                };
-
-                // 解析NPROPERTY标记的属性
-                ParseProperties(content, classInfo);
-
-                // 解析NFUNCTION标记的函数
-                ParseFunctions(content, classInfo);
-
-                info.Classes.Add(classInfo);
+                    string className = match.Groups[1].Value;
+                    string baseClass = match.Groups[2].Success ? match.Groups[2].Value : "NObject";
+                    
+                    // 验证类名
+                    if (macroParser.IsValidFunctionName(className))
+                    {
+                        classes.Add(new ClassInfo
+                        {
+                            Name = className,
+                            BaseClass = baseClass
+                        });
+                    }
+                }
+                
+                if (classes.Count > 0) break;
             }
 
-            return info;
+            return classes;
         }
 
-        private void ParseProperties(string content, ClassInfo classInfo)
+        private void ParsePropertiesWithAdvancedParser(string content, ClassInfo classInfo)
         {
             // 使用更精确的正则表达式，处理各种类型声明格式
             string[] propertyPatterns = {
@@ -249,16 +282,19 @@ namespace NutHeaderTools
                     string type = match.Groups[1].Value.Trim();
                     string name = match.Groups[2].Value.Trim();
 
-                    // 验证类型和名称格式
+                    // 使用高级解析器验证类型和名称
                     if (!addedProperties.Contains(name) && 
                         !string.IsNullOrEmpty(type) && 
                         !string.IsNullOrEmpty(name) &&
-                        IsValidIdentifier(name) &&
-                        IsValidTypeIdentifier(type))
+                        macroParser.IsValidFunctionName(name) &&
+                        macroParser.IsValidTypeName(type))
                     {
+                        // 标准化类型名称
+                        var normalizedType = macroParser.NormalizeTypeName(type);
+                        
                         PropertyInfo property = new PropertyInfo
                         {
-                            Type = type,
+                            Type = normalizedType,
                             Name = name
                         };
                         classInfo.Properties.Add(property);
@@ -269,7 +305,7 @@ namespace NutHeaderTools
             }
         }
 
-        private void ParseFunctions(string content, ClassInfo classInfo)
+        private void ParseFunctionsWithAdvancedParser(string content, ClassInfo classInfo)
         {
             // 更灵活的函数解析 - 查找NFUNCTION()或NMETHOD()标记的函数
             string[] functionPatterns = {
@@ -295,12 +331,15 @@ namespace NutHeaderTools
                     if (!addedFunctions.Contains(name) && 
                         !string.IsNullOrEmpty(returnType) && 
                         !string.IsNullOrEmpty(name) &&
-                        IsValidIdentifier(name) &&
-                        IsValidTypeIdentifier(returnType))
+                        macroParser.IsValidFunctionName(name) &&
+                        macroParser.IsValidTypeName(returnType))
                     {
+                        // 标准化返回类型
+                        var normalizedReturnType = macroParser.NormalizeTypeName(returnType);
+                        
                         FunctionInfo function = new FunctionInfo
                         {
-                            ReturnType = returnType,
+                            ReturnType = normalizedReturnType,
                             Name = name
                         };
                         classInfo.Functions.Add(function);
@@ -447,7 +486,7 @@ namespace NutHeaderTools
             return Path.Combine(intermediateRoot, $"{fileName}.generate.h");
         }
 
-        private static void GenerateCodeFile(string outputPath, HeaderInfo headerInfo)
+        private void GenerateCodeFile(string outputPath, HeaderInfo headerInfo)
         {
             using StreamWriter writer = new StreamWriter(outputPath);
 
@@ -456,10 +495,6 @@ namespace NutHeaderTools
             writer.WriteLine($"// 源文件: {Path.GetFileName(headerInfo.FilePath)}");
             writer.WriteLine();
             writer.WriteLine("#pragma once");
-            writer.WriteLine();
-            writer.WriteLine("#include <cstddef>   // for size_t, offsetof");
-            writer.WriteLine("#include <typeinfo>  // for std::type_info");
-            writer.WriteLine("#include <any>       // for std::any");
             writer.WriteLine();
 
             // 检查是否需要包含反射系统头文件
@@ -476,142 +511,108 @@ namespace NutHeaderTools
 
             writer.WriteLine("namespace NLib");
             writer.WriteLine("{");
+            writer.WriteLine();
 
             foreach (ClassInfo classInfo in headerInfo.Classes)
             {
-                GenerateClassReflection(writer, classInfo);
+                // 生成类的反射数据和函数实现
+                GenerateClassImplementation(writer, classInfo);
             }
 
-            writer.WriteLine("} // namespace NLib");
+            // 重定义GENERATED_BODY宏为第一个类的实现
+            if (headerInfo.Classes.Count > 0)
+            {
+                var firstClass = headerInfo.Classes[0];
+                writer.WriteLine("} // namespace NLib");
+                writer.WriteLine();
+                writer.WriteLine("// 重定义GENERATED_BODY宏为当前文件的类实现");
+                writer.WriteLine("#undef GENERATED_BODY");
+                writer.WriteLine($"#define GENERATED_BODY() {firstClass.Name}_GENERATED_BODY");
+                writer.WriteLine();
+                
+                // 生成静态成员变量定义宏
+                writer.WriteLine("// 静态成员变量定义宏 - 在类定义之后使用");
+                foreach (ClassInfo classInfo in headerInfo.Classes)
+                {
+                    writer.WriteLine($"#define IMPLEMENT_{classInfo.Name}_STATICS() \\");
+                    writer.WriteLine($"    namespace NLib {{ bool {classInfo.Name}::bReflectionRegistered = false; }}");
+                    writer.WriteLine();
+                }
+            }
+            else
+            {
+                writer.WriteLine("} // namespace NLib");
+            }
+
             writer.WriteLine();
             writer.WriteLine("// NutHeaderTools 生成结束");
         }
 
-        private static void GenerateClassReflection(StreamWriter writer, ClassInfo classInfo)
+        private void GenerateClassImplementation(StreamWriter writer, ClassInfo classInfo)
         {
-            writer.WriteLine($"// === {classInfo.Name} 反射信息 ===");
-            writer.WriteLine();
-
-            // 生成属性反射数组
-            if (classInfo.Properties.Count > 0)
-            {
-                writer.WriteLine($"// {classInfo.Name} 属性反射数组");
-                writer.WriteLine($"static const SPropertyReflection {classInfo.Name}_Properties[] = {{");
-                
-                for (int i = 0; i < classInfo.Properties.Count; i++)
-                {
-                    PropertyInfo property = classInfo.Properties[i];
-                    writer.WriteLine("    {");
-                    writer.WriteLine($"        \"{property.Name}\",           // Name");
-                    writer.WriteLine($"        \"{property.Type}\",           // TypeName");
-                    writer.WriteLine($"        offsetof({classInfo.Name}, {property.Name}), // Offset");
-                    writer.WriteLine($"        sizeof({property.Type}),      // Size");
-                    writer.WriteLine($"        &typeid({property.Type}),     // TypeInfo");
-                    writer.WriteLine("        EPropertyFlags::None,         // Flags");
-                    writer.WriteLine("        nullptr,                      // Category");
-                    writer.WriteLine("        nullptr,                      // DisplayName");
-                    writer.WriteLine("        nullptr,                      // ToolTip");
-                    writer.WriteLine("        std::any{},                   // DefaultValue");
-                    writer.WriteLine("        nullptr,                      // Getter");
-                    writer.WriteLine("        nullptr                       // Setter");
-                    writer.Write("    }");
-                    if (i < classInfo.Properties.Count - 1)
-                        writer.WriteLine(",");
-                    else
-                        writer.WriteLine();
-                }
-                writer.WriteLine("};");
-                writer.WriteLine();
-            }
-
-            // 生成函数反射数组
-            if (classInfo.Functions.Count > 0)
-            {
-                writer.WriteLine($"// {classInfo.Name} 函数反射数组");
-                writer.WriteLine($"static const SFunctionReflection {classInfo.Name}_Functions[] = {{");
-                
-                for (int i = 0; i < classInfo.Functions.Count; i++)
-                {
-                    FunctionInfo function = classInfo.Functions[i];
-                    writer.WriteLine("    {");
-                    writer.WriteLine($"        \"{function.Name}\",          // Name");
-                    writer.WriteLine($"        \"{function.ReturnType}\",    // ReturnTypeName");
-                    writer.WriteLine($"        &typeid({function.ReturnType}), // ReturnTypeInfo");
-                    writer.WriteLine("        EFunctionFlags::None,         // Flags");
-                    writer.WriteLine("        nullptr,                      // Category");
-                    writer.WriteLine("        nullptr,                      // DisplayName");
-                    writer.WriteLine("        nullptr,                      // ToolTip");
-                    writer.WriteLine("        {},                           // Parameters");
-                    writer.WriteLine("        nullptr                       // Invoker");
-                    writer.Write("    }");
-                    if (i < classInfo.Functions.Count - 1)
-                        writer.WriteLine(",");
-                    else
-                        writer.WriteLine();
-                }
-                writer.WriteLine("};");
-                writer.WriteLine();
-            }
-
-            // 生成类反射结构
-            writer.WriteLine($"// {classInfo.Name} 类反射结构");
-            writer.WriteLine($"static const SClassReflection {classInfo.Name}_ClassReflection = {{");
-            writer.WriteLine($"    \"{classInfo.Name}\",              // Name");
-            writer.WriteLine($"    \"{classInfo.BaseClass}\",         // BaseClassName");
-            writer.WriteLine($"    sizeof({classInfo.Name}),          // Size");
-            writer.WriteLine($"    &typeid({classInfo.Name}),         // TypeInfo");
-            writer.WriteLine("    EClassFlags::None,                 // Flags");
-            writer.WriteLine("    nullptr,                           // Category");
-            writer.WriteLine("    nullptr,                           // DisplayName");
-            writer.WriteLine("    nullptr,                           // ToolTip");
+            writer.WriteLine($"// {classInfo.Name} 反射实现");
             
-            if (classInfo.Properties.Count > 0)
-            {
-                writer.WriteLine($"    {classInfo.Name}_Properties,       // Properties");
-                writer.WriteLine($"    {classInfo.Properties.Count},        // PropertyCount");
-            }
-            else
-            {
-                writer.WriteLine("    nullptr,                           // Properties");
-                writer.WriteLine("    0,                                 // PropertyCount");
-            }
-            
-            if (classInfo.Functions.Count > 0)
-            {
-                writer.WriteLine($"    {classInfo.Name}_Functions,        // Functions");
-                writer.WriteLine($"    {classInfo.Functions.Count},         // FunctionCount");
-            }
-            else
-            {
-                writer.WriteLine("    nullptr,                           // Functions");
-                writer.WriteLine("    0,                                 // FunctionCount");
-            }
-            
-            writer.WriteLine("    nullptr                            // Constructor");
-            writer.WriteLine("};");
-            writer.WriteLine();
-
-            // 检查是否为模板类或抽象类
-            bool isTemplateClass = IsTemplateClass(classInfo.Name);
-            bool isAbstractClass = IsAbstractClass(classInfo.Name);
-
-            if (isTemplateClass)
-            {
-                writer.WriteLine($"// 注意：{classInfo.Name} 是模板类，不支持直接反射注册");
-                writer.WriteLine("// 模板类的反射需要在具体实例化时处理");
-            }
-            else if (isAbstractClass)
-            {
-                writer.WriteLine($"// 注意：{classInfo.Name} 是抽象类，反射注册代码已移至 {classInfo.Name}.cpp 文件中");
-            }
-            else
-            {
-                // 类似UE的做法，只生成反射数据，不生成函数实现
-                writer.WriteLine($"// {classInfo.Name} 反射数据已生成");
-                writer.WriteLine($"// 函数实现由 GENERATED_BODY() 宏提供");
-            }
+            // 生成类特定的GENERATED_BODY宏
+            writer.WriteLine($"#define {classInfo.Name}_GENERATED_BODY \\");
+            writer.WriteLine($"private: \\");
+            writer.WriteLine($"    friend class NLib::CReflectionRegistry; \\");
+            writer.WriteLine($"    static bool bReflectionRegistered; \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    static void RegisterReflection() \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        if (!bReflectionRegistered) \\");
+            writer.WriteLine($"        {{ \\");
+            writer.WriteLine($"            auto& Registry = NLib::CReflectionRegistry::GetInstance(); \\");
+            writer.WriteLine($"            Registry.RegisterClass(GetStaticClassReflection()); \\");
+            writer.WriteLine($"            bReflectionRegistered = true; \\");
+            writer.WriteLine($"        }} \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"public: \\");
+            writer.WriteLine($"    using Super = NObject; \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    virtual const std::type_info& GetTypeInfo() const override \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        return typeid(*this); \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    virtual const char* GetTypeName() const override \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        return GetStaticTypeName(); \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    virtual const NLib::SClassReflection* GetClassReflection() const override \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        return GetStaticClassReflection(); \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    static const char* GetStaticTypeName() \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        return \"{classInfo.Name}\"; \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    static const NLib::SClassReflection* GetStaticClassReflection() \\");
+            writer.WriteLine($"    {{ \\");
+            writer.WriteLine($"        static const SClassReflection reflection = {{ \\");
+            writer.WriteLine($"            \"{classInfo.Name}\", \\");
+            writer.WriteLine($"            \"{classInfo.BaseClass}\", \\");
+            writer.WriteLine($"            sizeof({classInfo.Name}), \\");
+            writer.WriteLine($"            &typeid({classInfo.Name}), \\");
+            writer.WriteLine($"            EClassFlags::None, \\");
+            writer.WriteLine($"            nullptr, nullptr, nullptr, \\");
+            writer.WriteLine($"            nullptr, 0, nullptr, 0, \\");
+            writer.WriteLine($"            nullptr \\");
+            writer.WriteLine($"        }}; \\");
+            writer.WriteLine($"        return &reflection; \\");
+            writer.WriteLine($"    }} \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"    static NLib::NObject* CreateDefaultObject(); \\");
+            writer.WriteLine($" \\");
+            writer.WriteLine($"private:");
             writer.WriteLine();
         }
+
+
 
         private static bool IsTemplateClass(string className)
         {
@@ -627,29 +628,7 @@ namespace NutHeaderTools
             return abstractClasses.Contains(className);
         }
 
-        /// <summary>
-        /// 验证是否为有效的C++标识符
-        /// </summary>
-        private static bool IsValidIdentifier(string identifier)
-        {
-            if (string.IsNullOrEmpty(identifier))
-                return false;
-                
-            // C++标识符规则：以字母或下划线开头，后跟字母、数字或下划线
-            return Regex.IsMatch(identifier, @"^[A-Za-z_][A-Za-z0-9_]*$");
-        }
 
-        /// <summary>
-        /// 验证是否为有效的C++类型标识符（包括模板和命名空间）
-        /// </summary>
-        private static bool IsValidTypeIdentifier(string typeIdentifier)
-        {
-            if (string.IsNullOrEmpty(typeIdentifier))
-                return false;
-                
-            // 支持：基本类型、模板类型、命名空间类型
-            return Regex.IsMatch(typeIdentifier, @"^[A-Za-z_][A-Za-z0-9_]*(?:(?:<[^<>]*>)|(?:::[A-Za-z_][A-Za-z0-9_]*))*$");
-        }
 
     }
 

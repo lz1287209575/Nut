@@ -71,7 +71,7 @@ inline bool LoadConfigFile(const CString& FilePath,
 	int32_t LastSlash = FileName.LastIndexOf('/');
 	if (LastSlash >= 0)
 	{
-		FileName = FileName.Substring(LastSlash + 1);
+		FileName = FileName.SubString(LastSlash + 1);
 	}
 
 	return NConfigManager::GetInstance().AddJsonFile(FileName, FilePath, Priority, bOptional);
