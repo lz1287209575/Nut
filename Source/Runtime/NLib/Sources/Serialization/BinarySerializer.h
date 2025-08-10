@@ -178,7 +178,7 @@ private:
 
 		// 分配新的ID并序列化
 		uint32_t NewId = ++NextObjectId;
-		ObjectToIdMap.Add(RawPtr, NewId);
+		ObjectToIdMap.Insert(RawPtr, NewId);
 
 		auto Result = Serialize(NewId);
 		if (!Result.bSuccess)
@@ -213,13 +213,13 @@ private:
 		auto ExistingObject = IdToObjectMap.Find(ObjectId);
 		if (ExistingObject)
 		{
-			Object = std::static_pointer_cast<T>(*ExistingObject);
+			Object = TSharedPtr<T>(static_cast<T*>(*ExistingObject));
 			return SSerializationResult(true);
 		}
 
 		// 创建新对象并反序列化
 		Object = MakeShared<T>();
-		IdToObjectMap.Add(ObjectId, Object);
+		IdToObjectMap.Insert(ObjectId, Object.Get());
 
 		return SerializeObject(*Object);
 	}
@@ -247,8 +247,8 @@ private:
 
 	// 对象引用管理
 	uint32_t NextObjectId = 0;
-	THashMap<void*, uint32_t, CMemoryManager> ObjectToIdMap;            // 序列化：对象指针 -> ID
-	THashMap<uint32_t, TSharedPtr<void>, CMemoryManager> IdToObjectMap; // 反序列化：ID -> 对象
+	THashMap<void*, uint32_t, std::hash<void*>, std::equal_to<void*>, CMemoryManager> ObjectToIdMap;            // 序列化：对象指针 -> ID
+	THashMap<uint32_t, void*, std::hash<uint32_t>, std::equal_to<uint32_t>, CMemoryManager> IdToObjectMap; // 反序列化：ID -> 对象指针
 
 	// 嵌套计数
 	int32_t ObjectNestingLevel = 0;
@@ -328,7 +328,7 @@ public:
 
 		if (Result.bSuccess)
 		{
-			return MemoryStream->GetBuffer();
+			return std::move(MemoryStream->GetBuffer());
 		}
 		else
 		{

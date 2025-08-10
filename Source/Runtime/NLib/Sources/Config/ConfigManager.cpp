@@ -10,6 +10,8 @@
 
 namespace NLib
 {
+using SizeType = std::size_t;
+
 // === NConfigManager 初始化和关闭 ===
 
 bool NConfigManager::Initialize()
@@ -263,7 +265,7 @@ bool NConfigManager::RemoveConfigSource(const CString& Name)
 
 	std::lock_guard<std::mutex> Lock(SourcesMutex);
 
-	for (int32_t i = 0; i < ConfigSources.Size(); ++i)
+	for (SizeType i = 0; i < ConfigSources.Size(); ++i)
 	{
 		if (ConfigSources[i].Name == Name)
 		{
@@ -458,9 +460,9 @@ TArray<CString, CMemoryManager> NConfigManager::GetAllKeys() const
 	}
 
 	// 去重
-	for (int32_t i = 0; i < Keys.Size() - 1; ++i)
+	for (SizeType i = 0; i < Keys.Size() - 1; ++i)
 	{
-		for (int32_t j = i + 1; j < Keys.Size(); ++j)
+		for (SizeType j = i + 1; j < Keys.Size(); ++j)
 		{
 			if (Keys[i] == Keys[j])
 			{
@@ -632,7 +634,14 @@ TArray<SConfigSource, CMemoryManager> NConfigManager::GetConfigSources() const
 	}
 
 	std::lock_guard<std::mutex> Lock(SourcesMutex);
-	return std::move(TArray<SConfigSource, CMemoryManager>(ConfigSources));
+	// 创建新的数组并拷贝内容
+	TArray<SConfigSource, CMemoryManager> Result;
+	Result.Reserve(ConfigSources.Size());
+	for (const auto& Source : ConfigSources)
+	{
+		Result.PushBack(Source);
+	}
+	return Result;
 }
 
 CConfigValue NConfigManager::GetMergedConfig() const
@@ -773,9 +782,9 @@ void NConfigManager::MergeAllSources()
 	}
 
 	// 简单排序（优先级低的在前）
-	for (int32_t i = 0; i < SortedSources.Size() - 1; ++i)
+	for (SizeType i = 0; i < SortedSources.Size() - 1; ++i)
 	{
-		for (int32_t j = i + 1; j < SortedSources.Size(); ++j)
+		for (SizeType j = i + 1; j < SortedSources.Size(); ++j)
 		{
 			if (SortedSources[i]->Priority > SortedSources[j]->Priority)
 			{
@@ -1004,7 +1013,7 @@ void NConfigManager::ApplyConfigValue(const CString& Key, const CConfigValue& Va
 	NLOG_CONFIG(Debug,
 	            "Applied config value: {} = {} from {}",
 	            Key.GetData(),
-	            Value.ToString().GetData(),
+	            Value.AsString().GetData(),
 	            SourceName.GetData());
 }
 
@@ -1014,11 +1023,9 @@ CDateTime NConfigManager::GetFileModificationTime(const CString& FilePath) const
 {
 	try
 	{
-		auto FileTime = std::filesystem::last_write_time(FilePath.GetData());
-		auto SystemTime = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-		    FileTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
-
-		return CDateTime::Now();  // 简化实现，使用当前时间
+		// 简化实现，直接返回当前时间
+		// TODO: 实现正确的文件时间获取逻辑
+		return CDateTime::Now();
 	}
 	catch (...)
 	{
@@ -1090,15 +1097,15 @@ void NConfigManager::MergeConfigObjects(CConfigObject& Target, const CConfigObje
 {
 	for (const auto& Pair : Source)
 	{
-		const CString& Key = Pair.Key;
-		const CConfigValue& Value = Pair.Value;
+		const CString& Key = Pair.first;
+		const CConfigValue& Value = Pair.second;
 
 		if (Target.Contains(Key) && Target[Key].IsObject() && Value.IsObject())
 		{
 			// 递归合并对象
-			CConfigObject MergedObj = Target[Key].AsObject();
+			CConfigObject MergedObj = std::move(Target[Key].AsObject());
 			MergeConfigObjects(MergedObj, Value.AsObject());
-			Target.Insert(Key, CConfigValue(MergedObj));
+			Target.Insert(Key, CConfigValue(std::move(MergedObj)));
 		}
 		else
 		{
@@ -1117,17 +1124,17 @@ void NConfigManager::CollectKeysFromValue(const CConfigValue& Value,
 		const auto& Object = Value.AsObject();
 		for (const auto& Pair : Object)
 		{
-			CString FullKey = Prefix.IsEmpty() ? Pair.Key : (Prefix + CString(".") + Pair.Key);
+			CString FullKey = Prefix.IsEmpty() ? Pair.first : (Prefix + CString(".") + Pair.first);
 			OutKeys.PushBack(FullKey);
-			CollectKeysFromValue(Pair.Value, FullKey, OutKeys);
+			CollectKeysFromValue(Pair.second, FullKey, OutKeys);
 		}
 	}
 	else if (Value.IsArray())
 	{
 		const auto& Array = Value.AsArray();
-		for (int32_t i = 0; i < Array.Size(); ++i)
+		for (SizeType i = 0; i < Array.Size(); ++i)
 		{
-			CString FullKey = Prefix + CString("[") + CString::FromInt(i) + CString("]");
+			CString FullKey = Prefix + CString("[") + CString::FromInt(static_cast<int32_t>(i)) + CString("]");
 			OutKeys.PushBack(FullKey);
 			CollectKeysFromValue(Array[i], FullKey, OutKeys);
 		}
@@ -1143,7 +1150,7 @@ int32_t NConfigManager::CountConfigValues(const CConfigValue& Value) const
 		const auto& Object = Value.AsObject();
 		for (const auto& Pair : Object)
 		{
-			Count += CountConfigValues(Pair.Value);
+			Count += CountConfigValues(Pair.second);
 		}
 	}
 	else if (Value.IsArray())

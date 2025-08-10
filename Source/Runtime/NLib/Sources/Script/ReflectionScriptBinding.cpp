@@ -1,6 +1,7 @@
 #include "ReflectionScriptBinding.h"
 
 #include "IO/FileSystem.h"
+#include "IO/IO.h"
 #include "Logging/LogCategory.h"
 
 namespace NLib
@@ -21,7 +22,7 @@ void CScriptBindingRegistry::RegisterGenerator(EScriptLanguage Language, TShared
 		return;
 	}
 
-	Generators.Add(Language, Generator);
+	Generators.Insert(Language, Generator);
 	NLOG_SCRIPT(Info, "Registered script binding generator for language {}", static_cast<int>(Language));
 }
 
@@ -34,7 +35,7 @@ void CScriptBindingRegistry::RegisterClassBinding(const char* ClassName, const S
 	}
 
 	CString ClassNameStr(ClassName);
-	ClassBindings.Add(ClassNameStr, BindingInfo);
+	ClassBindings.Insert(ClassNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for class: {}", ClassName);
 }
@@ -50,7 +51,7 @@ void CScriptBindingRegistry::RegisterFunctionBinding(const char* ClassName,
 	}
 
 	CString Key = CString(ClassName) + TEXT("::") + CString(FunctionName);
-	FunctionBindings.Add(Key, BindingInfo);
+	FunctionBindings.Insert(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for function: {}::{}", ClassName, FunctionName);
 }
@@ -66,7 +67,7 @@ void CScriptBindingRegistry::RegisterPropertyBinding(const char* ClassName,
 	}
 
 	CString Key = CString(ClassName) + TEXT("::") + CString(PropertyName);
-	PropertyBindings.Add(Key, BindingInfo);
+	PropertyBindings.Insert(Key, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for property: {}::{}", ClassName, PropertyName);
 }
@@ -80,7 +81,7 @@ void CScriptBindingRegistry::RegisterEnumBinding(const char* EnumName, const SSc
 	}
 
 	CString EnumNameStr(EnumName);
-	EnumBindings.Add(EnumNameStr, BindingInfo);
+	EnumBindings.Insert(EnumNameStr, BindingInfo);
 
 	NLOG_SCRIPT(Debug, "Registered script binding for enum: {}", EnumName);
 }
@@ -92,7 +93,7 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetClassBindingInfo(const char
 
 	CString ClassNameStr(ClassName);
 	auto Found = ClassBindings.Find(ClassNameStr);
-	return Found ? &Found->Value : nullptr;
+	return Found ? &(*Found) : nullptr;
 }
 
 const SScriptBindingInfo* CScriptBindingRegistry::GetFunctionBindingInfo(const char* ClassName,
@@ -103,7 +104,7 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetFunctionBindingInfo(const c
 
 	CString Key = CString(ClassName) + TEXT("::") + CString(FunctionName);
 	auto Found = FunctionBindings.Find(Key);
-	return Found ? &Found->Value : nullptr;
+	return Found ? &(*Found) : nullptr;
 }
 
 const SScriptBindingInfo* CScriptBindingRegistry::GetPropertyBindingInfo(const char* ClassName,
@@ -114,7 +115,7 @@ const SScriptBindingInfo* CScriptBindingRegistry::GetPropertyBindingInfo(const c
 
 	CString Key = CString(ClassName) + TEXT("::") + CString(PropertyName);
 	auto Found = PropertyBindings.Find(Key);
-	return Found ? &Found->Value : nullptr;
+	return Found ? &(*Found) : nullptr;
 }
 
 CString CScriptBindingRegistry::GenerateBindingCode(EScriptLanguage Language) const
@@ -127,7 +128,7 @@ CString CScriptBindingRegistry::GenerateBindingCode(EScriptLanguage Language) co
 	}
 
 	auto ScriptableClasses = GetScriptBindableClasses();
-	return FoundGenerator->Value->GenerateBindingFile(ScriptableClasses);
+	return (*FoundGenerator)->GenerateBindingFile(ScriptableClasses);
 }
 
 void CScriptBindingRegistry::GenerateAllBindings(const CString& OutputDirectory) const
@@ -135,15 +136,15 @@ void CScriptBindingRegistry::GenerateAllBindings(const CString& OutputDirectory)
 	NLOG_SCRIPT(Info, "Generating script bindings to directory: {}", OutputDirectory.GetData());
 
 	// 确保输出目录存在
-	if (!NFileSystem::DirectoryExists(OutputDirectory))
+	if (!DirectoryExists(NPath(OutputDirectory)))
 	{
-		NFileSystem::CreateDirectories(OutputDirectory);
+		NFileSystem::CreateDirectory(NPath(OutputDirectory), true);
 	}
 
 	for (const auto& GeneratorPair : Generators)
 	{
-		EScriptLanguage Language = GeneratorPair.Key;
-		auto Generator = GeneratorPair.Value;
+		EScriptLanguage Language = GeneratorPair.first;
+		auto Generator = GeneratorPair.second;
 
 		CString BindingCode = Generator->GenerateBindingFile(GetScriptBindableClasses());
 		if (!BindingCode.IsEmpty())
@@ -168,10 +169,10 @@ void CScriptBindingRegistry::GenerateAllBindings(const CString& OutputDirectory)
 				break;
 			}
 
-			CString FilePath = NPath::Combine(OutputDirectory, FileName);
-			auto WriteResult = NFileSystem::WriteFileAsString(FilePath, BindingCode);
+			CString FilePath = NPath::Combine(OutputDirectory, FileName).ToString();
+			auto WriteResult = NFileSystem::WriteAllText(NPath(FilePath), BindingCode);
 
-			if (WriteResult.IsSuccess())
+			if (WriteResult.bSuccess)
 			{
 				NLOG_SCRIPT(Info, "Generated binding file: {}", FilePath.GetData());
 			}
@@ -192,15 +193,15 @@ TArray<const SClassReflection*, CMemoryManager> CScriptBindingRegistry::GetScrip
 	// 遍历所有已注册的类
 	for (const auto& ClassBindingPair : ClassBindings)
 	{
-		const CString& ClassName = ClassBindingPair.Key;
-		const SScriptBindingInfo& BindingInfo = ClassBindingPair.Value;
+		const CString& ClassName = ClassBindingPair.first;
+		const SScriptBindingInfo& BindingInfo = ClassBindingPair.second;
 
 		if (BindingInfo.ShouldBind())
 		{
 			const SClassReflection* ClassReflection = ReflectionRegistry.FindClass(ClassName.GetData());
 			if (ClassReflection)
 			{
-				Result.Add(ClassReflection);
+				Result.PushBack(ClassReflection);
 			}
 			else
 			{
@@ -579,7 +580,8 @@ CString CTypeScriptBindingGenerator::ConvertTypeToTypeScript(const std::type_inf
 CString CTypeScriptBindingGenerator::GenerateTypeDefinition(const SClassReflection* ClassReflection,
                                                             const SScriptBindingInfo& BindingInfo) const
 {
-	return GenerateClassBinding(ClassReflection, BindingInfo);
+	// Call non-const GenerateClassBinding by const_cast since this is a helper method
+	return const_cast<CTypeScriptBindingGenerator*>(this)->GenerateClassBinding(ClassReflection, BindingInfo);
 }
 
 CString CTypeScriptBindingGenerator::GenerateInterfaceDefinition(const SClassReflection* ClassReflection) const
@@ -847,7 +849,8 @@ CString CCSharpBindingGenerator::ConvertTypeToCSharp(const std::type_info& TypeI
 CString CCSharpBindingGenerator::GenerateCSharpClass(const SClassReflection* ClassReflection,
                                                      const SScriptBindingInfo& BindingInfo) const
 {
-	return GenerateClassBinding(ClassReflection, BindingInfo);
+	// Call non-const GenerateClassBinding by const_cast since this is a helper method
+	return const_cast<CCSharpBindingGenerator*>(this)->GenerateClassBinding(ClassReflection, BindingInfo);
 }
 
 CString CCSharpBindingGenerator::GeneratePInvokeDeclarations(const SClassReflection* ClassReflection) const
@@ -858,55 +861,6 @@ CString CCSharpBindingGenerator::GeneratePInvokeDeclarations(const SClassReflect
 	return Code;
 }
 
-// === 空的Python绑定生成器实现（占位符） ===
-
-CString CPythonBindingGenerator::GenerateClassBinding(const SClassReflection* ClassReflection,
-                                                      const SScriptBindingInfo& BindingInfo)
-{
-	NLOG_SCRIPT(Warning, "Python binding generation not implemented yet");
-	return CString();
-}
-
-CString CPythonBindingGenerator::GenerateFunctionBinding(const SFunctionReflection* FunctionReflection,
-                                                         const SScriptBindingInfo& BindingInfo,
-                                                         const CString& ClassName)
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::GeneratePropertyBinding(const SPropertyReflection* PropertyReflection,
-                                                         const SScriptBindingInfo& BindingInfo,
-                                                         const CString& ClassName)
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::GenerateEnumBinding(const SEnumReflection* EnumReflection,
-                                                     const SScriptBindingInfo& BindingInfo)
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::GenerateBindingFile(const TArray<const SClassReflection*, CMemoryManager>& Classes)
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::ConvertTypeToPython(const std::type_info& TypeInfo) const
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::GeneratePythonClass(const SClassReflection* ClassReflection,
-                                                     const SScriptBindingInfo& BindingInfo) const
-{
-	return CString();
-}
-
-CString CPythonBindingGenerator::GeneratePythonStub(const SClassReflection* ClassReflection) const
-{
-	return CString();
-}
 
 // === CPythonBindingGenerator 实现 ===
 

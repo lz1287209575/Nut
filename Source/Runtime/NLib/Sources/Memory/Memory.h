@@ -103,7 +103,7 @@ public:
 
 		// 简化实现，实际需要使用平台特定的API
 		auto& MemMgr = CMemoryManager::GetInstance();
-		Info.HeapSize = MemMgr.GetTotalAllocatedMemory();
+		Info.HeapSize = MemMgr.GetTotalAllocatedBytes();
 
 		return Info;
 	}
@@ -191,7 +191,7 @@ public:
 		SMemoryLeakInfo Info;
 
 		// 通过内存管理器检测泄漏
-		auto& MemMgr = CMemoryManager::GetInstance();
+		// auto& MemMgr = CMemoryManager::GetInstance();
 		// 这里需要内存管理器提供泄漏检测功能
 
 		return Info;
@@ -221,8 +221,8 @@ public:
 		         "NLib Memory Manager:\n"
 		         "  Total Allocated: %.2f MB\n"
 		         "  Peak Allocated: %.2f MB\n"
-		         "  Allocation Count: %u\n"
-		         "  Deallocation Count: %u\n\n"
+		         "  Allocation Count: %llu\n"
+		         "  Deallocation Count: %llu\n\n"
 		         "Garbage Collector:\n"
 		         "  Registered Objects: %u\n"
 		         "  Total Collections: %llu\n"
@@ -233,10 +233,10 @@ public:
 		         SystemInfo.MemoryUsageRatio * 100.0f,
 		         static_cast<double>(ProcessInfo.HeapSize) / (1024.0 * 1024.0),
 		         static_cast<double>(ProcessInfo.VirtualMemorySize) / (1024.0 * 1024.0),
-		         static_cast<double>(MemMgr.GetTotalAllocatedMemory()) / (1024.0 * 1024.0),
-		         static_cast<double>(MemMgr.GetPeakAllocatedMemory()) / (1024.0 * 1024.0),
-		         MemMgr.GetAllocationCount(),
-		         MemMgr.GetDeallocationCount(),
+		         static_cast<double>(MemMgr.GetMemoryStats().TotalAllocated) / (1024.0 * 1024.0),
+		         static_cast<double>(MemMgr.GetMemoryStats().PeakUsed) / (1024.0 * 1024.0),
+		         MemMgr.GetMemoryStats().AllocationCount,
+		         MemMgr.GetMemoryStats().DeallocationCount,
 		         GC.GetRegisteredObjectCount(),
 		         GC.GetStatistics().TotalCollections,
 		         GC.GetStatistics().TotalObjectsCollected,
@@ -264,10 +264,10 @@ public:
 		// 分配阶段
 		for (uint32_t i = 0; i < AllocCount; ++i)
 		{
-			void* Ptr = MemMgr.AllocateMemory(AllocSize);
+			void* Ptr = MemMgr.Allocate(AllocSize);
 			if (Ptr)
 			{
-				Allocations.Add(Ptr);
+				Allocations.PushBack(Ptr);
 				// 写入数据以确保内存可用
 				memset(Ptr, static_cast<int>(i % 256), AllocSize);
 			}
@@ -278,7 +278,7 @@ public:
 		// 释放阶段
 		for (void* Ptr : Allocations)
 		{
-			MemMgr.DeallocateMemory(Ptr);
+			MemMgr.Deallocate(Ptr);
 		}
 
 		CTimespan DeallocTime = TestClock.GetElapsed();
@@ -322,7 +322,8 @@ public:
 		auto& GC = CGarbageCollector::GetInstance();
 
 		float MemoryUsage = SystemInfo.MemoryUsageRatio;
-		float HeapUsage = MemMgr.GetMemoryUsageRatio();
+		auto Stats = MemMgr.GetMemoryStats();
+		float HeapUsage = (Stats.TotalAllocated > 0) ? static_cast<float>(Stats.CurrentUsed) / static_cast<float>(Stats.TotalAllocated) : 0.0f;
 		uint32_t RegisteredObjects = GC.GetRegisteredObjectCount();
 
 		Suggestions.MemoryPressure = CMath::Max(MemoryUsage, HeapUsage);
@@ -352,7 +353,10 @@ public:
 		}
 
 		// 内存碎片
-		if (MemMgr.GetFragmentationRatio() > 0.3f)
+		// 简单的碎片化估算：如果当前使用内存明显小于总分配内存，可能存在碎片化
+		float FragmentationRatio = (Stats.TotalAllocated > 0) ? 
+		    1.0f - static_cast<float>(Stats.CurrentUsed) / static_cast<float>(Stats.TotalAllocated) : 0.0f;
+		if (FragmentationRatio > 0.3f)
 		{
 			Suggestions.bShouldCompactMemory = true;
 			SuggestionText += "High memory fragmentation detected. ";
@@ -389,7 +393,7 @@ public:
 		if (Suggestions.bShouldCompactMemory)
 		{
 			// 执行内存压缩（如果内存管理器支持）
-			auto& MemMgr = CMemoryManager::GetInstance();
+			// auto& MemMgr = CMemoryManager::GetInstance();
 			// MemMgr.CompactMemory(); // 假设的API
 		}
 	}

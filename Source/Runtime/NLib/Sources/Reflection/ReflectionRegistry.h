@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/SmartPointers.h"
 #include "Logging/LogCategory.h"
 #include "ReflectionStructures.h"
 

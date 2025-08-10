@@ -6,9 +6,9 @@
 
 namespace NLib
 {
-// === CSerializationArchive 实现 ===
+// === NSerializationArchive 实现 ===
 
-CSerializationArchive::CSerializationArchive(TSharedPtr<NStream> InStream, const SSerializationContext& InContext)
+NSerializationArchive::NSerializationArchive(TSharedPtr<NStream> InStream, const SSerializationContext& InContext)
     : Stream(InStream),
       Context(InContext)
 {
@@ -20,7 +20,7 @@ CSerializationArchive::CSerializationArchive(TSharedPtr<NStream> InStream, const
 
 // === CSerializationFactory 实现 ===
 
-TSharedPtr<CSerializationArchive> CSerializationFactory::CreateArchive(TSharedPtr<NStream> Stream,
+TSharedPtr<NSerializationArchive> CSerializationFactory::CreateArchive(TSharedPtr<NStream> Stream,
                                                                        const SSerializationContext& Context)
 {
 	if (!Stream)
@@ -51,14 +51,14 @@ TSharedPtr<CSerializationArchive> CSerializationFactory::CreateArchive(TSharedPt
 	}
 }
 
-TSharedPtr<CSerializationArchive> CSerializationFactory::CreateBinaryArchive(TSharedPtr<NStream> Stream,
+TSharedPtr<NSerializationArchive> CSerializationFactory::CreateBinaryArchive(TSharedPtr<NStream> Stream,
                                                                              ESerializationMode Mode)
 {
 	SSerializationContext Context(Mode, ESerializationFormat::Binary);
 	return CreateArchive(Stream, Context);
 }
 
-TSharedPtr<CSerializationArchive> CSerializationFactory::CreateJsonArchive(TSharedPtr<NStream> Stream,
+TSharedPtr<NSerializationArchive> CSerializationFactory::CreateJsonArchive(TSharedPtr<NStream> Stream,
                                                                            ESerializationMode Mode,
                                                                            bool bPrettyPrint)
 {

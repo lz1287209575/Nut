@@ -354,19 +354,34 @@ class TMulticastDelegate<void(TArgs...)> : public IDelegateBase
 public:
 	using FunctionType = std::function<void(TArgs...)>;
 
-private:
 	struct SBinding
 	{
 		FunctionType Function;
 		FDelegateHandle Handle;
 		bool bIsOneShot;
 
+		// 默认构造函数
+		SBinding() : Handle(0), bIsOneShot(false) {}
+
 		SBinding(FunctionType InFunction, FDelegateHandle InHandle, bool bInOneShot = false)
 		    : Function(std::move(InFunction)),
 		      Handle(InHandle),
 		      bIsOneShot(bInOneShot)
 		{}
+
+		// 相等运算符 (基于Handle比较，因为Function不能直接比较)
+		bool operator==(const SBinding& Other) const
+		{
+			return Handle == Other.Handle && bIsOneShot == Other.bIsOneShot;
+		}
+
+		bool operator!=(const SBinding& Other) const
+		{
+			return !(*this == Other);
+		}
 	};
+
+private:
 
 	static std::atomic<FDelegateHandle> NextHandle;
 
@@ -523,7 +538,12 @@ public:
 		}
 
 		// 创建一个副本以避免在执行过程中修改绑定列表导致的问题
-		TArray<SBinding, CMemoryManager> BindingsCopy = Bindings;
+		TArray<SBinding, CMemoryManager> BindingsCopy;
+		BindingsCopy.Reserve(Bindings.Size());
+		for (const auto& Binding : Bindings)
+		{
+			BindingsCopy.PushBack(Binding);
+		}
 		TArray<FDelegateHandle, CMemoryManager> OneShotHandles;
 
 		for (const auto& Binding : BindingsCopy)

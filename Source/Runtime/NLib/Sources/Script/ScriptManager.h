@@ -25,6 +25,16 @@ struct SScriptEngineRegistry
 	      Name(InName),
 	      Engine(InEngine)
 	{}
+
+	bool operator==(const SScriptEngineRegistry& Other) const
+	{
+		return Language == Other.Language &&
+		       Name == Other.Name &&
+		       Version == Other.Version &&
+		       Description == Other.Description &&
+		       Engine == Other.Engine &&
+		       bIsDefault == Other.bIsDefault;
+	}
 };
 
 /**
@@ -177,12 +187,12 @@ public:
 	/**
 	 * @brief 注册全局对象
 	 */
-	void RegisterGlobalObject(const CString& Name, const CScriptValue& Object);
+	void RegisterGlobalObject(const CString& Name, const TSharedPtr<NScriptValue>& Object);
 
 	/**
 	 * @brief 注册全局常量
 	 */
-	void RegisterGlobalConstant(const CString& Name, const CScriptValue& Value);
+	void RegisterGlobalConstant(const CString& Name, const TSharedPtr<NScriptValue>& Value);
 
 	/**
 	 * @brief 移除全局绑定
@@ -305,16 +315,16 @@ private:
 	mutable CThreadSafeMutex Mutex;
 
 	// 引擎注册表
-	THashMap<EScriptLanguage, TArray<SScriptEngineRegistry, CMemoryManager>, CMemoryManager> EngineRegistry;
-	THashMap<EScriptLanguage, CString, CMemoryManager> DefaultEngines;
+	THashMap<EScriptLanguage, TArray<SScriptEngineRegistry, CMemoryManager>, std::hash<EScriptLanguage>, std::equal_to<EScriptLanguage>, CMemoryManager> EngineRegistry;
+	THashMap<EScriptLanguage, CString, std::hash<EScriptLanguage>, std::equal_to<EScriptLanguage>, CMemoryManager> DefaultEngines;
 
 	// 活跃上下文
-	THashMap<CString, TSharedPtr<CScriptContext>, CMemoryManager> ActiveContexts;
+	THashMap<CString, TSharedPtr<CScriptContext>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> ActiveContexts;
 
 	// 全局绑定
-	THashMap<CString, TSharedPtr<CScriptFunction>, CMemoryManager> GlobalFunctions;
-	THashMap<CString, CScriptValue, CMemoryManager> GlobalObjects;
-	THashMap<CString, CScriptValue, CMemoryManager> GlobalConstants;
+	THashMap<CString, TSharedPtr<CScriptFunction>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> GlobalFunctions;
+	THashMap<CString, TSharedPtr<NScriptValue>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> GlobalObjects;
+	THashMap<CString, TSharedPtr<NScriptValue>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> GlobalConstants;
 
 	// 配置和路径
 	SScriptConfig GlobalConfig;
@@ -325,7 +335,7 @@ private:
 
 	// 状态
 	bool bInitialized = false;
-	uint32_t NextContextId = 1;
+	mutable uint32_t NextContextId = 1;
 };
 
 // === 便利函数 ===

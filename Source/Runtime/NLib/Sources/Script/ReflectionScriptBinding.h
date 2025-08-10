@@ -5,42 +5,11 @@
 #include "Reflection/ReflectionRegistry.h"
 #include "Reflection/ReflectionStructures.h"
 #include "ScriptEngine.h"
+#include "ScriptBindingLoader.h"
 
 namespace NLib
 {
-/**
- * @brief 脚本绑定信息结构
- * 由NutHeaderTools生成，包含从meta标签解析的绑定信息
- */
-struct SScriptBindingInfo
-{
-	bool bScriptCreatable = false;                              // meta=(ScriptCreatable)
-	bool bScriptVisible = false;                                // meta=(ScriptVisible)
-	bool bScriptReadable = false;                               // meta=(ScriptReadable)
-	bool bScriptWritable = false;                               // meta=(ScriptWritable)
-	bool bScriptCallable = false;                               // meta=(ScriptCallable)
-	bool bScriptStatic = false;                                 // meta=(ScriptStatic)
-	bool bScriptEvent = false;                                  // meta=(ScriptEvent)
-	CString ScriptName;                                         // meta=(ScriptName="CustomName")
-	CString ScriptCategory;                                     // meta=(ScriptCategory="MyCategory")
-	TArray<EScriptLanguage, CMemoryManager> SupportedLanguages; // meta=(Languages="Lua,TypeScript,Python")
-
-	/**
-	 * @brief 检查是否支持指定语言
-	 */
-	bool SupportsLanguage(EScriptLanguage Language) const
-	{
-		return SupportedLanguages.IsEmpty() || SupportedLanguages.Contains(Language);
-	}
-
-	/**
-	 * @brief 检查是否应该绑定到脚本
-	 */
-	bool ShouldBind() const
-	{
-		return bScriptCreatable || bScriptVisible || bScriptReadable || bScriptWritable || bScriptCallable;
-	}
-};
+// Note: SScriptBindingInfo is now defined in ScriptBindingLoader.h
 
 /**
  * @brief 脚本绑定生成器基类
@@ -293,56 +262,14 @@ public:
 private:
 	CScriptBindingRegistry() = default;
 
-	THashMap<EScriptLanguage, TSharedPtr<IScriptBindingGenerator>, CMemoryManager> Generators;
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> ClassBindings;
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> EnumBindings;
+	THashMap<EScriptLanguage, TSharedPtr<IScriptBindingGenerator>, std::hash<EScriptLanguage>, std::equal_to<EScriptLanguage>, CMemoryManager> Generators;
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> ClassBindings;
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> EnumBindings;
 };
 
-/**
- * @brief 脚本绑定注册辅助宏（由NutHeaderTools生成）
- */
-#define REGISTER_SCRIPT_CLASS_BINDING(ClassName, BindingInfo)                                                          \
-	namespace                                                                                                          \
-	{                                                                                                                  \
-	struct ClassName##ScriptBindingRegistrar                                                                           \
-	{                                                                                                                  \
-		ClassName##ScriptBindingRegistrar()                                                                            \
-		{                                                                                                              \
-			NLib::CScriptBindingRegistry::GetInstance().RegisterClassBinding(#ClassName, BindingInfo);                 \
-		}                                                                                                              \
-	};                                                                                                                 \
-	static ClassName##ScriptBindingRegistrar ClassName##_script_binding_registrar_;                                    \
-	}
-
-#define REGISTER_SCRIPT_FUNCTION_BINDING(ClassName, FunctionName, BindingInfo)                                         \
-	namespace                                                                                                          \
-	{                                                                                                                  \
-	struct ClassName##_##FunctionName##ScriptBindingRegistrar                                                          \
-	{                                                                                                                  \
-		ClassName##_##FunctionName##ScriptBindingRegistrar()                                                           \
-		{                                                                                                              \
-			NLib::CScriptBindingRegistry::GetInstance().RegisterFunctionBinding(                                       \
-			    #ClassName, #FunctionName, BindingInfo);                                                               \
-		}                                                                                                              \
-	};                                                                                                                 \
-	static ClassName##_##FunctionName##ScriptBindingRegistrar ClassName##_##FunctionName##_script_binding_registrar_;  \
-	}
-
-#define REGISTER_SCRIPT_PROPERTY_BINDING(ClassName, PropertyName, BindingInfo)                                         \
-	namespace                                                                                                          \
-	{                                                                                                                  \
-	struct ClassName##_##PropertyName##ScriptBindingRegistrar                                                          \
-	{                                                                                                                  \
-		ClassName##_##PropertyName##ScriptBindingRegistrar()                                                           \
-		{                                                                                                              \
-			NLib::CScriptBindingRegistry::GetInstance().RegisterPropertyBinding(                                       \
-			    #ClassName, #PropertyName, BindingInfo);                                                               \
-		}                                                                                                              \
-	};                                                                                                                 \
-	static ClassName##_##PropertyName##ScriptBindingRegistrar ClassName##_##PropertyName##_script_binding_registrar_;  \
-	}
+// Note: Binding registration macros are now defined in ScriptBindingLoader.h
 
 } // namespace NLib
 

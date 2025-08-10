@@ -503,6 +503,7 @@ public:                                                                         
 
 // === 类型别名 ===
 using FSerializationArchive = NSerializationArchive;
+using CSerializationArchive = NSerializationArchive; // C-style alias for consistency
 using FSerializationFactory = CSerializationFactory;
 using FSerializationResult = SSerializationResult;
 using FSerializationContext = SSerializationContext;

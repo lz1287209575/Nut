@@ -163,8 +163,11 @@ CString NPath::GetFileName() const
 	catch (...)
 	{
 		// 手动解析
-		int32_t LastSeparator = PathString.LastIndexOfAny(FPathConstants::DirectorySeparatorString,
-		                                                  FPathConstants::AltDirectorySeparatorString);
+		auto LastSeparator1 = PathString.RFind(FPathConstants::DirectorySeparatorString);
+		auto LastSeparator2 = PathString.RFind(FPathConstants::AltDirectorySeparatorString);
+		int32_t LastSeparator = (LastSeparator1 == CString::NoPosition) ? static_cast<int32_t>(LastSeparator2) : 
+		                       (LastSeparator2 == CString::NoPosition) ? static_cast<int32_t>(LastSeparator1) : 
+		                       static_cast<int32_t>((LastSeparator1 > LastSeparator2) ? LastSeparator1 : LastSeparator2);
 
 		if (LastSeparator >= 0)
 		{
@@ -178,7 +181,7 @@ CString NPath::GetFileName() const
 CString NPath::GetFileNameWithoutExtension() const
 {
 	CString FileName = GetFileName();
-	int32_t DotIndex = FileName.LastIndexOf('.');
+	int32_t DotIndex = static_cast<int32_t>(FileName.RFind("."));
 
 	if (DotIndex > 0) // 不包括以.开头的文件
 	{
@@ -191,7 +194,7 @@ CString NPath::GetFileNameWithoutExtension() const
 CString NPath::GetExtension() const
 {
 	CString FileName = GetFileName();
-	int32_t DotIndex = FileName.LastIndexOf('.');
+	int32_t DotIndex = static_cast<int32_t>(FileName.RFind("."));
 
 	if (DotIndex > 0 && DotIndex < FileName.Length() - 1)
 	{
@@ -216,8 +219,11 @@ NPath NPath::GetDirectoryName() const
 	catch (...)
 	{
 		// 手动解析
-		int32_t LastSeparator = PathString.LastIndexOfAny(FPathConstants::DirectorySeparatorString,
-		                                                  FPathConstants::AltDirectorySeparatorString);
+		auto LastSeparator1 = PathString.RFind(FPathConstants::DirectorySeparatorString);
+		auto LastSeparator2 = PathString.RFind(FPathConstants::AltDirectorySeparatorString);
+		int32_t LastSeparator = (LastSeparator1 == CString::NoPosition) ? static_cast<int32_t>(LastSeparator2) : 
+		                       (LastSeparator2 == CString::NoPosition) ? static_cast<int32_t>(LastSeparator1) : 
+		                       static_cast<int32_t>((LastSeparator1 > LastSeparator2) ? LastSeparator1 : LastSeparator2);
 
 		if (LastSeparator > 0)
 		{
@@ -301,16 +307,16 @@ NPath& NPath::Normalize()
 				// 处理 ".."
 				if (!NormalizedComponents.IsEmpty() && NormalizedComponents.Last() != FPathConstants::ParentDirectory)
 				{
-					NormalizedComponents.RemoveLast();
+					NormalizedComponents.PopBack();
 				}
 				else
 				{
-					NormalizedComponents.Add(Component);
+					NormalizedComponents.PushBack(Component);
 				}
 			}
 			else
 			{
-				NormalizedComponents.Add(Component);
+				NormalizedComponents.PushBack(Component);
 			}
 		}
 
@@ -642,7 +648,7 @@ TArray<CString, CMemoryManager> NPath::SplitPath() const
 		if (Current > ComponentStart)
 		{
 			CString Component(ComponentStart, static_cast<int32_t>(Current - ComponentStart));
-			Components.Add(Component);
+			Components.PushBack(Component);
 		}
 	}
 

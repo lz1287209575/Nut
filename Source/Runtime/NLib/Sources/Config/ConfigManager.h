@@ -70,6 +70,19 @@ struct SConfigSource
 	      Location(InLocation),
 	      LastModified(CDateTime::Now())
 	{}
+
+	bool operator==(const SConfigSource& Other) const
+	{
+		return Name == Other.Name && 
+		       Type == Other.Type && 
+		       Priority == Other.Priority && 
+		       Location == Other.Location;
+	}
+
+	bool operator!=(const SConfigSource& Other) const
+	{
+		return !(*this == Other);
+	}
 };
 
 /**
@@ -607,10 +620,10 @@ private:
 	// 配置数据
 	TArray<SConfigSource, CMemoryManager> ConfigSources;         // 配置源列表
 	CConfigValue MergedConfig;                                   // 合并后的配置
-	THashMap<CString, CConfigValue, CMemoryManager> ConfigCache; // 配置缓存
+	THashMap<CString, CConfigValue, std::hash<CString>, std::equal_to<CString>, CMemoryManager> ConfigCache; // 配置缓存
 
 	// 验证器
-	THashMap<CString, TSharedPtr<IConfigValidator>, CMemoryManager> Validators; // 配置验证器
+	THashMap<CString, TSharedPtr<IConfigValidator>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> Validators; // 配置验证器
 
 	// 线程安全
 	mutable std::mutex ConfigMutex;  // 配置互斥锁
@@ -674,3 +687,20 @@ using FConfigSource = SConfigSource;
 using FConfigChangeEvent = SConfigChangeEvent;
 
 } // namespace NLib
+
+// === 标准库哈希特化 ===
+namespace std
+{
+template <>
+struct hash<NLib::SConfigSource>
+{
+	size_t operator()(const NLib::SConfigSource& Source) const noexcept
+	{
+		size_t h1 = std::hash<NLib::CString>{}(Source.Name);
+		size_t h2 = std::hash<int>{}(static_cast<int>(Source.Type));
+		size_t h3 = std::hash<int>{}(static_cast<int>(Source.Priority));
+		size_t h4 = std::hash<NLib::CString>{}(Source.Location);
+		return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+	}
+};
+} // namespace std

@@ -282,6 +282,11 @@ public:
 	 */
 	static NPath GetCommonPrefix(const NPath& Path1, const NPath& Path2);
 
+	/**
+	 * @brief 转换为std::filesystem::path
+	 */
+	std::filesystem::path ToStdPath() const;
+
 private:
 	// === 内部实现 ===
 
@@ -315,11 +320,6 @@ private:
 	 * @brief 从std::filesystem::path转换
 	 */
 	void FromStdPath(const std::filesystem::path& StdPath);
-
-	/**
-	 * @brief 转换为std::filesystem::path
-	 */
-	std::filesystem::path ToStdPath() const;
 
 private:
 	CString PathString; // 路径字符串

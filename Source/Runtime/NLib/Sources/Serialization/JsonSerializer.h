@@ -183,6 +183,11 @@ private:
 		      ArrayIndex(InArrayIndex),
 		      bIsArray(true)
 		{}
+
+		bool operator==(const SNavigationFrame& Other) const
+		{
+			return Value == Other.Value && Key == Other.Key && ArrayIndex == Other.ArrayIndex && bIsArray == Other.bIsArray;
+		}
 	};
 
 	TArray<SNavigationFrame, CMemoryManager> NavigationStack;

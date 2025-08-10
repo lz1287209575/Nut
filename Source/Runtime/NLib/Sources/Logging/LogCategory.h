@@ -168,6 +168,7 @@ extern std::shared_ptr<CLogCategory> LogIO;        // IO操作
 extern std::shared_ptr<CLogCategory> LogConfig;    // 配置管理
 extern std::shared_ptr<CLogCategory> LogEvents;    // 事件系统
 extern std::shared_ptr<CLogCategory> LogThreading; // 线程模块
+extern std::shared_ptr<CLogCategory> LogScript;    // 脚本系统
 
 // 调试和性能分类
 extern std::shared_ptr<CLogCategory> LogPerformance; // 性能统计
@@ -269,11 +270,14 @@ void InitializeDefaultLogCategories();
 #define NLOG_MEMORY(Level, Format, ...) NLOG(NLib::LogMemory, Level, Format, ##__VA_ARGS__)
 #define NLOG_GC(Level, Format, ...) NLOG(NLib::LogGC, Level, Format, ##__VA_ARGS__)
 #define NLOG_THREADING(Level, Format, ...) NLOG(NLib::LogThreading, Level, Format, ##__VA_ARGS__)
+#define NLOG_REFLECTION(Level, Format, ...) NLOG(NLib::LogReflection, Level, Format, ##__VA_ARGS__)
+#define NLOG_SERIALIZATION(Level, Format, ...) NLOG(NLib::LogSerialization, Level, Format, ##__VA_ARGS__)
 
 // 功能模块
 #define NLOG_NETWORK(Level, Format, ...) NLOG(NLib::LogNetwork, Level, Format, ##__VA_ARGS__)
 #define NLOG_IO(Level, Format, ...) NLOG(NLib::LogIO, Level, Format, ##__VA_ARGS__)
 #define NLOG_CONFIG(Level, Format, ...) NLOG(NLib::LogConfig, Level, Format, ##__VA_ARGS__)
+#define NLOG_SCRIPT(Level, Format, ...) NLOG(NLib::LogScript, Level, Format, ##__VA_ARGS__)
 
 // 调试和性能
 #define NLOG_PERF(Level, Format, ...) NLOG(NLib::LogPerformance, Level, Format, ##__VA_ARGS__)

@@ -1112,6 +1112,288 @@ public:
 	}
 
 	/**
+	 * @brief 检查字符串是否包含子字符串
+	 * @param SubStr 要查找的子字符串
+	 * @return 是否包含
+	 */
+	bool Contains(const TString& SubStr) const
+	{
+		return Find(SubStr) != NoPosition;
+	}
+
+	/**
+	 * @brief 检查字符串是否包含C字符串
+	 * @param CStr 要查找的C字符串
+	 * @return 是否包含
+	 */
+	bool Contains(const CharType* CStr) const
+	{
+		return Find(CStr) != NoPosition;
+	}
+
+	/**
+	 * @brief 检查字符串是否包含字符
+	 * @param Ch 要查找的字符
+	 * @return 是否包含
+	 */
+	bool Contains(CharType Ch) const
+	{
+		return Find(Ch) != NoPosition;
+	}
+
+	/**
+	 * @brief 转换为小写字符串
+	 * @return 小写字符串
+	 */
+	TString ToLower() const
+	{
+		TString Result;
+		Result.Reserve(Size());
+		
+		const CharType* Data = GetData();
+		SizeType CurrentSize = Size();
+		
+		for (SizeType i = 0; i < CurrentSize; ++i)
+		{
+			CharType Ch = Data[i];
+			if (Ch >= 'A' && Ch <= 'Z')
+			{
+				Ch = Ch - 'A' + 'a';
+			}
+			Result.PushBack(Ch);
+		}
+		
+		return Result;
+	}
+
+	/**
+	 * @brief 转换为大写字符串
+	 * @return 大写字符串
+	 */
+	TString ToUpper() const
+	{
+		TString Result;
+		Result.Reserve(Size());
+		
+		const CharType* Data = GetData();
+		SizeType CurrentSize = Size();
+		
+		for (SizeType i = 0; i < CurrentSize; ++i)
+		{
+			CharType Ch = Data[i];
+			if (Ch >= 'a' && Ch <= 'z')
+			{
+				Ch = Ch - 'a' + 'A';
+			}
+			Result.PushBack(Ch);
+		}
+		
+		return Result;
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定子字符串开始
+	 * @param Prefix 前缀字符串
+	 * @return 是否以该前缀开始
+	 */
+	bool StartsWith(const TString& Prefix) const
+	{
+		return StartsWith(Prefix.CStr());
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定C字符串开始
+	 * @param Prefix 前缀C字符串
+	 * @return 是否以该前缀开始
+	 */
+	bool StartsWith(const CharType* Prefix) const
+	{
+		if (!Prefix)
+		{
+			return true;
+		}
+		
+		SizeType PrefixLength = StringLength(Prefix);
+		if (PrefixLength > Size())
+		{
+			return false;
+		}
+		
+		return std::memcmp(GetData(), Prefix, PrefixLength * sizeof(CharType)) == 0;
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定字符开始
+	 * @param Ch 前缀字符
+	 * @return 是否以该字符开始
+	 */
+	bool StartsWith(CharType Ch) const
+	{
+		return Size() > 0 && GetData()[0] == Ch;
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定子字符串结束
+	 * @param Suffix 后缀字符串
+	 * @return 是否以该后缀结束
+	 */
+	bool EndsWith(const TString& Suffix) const
+	{
+		return EndsWith(Suffix.CStr());
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定C字符串结束
+	 * @param Suffix 后缀C字符串
+	 * @return 是否以该后缀结束
+	 */
+	bool EndsWith(const CharType* Suffix) const
+	{
+		if (!Suffix)
+		{
+			return true;
+		}
+		
+		SizeType SuffixLength = StringLength(Suffix);
+		SizeType CurrentSize = Size();
+		
+		if (SuffixLength > CurrentSize)
+		{
+			return false;
+		}
+		
+		return std::memcmp(GetData() + CurrentSize - SuffixLength, Suffix, SuffixLength * sizeof(CharType)) == 0;
+	}
+
+	/**
+	 * @brief 检查字符串是否以指定字符结束
+	 * @param Ch 后缀字符
+	 * @return 是否以该字符结束
+	 */
+	bool EndsWith(CharType Ch) const
+	{
+		SizeType CurrentSize = Size();
+		return CurrentSize > 0 && GetData()[CurrentSize - 1] == Ch;
+	}
+
+	/**
+	 * @brief 获取字符串长度（兼容方法）
+	 * @return 字符串长度
+	 */
+	SizeType Length() const
+	{
+		return Size();
+	}
+
+	/**
+	 * @brief 查找字符的索引位置
+	 * @param Ch 要查找的字符
+	 * @param StartIndex 开始位置
+	 * @return 字符的索引位置，未找到返回NoPosition
+	 */
+	SizeType IndexOf(CharType Ch, SizeType StartIndex = 0) const
+	{
+		return Find(Ch, StartIndex);
+	}
+
+	/**
+	 * @brief 查找子字符串的索引位置
+	 * @param SubStr 要查找的子字符串
+	 * @param StartIndex 开始位置
+	 * @return 子字符串的索引位置，未找到返回NoPosition
+	 */
+	SizeType IndexOf(const TString& SubStr, SizeType StartIndex = 0) const
+	{
+		return Find(SubStr, StartIndex);
+	}
+
+	/**
+	 * @brief 查找C字符串的索引位置
+	 * @param CStr 要查找的C字符串
+	 * @param StartIndex 开始位置
+	 * @return C字符串的索引位置，未找到返回NoPosition
+	 */
+	SizeType IndexOf(const CharType* CStr, SizeType StartIndex = 0) const
+	{
+		return Find(CStr, StartIndex);
+	}
+
+	/**
+	 * @brief 替换字符串中的所有匹配项
+	 * @param OldValue 要替换的子字符串
+	 * @param NewValue 替换为的字符串
+	 * @return 替换后的字符串
+	 */
+	TString Replace(const TString& OldValue, const TString& NewValue) const
+	{
+		return Replace(OldValue.CStr(), NewValue.CStr());
+	}
+
+	/**
+	 * @brief 替换字符串中的所有匹配项
+	 * @param OldValue 要替换的C字符串
+	 * @param NewValue 替换为的C字符串
+	 * @return 替换后的字符串
+	 */
+	TString Replace(const CharType* OldValue, const CharType* NewValue) const
+	{
+		if (!OldValue || !NewValue)
+		{
+			return *this;
+		}
+		
+		SizeType OldLength = StringLength(OldValue);
+		SizeType NewLength = StringLength(NewValue);
+		
+		if (OldLength == 0)
+		{
+			return *this;
+		}
+		
+		TString Result;
+		SizeType CurrentPos = 0;
+		SizeType FoundPos;
+		
+		while ((FoundPos = Find(OldValue, CurrentPos)) != NoPosition)
+		{
+			// 添加匹配前的部分
+			Result.Append(GetData() + CurrentPos, FoundPos - CurrentPos);
+			// 添加新值
+			Result.Append(NewValue, NewLength);
+			// 移动位置
+			CurrentPos = FoundPos + OldLength;
+		}
+		
+		// 添加剩余部分
+		Result.Append(GetData() + CurrentPos, Size() - CurrentPos);
+		return Result;
+	}
+
+	/**
+	 * @brief 替换字符串中的所有字符
+	 * @param OldChar 要替换的字符
+	 * @param NewChar 替换为的字符
+	 * @return 替换后的字符串
+	 */
+	TString Replace(CharType OldChar, CharType NewChar) const
+	{
+		TString Result = *this;
+		Result.EnsureUnique();
+		CharType* Data = Result.GetMutableData();
+		SizeType CurrentSize = Result.Size();
+		
+		for (SizeType i = 0; i < CurrentSize; ++i)
+		{
+			if (Data[i] == OldChar)
+			{
+				Data[i] = NewChar;
+			}
+		}
+		
+		return Result;
+	}
+
+	/**
 	 * @brief 转换为std::string
 	 * @return std::string
 	 */
@@ -1431,6 +1713,96 @@ public:
 		
 		return Result;
 	}
+
+	/**
+	 * @brief 格式化字符串（简单实现，支持{}占位符）
+	 * @param FormatStr 格式字符串，使用{}作为占位符
+	 * @param Args 参数包
+	 * @return 格式化后的字符串
+	 */
+	template<typename... TArgs>
+	static TString Format(const CharType* FormatStr, TArgs&&... Args)
+	{
+		if (!FormatStr)
+			return TString();
+		
+		TString Result;
+		const CharType* Current = FormatStr;
+		size_t ArgIndex = 0;
+		constexpr size_t ArgCount = sizeof...(Args);
+		
+		// 将参数转换为字符串数组
+		TString ArgStrings[ArgCount > 0 ? ArgCount : 1];
+		if constexpr (ArgCount > 0)
+		{
+			size_t Index = 0;
+			((ArgStrings[Index++] = ToStringHelper(std::forward<TArgs>(Args))), ...);
+		}
+		
+		while (*Current)
+		{
+			if (*Current == CharType('{') && *(Current + 1) == CharType('}'))
+			{
+				// 找到占位符 {}
+				if (ArgIndex < ArgCount)
+				{
+					Result += ArgStrings[ArgIndex++];
+				}
+				Current += 2; // 跳过 {}
+			}
+			else
+			{
+				Result.PushBack(*Current);
+				Current++;
+			}
+		}
+		
+		return Result;
+	}
+	
+private:
+	/**
+	 * @brief 转换参数为字符串的辅助函数
+	 */
+	template<typename T>
+	static TString ToStringHelper(T&& Value)
+	{
+		if constexpr (std::is_same_v<std::decay_t<T>, TString>)
+		{
+			return std::forward<T>(Value);
+		}
+		else if constexpr (std::is_same_v<std::decay_t<T>, const CharType*>)
+		{
+			return TString(Value);
+		}
+		else if constexpr (std::is_same_v<std::decay_t<T>, CharType*>)
+		{
+			return TString(Value);
+		}
+		else if constexpr (std::is_integral_v<std::decay_t<T>>)
+		{
+			if constexpr (std::is_same_v<std::decay_t<T>, int32_t>)
+				return FromInt(static_cast<int32_t>(Value));
+			else if constexpr (std::is_same_v<std::decay_t<T>, int64_t>)
+				return FromInt64(static_cast<int64_t>(Value));
+			else
+				return FromInt(static_cast<int32_t>(Value));
+		}
+		else if constexpr (std::is_floating_point_v<std::decay_t<T>>)
+		{
+			if constexpr (std::is_same_v<std::decay_t<T>, float>)
+				return FromFloat(static_cast<float>(Value));
+			else
+				return FromDouble(static_cast<double>(Value));
+		}
+		else
+		{
+			// 对于其他类型，尝试使用流操作符或返回类型名
+			return TString("<unknown>");
+		}
+	}
+
+public:
 	
 	/**
 	 * @brief 计算C字符串长度

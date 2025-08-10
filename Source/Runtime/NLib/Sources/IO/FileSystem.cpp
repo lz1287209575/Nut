@@ -570,7 +570,7 @@ TArray<NPath, CMemoryManager> NFileSystem::ListDirectory(const NPath& DirectoryP
 
 				if (bShouldInclude)
 				{
-					Results.Add(EntryPath);
+					Results.PushBack(EntryPath);
 				}
 			}
 		}
@@ -790,7 +790,7 @@ NPath NFileSystem::CreateTempFile(const CString& Prefix, const CString& Extensio
 {
 	try
 	{
-		auto TempDir = GetTempDirectory();
+		auto TempDir = NPath::GetTempDirectory();
 
 		// 生成随机文件名
 		std::random_device rd;
@@ -827,7 +827,7 @@ NPath NFileSystem::CreateTempDirectory(const CString& Prefix)
 {
 	try
 	{
-		auto TempDir = GetTempDirectory();
+		auto TempDir = NPath::GetTempDirectory();
 
 		// 生成随机目录名
 		std::random_device rd;
@@ -1305,7 +1305,7 @@ void NFileSystem::ListDirectoryRecursive(const NPath& DirectoryPath,
 
 			if (bShouldInclude)
 			{
-				OutPaths.Add(EntryPath);
+				OutPaths.PushBack(EntryPath);
 			}
 
 			// 递归处理子目录

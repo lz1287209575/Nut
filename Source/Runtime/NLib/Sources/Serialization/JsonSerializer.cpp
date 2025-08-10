@@ -35,7 +35,7 @@ SSerializationResult CJsonSerializationArchive::Initialize()
 
 	// 初始化导航栈
 	NavigationStack.Clear();
-	NavigationStack.Add(SNavigationFrame(&RootValue));
+	NavigationStack.PushBack(SNavigationFrame(&RootValue));
 
 	bInitialized = true;
 	return SSerializationResult(true);
@@ -297,7 +297,7 @@ SSerializationResult CJsonSerializationArchive::BeginArray(int32_t Size)
 {
 	if (IsSerializing())
 	{
-		auto Result = SetCurrentValue(CConfigArray());
+		auto Result = SetCurrentValue(CConfigValue(CConfigArray()));
 		if (!Result.bSuccess)
 		{
 			return Result;
@@ -365,7 +365,7 @@ SSerializationResult CJsonSerializationArchive::BeginObject(const CString& TypeN
 			CConfigValue* CurrentValue = GetCurrentValue();
 			if (CurrentValue && CurrentValue->IsObject())
 			{
-				CurrentValue->AsObject().Add("__type", CConfigValue(TypeName));
+				CurrentValue->AsObject().Insert("__type", CConfigValue(TypeName));
 			}
 		}
 	}
@@ -383,7 +383,8 @@ SSerializationResult CJsonSerializationArchive::BeginObject(const CString& TypeN
 			const auto& Object = CurrentValue->AsObject();
 			if (Object.Contains("__type"))
 			{
-				CString ActualType = Object["__type"].AsString();
+				const CConfigValue* TypeValue = Object.Find("__type");
+				CString ActualType = TypeValue ? TypeValue->AsString() : CString();
 				if (ActualType != TypeName)
 				{
 					return SSerializationResult(
@@ -520,10 +521,10 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const CString& F
 		auto& Object = CurrentValue->AsObject();
 		if (!Object.Contains(FieldName))
 		{
-			Object.Add(FieldName, CConfigValue());
+			Object.Insert(FieldName, CConfigValue());
 		}
 
-		NavigationStack.Add(SNavigationFrame(&Object[FieldName], FieldName));
+		NavigationStack.PushBack(SNavigationFrame(&Object[FieldName], FieldName));
 	}
 	else
 	{
@@ -539,7 +540,7 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const CString& F
 			{
 				// 创建一个空值用于部分读取
 				static CConfigValue NullValue;
-				NavigationStack.Add(SNavigationFrame(&NullValue, FieldName));
+				NavigationStack.PushBack(SNavigationFrame(&NullValue, FieldName));
 			}
 			else
 			{
@@ -548,7 +549,8 @@ SSerializationResult CJsonSerializationArchive::NavigateToField(const CString& F
 		}
 		else
 		{
-			NavigationStack.Add(SNavigationFrame(const_cast<CConfigValue*>(&Object[FieldName]), FieldName));
+			CConfigValue* FoundValue = const_cast<CConfigValue*>(Object.Find(FieldName));
+			NavigationStack.PushBack(SNavigationFrame(FoundValue, FieldName));
 		}
 	}
 
@@ -570,7 +572,7 @@ SSerializationResult CJsonSerializationArchive::NavigateFromField(const CString&
 		                                TopFrame.Key + CString("'"));
 	}
 
-	NavigationStack.RemoveLast();
+	NavigationStack.PopBack();
 	return SSerializationResult(true);
 }
 

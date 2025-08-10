@@ -13,3 +13,9 @@
 [submodule "ThirdParty/typescript"]
 	path = ThirdParty/typescript
 	url = https://gitee.com/gsocode/TypeScript
+[submodule "ThirdParty/v8"]
+	path = ThirdParty/v8
+	url = https://gitee.com/mirrors/V8
+[submodule "ThirdParty/cpython"]
+	path = ThirdParty/cpython
+	url = https://gitee.com/mirrors/cpython.git

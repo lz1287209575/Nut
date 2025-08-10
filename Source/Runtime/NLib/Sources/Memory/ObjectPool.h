@@ -14,6 +14,9 @@
 
 namespace NLib
 {
+// 常量定义
+constexpr int32_t INDEX_NONE = -1;
+
 /**
  * @brief 对象池策略枚举
  */
@@ -732,7 +735,7 @@ public:
 			return;
 		}
 
-		Pools.Add(Name, Pool);
+		Pools.Insert(Name, Pool);
 		NLOG_MEMORY(Info, "Pool '{}' registered", PoolName);
 	}
 
@@ -771,9 +774,9 @@ public:
 
 		for (auto& Pair : Pools)
 		{
-			if (Pair.Value)
+			if (Pair.second)
 			{
-				Pair.Value->Clear();
+				Pair.second->Clear();
 			}
 		}
 
@@ -789,9 +792,9 @@ public:
 
 		for (auto& Pair : Pools)
 		{
-			if (Pair.Value)
+			if (Pair.second)
 			{
-				Pair.Value->Shrink();
+				Pair.second->Shrink();
 			}
 		}
 
@@ -806,22 +809,26 @@ public:
 		std::lock_guard<std::mutex> Lock(PoolsMutex);
 
 		CString Report("=== Object Pool Manager Report ===\n");
-		Report += CString::Printf("Total Pools: %d\n\n", Pools.Size());
+		char Buffer[256];
+		snprintf(Buffer, sizeof(Buffer), "Total Pools: %lu\n\n", static_cast<unsigned long>(Pools.Size()));
+		Report += CString(Buffer);
 
 		for (const auto& Pair : Pools)
 		{
-			if (Pair.Value)
+			if (Pair.second)
 			{
-				SObjectPoolStats Stats = Pair.Value->GetStatistics();
-				Report += CString::Printf("Pool: %s\n"
-				                          "  Size: %u, Active: %u, Available: %u\n"
-				                          "  Hit Ratio: %.2f%%, Allocations: %u\n\n",
-				                          Pair.Key.GetData(),
-				                          Stats.PoolSize,
-				                          Stats.ActiveObjects,
-				                          Stats.AvailableObjects,
-				                          Stats.GetHitRatio() * 100.0f,
-				                          Stats.TotalAllocations);
+				SObjectPoolStats Stats = Pair.second->GetStatistics();
+				char PoolBuffer[512];
+				snprintf(PoolBuffer, sizeof(PoolBuffer), "Pool: %s\n"
+				                   "  Size: %u, Active: %u, Available: %u\n"
+				                   "  Hit Ratio: %.2f%%, Allocations: %u\n\n",
+				                   Pair.first.GetData(),
+				                   Stats.PoolSize,
+				                   Stats.ActiveObjects,
+				                   Stats.AvailableObjects,
+				                   Stats.GetHitRatio() * 100.0f,
+				                   Stats.TotalAllocations);
+				Report += CString(PoolBuffer);
 			}
 		}
 
@@ -829,7 +836,7 @@ public:
 	}
 
 private:
-	THashMap<CString, TSharedPtr<IObjectPool>, CMemoryManager> Pools;
+	THashMap<CString, TSharedPtr<IObjectPool>, std::hash<CString>, std::equal_to<CString>, CMemoryManager> Pools;
 	mutable std::mutex PoolsMutex;
 };
 

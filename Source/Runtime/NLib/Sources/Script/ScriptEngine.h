@@ -4,9 +4,53 @@
 #include "Containers/TArray.h"
 #include "Containers/THashMap.h"
 #include "Core/Object.h"
-#include "Core/Result.h"
-#include "Delegate/Delegate.h"
+// #include "Core/Result.h"  // 暂时注释，文件不存在
+#include "Events/Delegate.h"
 #include "Memory/Memory.h"
+
+#include <type_traits>
+
+// 常用宏定义
+#ifndef TEXT
+#define TEXT(x) x
+#endif
+
+// 委托宏扩展定义
+#ifndef DECLARE_MULTICAST_DELEGATE_OneParam
+#define DECLARE_MULTICAST_DELEGATE_OneParam(DelegateName, Param1Type) \
+    using DelegateName = NLib::TMulticastDelegate<void(Param1Type)>;
+#endif
+
+#ifndef DECLARE_MULTICAST_DELEGATE_TwoParams
+#define DECLARE_MULTICAST_DELEGATE_TwoParams(DelegateName, Param1Type, Param2Type) \
+    using DelegateName = NLib::TMulticastDelegate<void(Param1Type, Param2Type)>;
+#endif
+
+// 枚举标志操作符宏
+#ifndef NLIB_DEFINE_ENUM_FLAG_OPERATORS
+#define NLIB_DEFINE_ENUM_FLAG_OPERATORS(EnumType) \
+    inline EnumType operator|(EnumType a, EnumType b) { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) | static_cast<std::underlying_type_t<EnumType>>(b)); \
+    } \
+    inline EnumType operator&(EnumType a, EnumType b) { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) & static_cast<std::underlying_type_t<EnumType>>(b)); \
+    } \
+    inline EnumType operator^(EnumType a, EnumType b) { \
+        return static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(a) ^ static_cast<std::underlying_type_t<EnumType>>(b)); \
+    } \
+    inline EnumType operator~(EnumType a) { \
+        return static_cast<EnumType>(~static_cast<std::underlying_type_t<EnumType>>(a)); \
+    } \
+    inline EnumType& operator|=(EnumType& a, EnumType b) { \
+        return a = a | b; \
+    } \
+    inline EnumType& operator&=(EnumType& a, EnumType b) { \
+        return a = a & b; \
+    } \
+    inline EnumType& operator^=(EnumType& a, EnumType b) { \
+        return a = a ^ b; \
+    }
+#endif
 
 #include "ScriptEngine.generate.h"
 
@@ -17,6 +61,14 @@ class NScriptValue;
 class NScriptFunction;
 class NScriptModule;
 class NScriptContext;
+class NScriptEngine;
+
+// 类型别名以保持命名一致性
+using CScriptValue = NScriptValue;
+using CScriptFunction = NScriptFunction;
+using CScriptModule = NScriptModule;
+using CScriptContext = NScriptContext;
+using CScriptEngine = NScriptEngine;
 
 /**
  * @brief 脚本语言类型
@@ -99,9 +151,13 @@ struct SScriptConfig
 	uint32_t MaxStackDepth = 1000;                                   // 最大栈深度
 	CString WorkingDirectory;                                        // 工作目录
 	TArray<CString, CMemoryManager> ModulePaths;                     // 模块搜索路径
-	THashMap<CString, CString, CMemoryManager> EnvironmentVariables; // 环境变量
+	THashMap<CString, CString, std::hash<CString>, std::equal_to<CString>, CMemoryManager> EnvironmentVariables; // 环境变量
 
 	SScriptConfig() = default;
+	SScriptConfig(const SScriptConfig& Other) = delete;
+	SScriptConfig& operator=(const SScriptConfig& Other) = delete;
+	SScriptConfig(SScriptConfig&& Other) = default;
+	SScriptConfig& operator=(SScriptConfig&& Other) = default;
 	SScriptConfig(EScriptLanguage InLanguage)
 	    : Language(InLanguage)
 	{}
@@ -117,7 +173,7 @@ struct SScriptExecutionResult
 	int32_t ErrorLine = -1;
 	int32_t ErrorColumn = -1;
 	CString StackTrace;
-	NScriptValue ReturnValue;
+	TSharedPtr<NScriptValue> ReturnValue;
 	uint64_t ExecutionTimeMs = 0;
 	uint64_t MemoryUsedBytes = 0;
 
@@ -147,8 +203,8 @@ class NScriptValue : public NObject
 
 public:
 	NScriptValue() = default;
-	NScriptValue(const NScriptValue& Other) = default;
-	NScriptValue& operator=(const NScriptValue& Other) = default;
+	NScriptValue(const NScriptValue& Other) = delete;
+	NScriptValue& operator=(const NScriptValue& Other) = delete;
 	virtual ~NScriptValue() = default;
 
 	// 类型检查
@@ -168,16 +224,16 @@ public:
 	virtual int64_t ToInt64() const = 0;
 	virtual float ToFloat() const = 0;
 	virtual double ToDouble() const = 0;
-	virtual CString ToString() const = 0;
+	CString ToString() const override = 0;
 
 	// 数组操作
 	virtual int32_t GetArrayLength() const = 0;
-	virtual NScriptValue GetArrayElement(int32_t Index) const = 0;
+	virtual TSharedPtr<NScriptValue> GetArrayElement(int32_t Index) const = 0;
 	virtual void SetArrayElement(int32_t Index, const NScriptValue& Value) = 0;
 
 	// 对象操作
 	virtual TArray<CString, CMemoryManager> GetObjectKeys() const = 0;
-	virtual NScriptValue GetObjectProperty(const CString& Key) const = 0;
+	virtual TSharedPtr<NScriptValue> GetObjectProperty(const CString& Key) const = 0;
 	virtual void SetObjectProperty(const CString& Key, const NScriptValue& Value) = 0;
 	virtual bool HasObjectProperty(const CString& Key) const = 0;
 
@@ -235,7 +291,7 @@ public:
 	virtual SScriptExecutionResult Unload() = 0;
 	virtual bool IsLoaded() const = 0;
 
-	virtual NScriptValue GetGlobal(const CString& Name) const = 0;
+	virtual TSharedPtr<NScriptValue> GetGlobal(const CString& Name) const = 0;
 	virtual void SetGlobal(const CString& Name, const NScriptValue& Value) = 0;
 
 	virtual SScriptExecutionResult ExecuteString(const CString& Code) = 0;
@@ -261,7 +317,7 @@ public:
 	virtual void Shutdown() = 0;
 	virtual bool IsInitialized() const = 0;
 
-	virtual SScriptConfig GetConfig() const = 0;
+	virtual const SScriptConfig& GetConfig() const = 0;
 	virtual EScriptLanguage GetLanguage() const = 0;
 
 	virtual TSharedPtr<NScriptModule> CreateModule(const CString& Name) = 0;
@@ -316,14 +372,14 @@ public:
 	virtual bool IsInitialized() const = 0;
 
 	// 实用函数
-	virtual NScriptValue CreateValue() = 0;
-	virtual NScriptValue CreateNull() = 0;
-	virtual NScriptValue CreateBool(bool Value) = 0;
-	virtual NScriptValue CreateInt(int32_t Value) = 0;
-	virtual NScriptValue CreateFloat(float Value) = 0;
-	virtual NScriptValue CreateString(const CString& Value) = 0;
-	virtual NScriptValue CreateArray() = 0;
-	virtual NScriptValue CreateObject() = 0;
+	virtual TSharedPtr<NScriptValue> CreateValue() = 0;
+	virtual TSharedPtr<NScriptValue> CreateNull() = 0;
+	virtual TSharedPtr<NScriptValue> CreateBool(bool Value) = 0;
+	virtual TSharedPtr<NScriptValue> CreateInt(int32_t Value) = 0;
+	virtual TSharedPtr<NScriptValue> CreateFloat(float Value) = 0;
+	virtual TSharedPtr<NScriptValue> CreateString(const CString& Value) = 0;
+	virtual TSharedPtr<NScriptValue> CreateArray() = 0;
+	virtual TSharedPtr<NScriptValue> CreateObject() = 0;
 
 	// 编译检查
 	virtual SScriptExecutionResult CheckSyntax(const CString& Code) = 0;

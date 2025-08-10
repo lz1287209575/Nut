@@ -26,7 +26,10 @@ public class NLibTarget : NutStaticLibraryTarget
             "Sources",
             "ThirdParty/tcmalloc/src",
             "ThirdParty/spdlog/include",
-            "ThirdParty/nlohmann_json/single_include"
+            "ThirdParty/nlohmann_json/single_include",
+            "ThirdParty/v8/include",
+            "ThirdParty/cpython/Include",
+            "ThirdParty/cpython/"
         };
         
         // 依赖库

@@ -524,7 +524,7 @@ private:
 	// === 内部实现 ===
 
 	void FlushReadBuffer();
-	void FlushWriteBuffer();
+	bool FlushWriteBuffer();
 	void InvalidateBuffer();
 
 private:

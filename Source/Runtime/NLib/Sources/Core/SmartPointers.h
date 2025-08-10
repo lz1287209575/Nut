@@ -1742,3 +1742,38 @@ template <typename TType>
 using TWeakRefType = TWeakRef<TType>;
 
 } // namespace NLib
+
+// === 标准库哈希特化 ===
+namespace std
+{
+template <typename TType>
+struct hash<NLib::TSharedPtr<TType>>
+{
+	size_t operator()(const NLib::TSharedPtr<TType>& Ptr) const noexcept
+	{
+		return std::hash<TType*>{}(Ptr.Get());
+	}
+};
+
+template <typename TType>
+struct hash<NLib::TUniquePtr<TType>>
+{
+	size_t operator()(const NLib::TUniquePtr<TType>& Ptr) const noexcept
+	{
+		return std::hash<TType*>{}(Ptr.Get());
+	}
+};
+
+template <typename TType>
+struct hash<NLib::TWeakPtr<TType>>
+{
+	size_t operator()(const NLib::TWeakPtr<TType>& Ptr) const noexcept
+	{
+		if (auto Locked = Ptr.Lock())
+		{
+			return std::hash<TType*>{}(Locked.Get());
+		}
+		return 0;
+	}
+};
+} // namespace std

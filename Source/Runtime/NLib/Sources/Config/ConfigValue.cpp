@@ -6,6 +6,8 @@
 
 namespace NLib
 {
+using SizeType = std::size_t;
+
 // === 路径解析辅助函数 ===
 
 /**
@@ -25,6 +27,23 @@ struct SPathSegment
 	    : bIsArrayIndex(true),
 	      ArrayIndex(InIndex)
 	{}
+
+	// 相等运算符
+	bool operator==(const SPathSegment& Other) const
+	{
+		if (bIsArrayIndex != Other.bIsArrayIndex)
+			return false;
+		
+		if (bIsArrayIndex)
+			return ArrayIndex == Other.ArrayIndex;
+		else
+			return Key == Other.Key;
+	}
+
+	bool operator!=(const SPathSegment& Other) const
+	{
+		return !(*this == Other);
+	}
 };
 
 /**
@@ -158,7 +177,7 @@ void CConfigValue::SetByPath(const CString& Path, const CConfigValue& Val)
 
 	CConfigValue* Current = this;
 
-	for (int32_t i = 0; i < Segments.Size() - 1; ++i)
+	for (SizeType i = 0; i < Segments.Size() - 1; ++i)
 	{
 		const auto& Segment = Segments[i];
 		const auto& NextSegment = Segments[i + 1];
@@ -192,11 +211,11 @@ void CConfigValue::SetByPath(const CString& Path, const CConfigValue& Val)
 				// 根据下一个分段决定创建数组还是对象
 				if (NextSegment.bIsArrayIndex)
 				{
-					Object.Insert(Segment.Key, CConfigArray());
+					Object.Insert(Segment.Key, CConfigValue(CConfigArray()));
 				}
 				else
 				{
-					Object.Insert(Segment.Key, CConfigObject());
+					Object.Insert(Segment.Key, CConfigValue(CConfigObject()));
 				}
 			}
 
@@ -272,7 +291,7 @@ static CString EscapeJsonString(const CString& Str)
 	CString Result;
 	Result.Reserve(Str.Size() * 2); // 预分配，避免频繁重分配
 
-	for (int32_t i = 0; i < Str.Size(); ++i)
+	for (SizeType i = 0; i < Str.Size(); ++i)
 	{
 		char Ch = Str[i];
 		switch (Ch)

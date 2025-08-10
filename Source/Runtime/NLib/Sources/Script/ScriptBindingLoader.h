@@ -53,7 +53,54 @@ struct SScriptBindingInfo
 	{
 		return bScriptCreatable || bScriptVisible || bScriptReadable || bScriptWritable || bScriptCallable;
 	}
+
+	/**
+	 * @brief 相等比较操作符
+	 */
+	bool operator==(const SScriptBindingInfo& Other) const
+	{
+		return bScriptCreatable == Other.bScriptCreatable &&
+		       bScriptVisible == Other.bScriptVisible &&
+		       bScriptReadable == Other.bScriptReadable &&
+		       bScriptWritable == Other.bScriptWritable &&
+		       bScriptCallable == Other.bScriptCallable &&
+		       bScriptStatic == Other.bScriptStatic &&
+		       bScriptEvent == Other.bScriptEvent &&
+		       ScriptName == Other.ScriptName &&
+		       ScriptCategory == Other.ScriptCategory &&
+		       ScriptDescription == Other.ScriptDescription &&
+		       SupportedLanguages == Other.SupportedLanguages;
+	}
 };
+
+} // namespace NLib
+
+/**
+ * @brief std::hash specialization for SScriptBindingInfo
+ */
+namespace std
+{
+template <>
+struct hash<NLib::SScriptBindingInfo>
+{
+	size_t operator()(const NLib::SScriptBindingInfo& Info) const noexcept
+	{
+		size_t h1 = hash<bool>{}(Info.bScriptCreatable);
+		size_t h2 = hash<bool>{}(Info.bScriptVisible);
+		size_t h3 = hash<bool>{}(Info.bScriptReadable);
+		size_t h4 = hash<bool>{}(Info.bScriptWritable);
+		size_t h5 = hash<bool>{}(Info.bScriptCallable);
+		size_t h6 = hash<NLib::CString>{}(Info.ScriptName);
+		size_t h7 = hash<uint32_t>{}(Info.SupportedLanguages);
+
+		// Combine hashes using XOR and bit shifting
+		return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5) ^ (h7 << 6);
+	}
+};
+} // namespace std
+
+namespace NLib
+{
 
 /**
  * @brief 脚本绑定加载器
@@ -174,7 +221,7 @@ public:
 	 * @param Args 构造函数参数
 	 * @return 创建的对象
 	 */
-	NObject* CreateScriptObject(const char* ClassName, const TArray<CScriptValue, CMemoryManager>& Args = {});
+	NObject* CreateScriptObject(const char* ClassName, const TArray<TSharedPtr<NScriptValue>, CMemoryManager>& Args = {});
 
 	/**
 	 * @brief 调用脚本函数
@@ -184,10 +231,10 @@ public:
 	 * @param Args 函数参数
 	 * @return 调用结果
 	 */
-	CScriptValue CallScriptFunction(NObject* Object,
-	                                const char* ClassName,
-	                                const char* FunctionName,
-	                                const TArray<CScriptValue, CMemoryManager>& Args = {});
+	TSharedPtr<NScriptValue> CallScriptFunction(NObject* Object,
+	                                            const char* ClassName,
+	                                            const char* FunctionName,
+	                                            const TArray<TSharedPtr<NScriptValue>, CMemoryManager>& Args = {});
 
 	/**
 	 * @brief 获取脚本属性值
@@ -196,7 +243,7 @@ public:
 	 * @param PropertyName 属性名
 	 * @return 属性值
 	 */
-	CScriptValue GetScriptProperty(NObject* Object, const char* ClassName, const char* PropertyName);
+	TSharedPtr<NScriptValue> GetScriptProperty(NObject* Object, const char* ClassName, const char* PropertyName);
 
 	/**
 	 * @brief 设置脚本属性值
@@ -206,7 +253,7 @@ public:
 	 * @param Value 新值
 	 * @return 是否设置成功
 	 */
-	bool SetScriptProperty(NObject* Object, const char* ClassName, const char* PropertyName, const CScriptValue& Value);
+	bool SetScriptProperty(NObject* Object, const char* ClassName, const char* PropertyName, const TSharedPtr<NScriptValue>& Value);
 
 public:
 	// === 调试和统计 ===
@@ -217,7 +264,7 @@ public:
 	void PrintBindingInfo() const;
 
 	/**
-	 * @brief 获取绑定统计信息
+	 * @brief 绑定统计信息结构体
 	 */
 	struct SBindingStats
 	{
@@ -225,7 +272,12 @@ public:
 		size_t FunctionCount = 0;
 		size_t PropertyCount = 0;
 		size_t EnumCount = 0;
-	} GetBindingStats() const;
+	};
+
+	/**
+	 * @brief 获取绑定统计信息
+	 */
+	SBindingStats GetBindingStats() const;
 
 private:
 	CScriptBindingLoader() = default;
@@ -237,10 +289,10 @@ private:
 
 private:
 	// 绑定信息存储
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> ClassBindings;
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
-	THashMap<CString, SScriptBindingInfo, CMemoryManager> EnumBindings;
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> ClassBindings;
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> FunctionBindings; // "ClassName::FunctionName"
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> PropertyBindings; // "ClassName::PropertyName"
+	THashMap<CString, SScriptBindingInfo, std::hash<CString>, std::equal_to<CString>, CMemoryManager> EnumBindings;
 
 	mutable std::mutex BindingMutex; // 线程安全锁
 };

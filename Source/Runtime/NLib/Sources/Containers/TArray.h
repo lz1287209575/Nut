@@ -102,6 +102,28 @@ public:
 	}
 
 	/**
+	 * @brief 拷贝构造函数
+	 * @param Other 要拷贝的数组
+	 */
+	TArray(const TArray& Other)
+	    : Data(nullptr),
+	      ArraySize(0),
+	      ArrayCapacity(0),
+	      Allocator(Other.Allocator)
+	{
+		if (Other.ArraySize > 0)
+		{
+			Reserve(Other.ArraySize);
+			for (SizeType i = 0; i < Other.ArraySize; ++i)
+			{
+				new (Data + i) ElementType(Other.Data[i]);
+			}
+			ArraySize = Other.ArraySize;
+		}
+		NLOG(LogCore, Debug, "TArray copy constructed with {} elements", ArraySize);
+	}
+
+	/**
 	 * @brief 移动构造函数
 	 * @param Other 要移动的数组
 	 */
@@ -115,6 +137,33 @@ public:
 		Other.ArraySize = 0;
 		Other.ArrayCapacity = 0;
 		NLOG(LogCore, Debug, "TArray move constructed");
+	}
+
+	/**
+	 * @brief 拷贝赋值操作符
+	 * @param Other 要拷贝的数组
+	 * @return 数组引用
+	 */
+	TArray& operator=(const TArray& Other)
+	{
+		if (this != &Other)
+		{
+			Clear();
+			DeallocateData();
+			
+			Allocator = Other.Allocator;
+			if (Other.ArraySize > 0)
+			{
+				Reserve(Other.ArraySize);
+				for (SizeType i = 0; i < Other.ArraySize; ++i)
+				{
+					new (Data + i) ElementType(Other.Data[i]);
+				}
+				ArraySize = Other.ArraySize;
+			}
+			NLOG(LogCore, Debug, "TArray copy assigned with {} elements", ArraySize);
+		}
+		return *this;
 	}
 
 	/**
@@ -177,6 +226,14 @@ public:
 		NLOG(LogCore, Debug, "TArray cleared");
 	}
 
+	/**
+	 * @brief 清空数组（别名方法）
+	 */
+	void Empty()
+	{
+		Clear();
+	}
+
 	AllocatorType& GetAllocator() override
 	{
 		return *Allocator;
@@ -212,13 +269,33 @@ public:
 		return std::equal(begin(), end(), OtherArray->begin());
 	}
 
+private:
+	// SFINAE 帮助器，检测类型是否可哈希
+	template<typename T>
+	static auto TestHashable(int) -> decltype(std::hash<T>{}(std::declval<T>()), std::true_type{});
+	
+	template<typename T>
+	static std::false_type TestHashable(...);
+	
+	template<typename T>
+	static constexpr bool IsHashable = decltype(TestHashable<T>(0))::value;
+
+public:
 	size_t GetHashCode() const override
 	{
 		size_t Hash = 0;
 		for (SizeType i = 0; i < ArraySize; ++i)
 		{
-			// 简单的哈希组合
-			Hash ^= std::hash<ElementType>{}(Data[i]) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
+			if constexpr (IsHashable<ElementType>)
+			{
+				// 使用 std::hash
+				Hash ^= std::hash<ElementType>{}(Data[i]) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
+			}
+			else
+			{
+				// 使用地址作为哈希
+				Hash ^= reinterpret_cast<size_t>(&Data[i]) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
+			}
 		}
 		return Hash;
 	}
@@ -322,6 +399,42 @@ public:
 			throw std::runtime_error("Back() called on empty TArray");
 		}
 		return Data[ArraySize - 1];
+	}
+
+	/**
+	 * @brief 获取最后一个元素 (别名方法)
+	 * @return 最后一个元素的引用
+	 */
+	Reference Last()
+	{
+		return Back();
+	}
+
+	/**
+	 * @brief 获取最后一个元素 (别名方法，常量版本)
+	 * @return 最后一个元素的常量引用
+	 */
+	ConstReference Last() const
+	{
+		return Back();
+	}
+
+	/**
+	 * @brief 获取原始数据指针
+	 * @return 原始数据指针
+	 */
+	Pointer GetData()
+	{
+		return Data;
+	}
+
+	/**
+	 * @brief 获取原始数据指针（常量版本）
+	 * @return 原始数据指针
+	 */
+	ConstPointer GetData() const
+	{
+		return Data;
 	}
 
 	void PushBack(const ElementType& Element) override
@@ -745,4 +858,24 @@ using DoubleArray = TArray<double>;
 using StringArray = TArray<CString>;
 using ObjectArray = TArray<NObjectPtr>;
 
+// Global equality operator for TArray
+template <typename TElementType, typename TAllocator>
+bool operator==(const TArray<TElementType, TAllocator>& Left, const TArray<TElementType, TAllocator>& Right)
+{
+	return Left.Equals(Right);
+}
+
 } // namespace NLib
+
+// std::hash specialization for TArray
+namespace std
+{
+template <typename TElementType, typename TAllocator>
+struct hash<NLib::TArray<TElementType, TAllocator>>
+{
+	size_t operator()(const NLib::TArray<TElementType, TAllocator>& Array) const noexcept
+	{
+		return Array.GetHashCode();
+	}
+};
+}

@@ -37,10 +37,10 @@ bool CScriptManager::Initialize()
 	RegisterBuiltinEngines();
 
 	// 添加默认模块搜索路径
-	ModulePaths.Add(TEXT("./Scripts"));
-	ModulePaths.Add(TEXT("./Modules"));
-	ModulePaths.Add(TEXT("Scripts"));
-	ModulePaths.Add(TEXT("Modules"));
+	ModulePaths.PushBack(TEXT("./Scripts"));
+	ModulePaths.PushBack(TEXT("./Modules"));
+	ModulePaths.PushBack(TEXT("Scripts"));
+	ModulePaths.PushBack(TEXT("Modules"));
 
 	// 重置统计信息
 	Statistics.Reset();
@@ -67,7 +67,7 @@ void CScriptManager::Shutdown()
 	// 关闭所有引擎
 	for (auto& LanguagePair : EngineRegistry)
 	{
-		for (auto& Registry : LanguagePair.Value)
+		for (auto& Registry : LanguagePair.second)
 		{
 			if (Registry.Engine && Registry.Engine->IsInitialized())
 			{
@@ -142,15 +142,15 @@ bool CScriptManager::RegisterEngine(EScriptLanguage Language,
 	// 添加到注册表
 	if (!EngineRegistry.Contains(Language))
 	{
-		EngineRegistry.Add(Language, TArray<SScriptEngineRegistry, CMemoryManager>());
+		EngineRegistry.Insert(Language, TArray<SScriptEngineRegistry, CMemoryManager>());
 	}
 
-	EngineRegistry[Language].Add(Registry);
+	EngineRegistry[Language].PushBack(Registry);
 
 	// 设置为默认引擎
 	if (bSetAsDefault || !DefaultEngines.Contains(Language))
 	{
-		DefaultEngines.Add(Language, Name);
+		DefaultEngines.Insert(Language, Name);
 	}
 
 	NLOG_SCRIPT(Info,
@@ -190,7 +190,7 @@ void CScriptManager::UnregisterEngine(EScriptLanguage Language, const CString& N
 	else
 	{
 		// 注销指定名称的引擎
-		for (int32_t i = 0; i < Engines.Size(); ++i)
+		for (auto i = 0; i < Engines.Size(); ++i)
 		{
 			if (Engines[i].Name == Name)
 			{
@@ -231,7 +231,7 @@ TSharedPtr<CScriptEngine> CScriptManager::GetEngine(EScriptLanguage Language, co
 		return nullptr;
 	}
 
-	const auto& Engines = EngineRegistry.Find(Language)->Value;
+	const auto& Engines = *EngineRegistry.Find(Language);
 
 	if (Name.IsEmpty())
 	{
@@ -260,7 +260,7 @@ TSharedPtr<CScriptEngine> CScriptManager::GetDefaultEngine(EScriptLanguage Langu
 		return nullptr;
 	}
 
-	const CString& DefaultName = DefaultEngines.Find(Language)->Value;
+	const CString& DefaultName = *DefaultEngines.Find(Language);
 	return GetEngine(Language, DefaultName);
 }
 
@@ -279,7 +279,7 @@ bool CScriptManager::SetDefaultEngine(EScriptLanguage Language, const CString& N
 		return false;
 	}
 
-	DefaultEngines.Add(Language, Name);
+	DefaultEngines.Insert(Language, Name);
 	NLOG_SCRIPT(Info, "Set default script engine for language {} to '{}'", static_cast<int>(Language), Name.GetData());
 	return true;
 }
@@ -292,9 +292,9 @@ TArray<SScriptEngineRegistry, CMemoryManager> CScriptManager::GetRegisteredEngin
 
 	for (const auto& LanguagePair : EngineRegistry)
 	{
-		for (const auto& Registry : LanguagePair.Value)
+		for (const auto& Registry : LanguagePair.second)
 		{
-			Result.Add(Registry);
+			Result.PushBack(Registry);
 		}
 	}
 
@@ -304,7 +304,7 @@ TArray<SScriptEngineRegistry, CMemoryManager> CScriptManager::GetRegisteredEngin
 bool CScriptManager::IsLanguageSupported(EScriptLanguage Language) const
 {
 	CThreadSafeLock Lock(Mutex);
-	return EngineRegistry.Contains(Language) && !EngineRegistry.Find(Language)->Value.IsEmpty();
+	return EngineRegistry.Contains(Language) && !EngineRegistry.Find(Language)->IsEmpty();
 }
 
 TArray<EScriptLanguage, CMemoryManager> CScriptManager::GetSupportedLanguages() const
@@ -314,9 +314,9 @@ TArray<EScriptLanguage, CMemoryManager> CScriptManager::GetSupportedLanguages() 
 	TArray<EScriptLanguage, CMemoryManager> Result;
 	for (const auto& LanguagePair : EngineRegistry)
 	{
-		if (!LanguagePair.Value.IsEmpty())
+		if (!LanguagePair.second.IsEmpty())
 		{
-			Result.Add(LanguagePair.Key);
+			Result.PushBack(LanguagePair.first);
 		}
 	}
 
@@ -350,7 +350,7 @@ TSharedPtr<CScriptContext> CScriptManager::CreateContext(const SScriptConfig& Co
 	// 注册上下文
 	CThreadSafeLock Lock(Mutex);
 	CString ContextId = GenerateContextId();
-	ActiveContexts.Add(ContextId, Context);
+	ActiveContexts.Insert(ContextId, Context);
 	Statistics.ActiveContexts++;
 
 	NLOG_SCRIPT(
@@ -377,11 +377,11 @@ void CScriptManager::DestroyContext(TSharedPtr<CScriptContext> Context)
 	CThreadSafeLock Lock(Mutex);
 
 	// 从活跃列表中移除
-	for (auto It = ActiveContexts.CreateIterator(); It; ++It)
+	for (auto& ContextPair : ActiveContexts)
 	{
-		if (It->Value == Context)
+		if (ContextPair.second == Context)
 		{
-			ActiveContexts.Remove(It->Key);
+			ActiveContexts.Remove(ContextPair.first);
 			Statistics.ActiveContexts--;
 			break;
 		}
@@ -403,7 +403,7 @@ TArray<TSharedPtr<CScriptContext>, CMemoryManager> CScriptManager::GetActiveCont
 	TArray<TSharedPtr<CScriptContext>, CMemoryManager> Result;
 	for (const auto& ContextPair : ActiveContexts)
 	{
-		Result.Add(ContextPair.Value);
+		Result.PushBack(ContextPair.second);
 	}
 
 	return Result;
@@ -415,9 +415,9 @@ void CScriptManager::DestroyAllContexts()
 
 	for (auto& ContextPair : ActiveContexts)
 	{
-		if (ContextPair.Value && ContextPair.Value->IsInitialized())
+		if (ContextPair.second && ContextPair.second->IsInitialized())
 		{
-			ContextPair.Value->Shutdown();
+			ContextPair.second->Shutdown();
 		}
 	}
 
@@ -431,7 +431,7 @@ SScriptExecutionResult CScriptManager::ExecuteString(EScriptLanguage Language,
                                                      const CString& Code,
                                                      const SScriptConfig& Config)
 {
-	auto Context = CreateContext(Config.Language != EScriptLanguage::None ? Config : SScriptConfig(Language));
+	auto Context = Config.Language != EScriptLanguage::None ? CreateContext(Config) : CreateContext(SScriptConfig(Language));
 	if (!Context)
 	{
 		return SScriptExecutionResult(EScriptResult::EngineNotFound, TEXT("No engine available"));
@@ -461,13 +461,13 @@ SScriptExecutionResult CScriptManager::ExecuteFile(EScriptLanguage Language,
                                                    const SScriptConfig& Config)
 {
 	// 检查文件是否存在
-	if (!NFileSystem::FileExists(FilePath))
+	if (!NFileSystem::IsFile(NPath(FilePath)))
 	{
 		return SScriptExecutionResult(EScriptResult::InvalidArgument,
 		                              CString(TEXT("Script file not found: ")) + FilePath);
 	}
 
-	auto Context = CreateContext(Config.Language != EScriptLanguage::None ? Config : SScriptConfig(Language));
+	auto Context = Config.Language != EScriptLanguage::None ? CreateContext(Config) : CreateContext(SScriptConfig(Language));
 	if (!Context)
 	{
 		return SScriptExecutionResult(EScriptResult::EngineNotFound, TEXT("No engine available"));
@@ -535,19 +535,19 @@ void CScriptManager::ApplyGlobalBindings(TSharedPtr<CScriptContext> Context)
 	// 应用全局函数
 	for (const auto& FunctionPair : GlobalFunctions)
 	{
-		Context->RegisterGlobalFunction(FunctionPair.Key, FunctionPair.Value);
+		Context->RegisterGlobalFunction(FunctionPair.first, FunctionPair.second);
 	}
 
 	// 应用全局对象
 	for (const auto& ObjectPair : GlobalObjects)
 	{
-		Context->RegisterGlobalObject(ObjectPair.Key, ObjectPair.Value);
+		Context->RegisterGlobalObject(ObjectPair.first, *ObjectPair.second);
 	}
 
 	// 应用全局常量
 	for (const auto& ConstantPair : GlobalConstants)
 	{
-		Context->RegisterGlobalConstant(ConstantPair.Key, ConstantPair.Value);
+		Context->RegisterGlobalConstant(ConstantPair.first, *ConstantPair.second);
 	}
 }
 
@@ -558,7 +558,15 @@ CString CScriptManager::GenerateContextId() const
 
 SScriptConfig CScriptManager::MergeConfig(const SScriptConfig& UserConfig) const
 {
-	SScriptConfig MergedConfig = GlobalConfig;
+	SScriptConfig MergedConfig;
+
+	// 首先复制全局配置
+	MergedConfig.Language = GlobalConfig.Language;
+	MergedConfig.Flags = GlobalConfig.Flags;
+	MergedConfig.TimeoutMs = GlobalConfig.TimeoutMs;
+	MergedConfig.MemoryLimitMB = GlobalConfig.MemoryLimitMB;
+	MergedConfig.MaxStackDepth = GlobalConfig.MaxStackDepth;
+	MergedConfig.WorkingDirectory = GlobalConfig.WorkingDirectory;
 
 	// 用户配置覆盖全局配置
 	if (UserConfig.Language != EScriptLanguage::None)
@@ -592,13 +600,19 @@ SScriptConfig CScriptManager::MergeConfig(const SScriptConfig& UserConfig) const
 	}
 
 	// 合并模块路径
-	MergedConfig.ModulePaths.Append(ModulePaths);
-	MergedConfig.ModulePaths.Append(UserConfig.ModulePaths);
+	for (const auto& Path : ModulePaths)
+	{
+		MergedConfig.ModulePaths.PushBack(Path);
+	}
+	for (const auto& Path : UserConfig.ModulePaths)
+	{
+		MergedConfig.ModulePaths.PushBack(Path);
+	}
 
 	// 合并环境变量
 	for (const auto& EnvPair : UserConfig.EnvironmentVariables)
 	{
-		MergedConfig.EnvironmentVariables.Add(EnvPair.Key, EnvPair.Value);
+		MergedConfig.EnvironmentVariables.Insert(EnvPair.first, EnvPair.second);
 	}
 
 	return MergedConfig;
@@ -609,19 +623,19 @@ SScriptConfig CScriptManager::MergeConfig(const SScriptConfig& UserConfig) const
 void CScriptManager::RegisterGlobalFunction(const CString& Name, TSharedPtr<CScriptFunction> Function)
 {
 	CThreadSafeLock Lock(Mutex);
-	GlobalFunctions.Add(Name, Function);
+	GlobalFunctions.Insert(Name, Function);
 }
 
-void CScriptManager::RegisterGlobalObject(const CString& Name, const CScriptValue& Object)
+void CScriptManager::RegisterGlobalObject(const CString& Name, const TSharedPtr<NScriptValue>& Object)
 {
 	CThreadSafeLock Lock(Mutex);
-	GlobalObjects.Add(Name, Object);
+	GlobalObjects.Insert(Name, Object);
 }
 
-void CScriptManager::RegisterGlobalConstant(const CString& Name, const CScriptValue& Value)
+void CScriptManager::RegisterGlobalConstant(const CString& Name, const TSharedPtr<NScriptValue>& Value)
 {
 	CThreadSafeLock Lock(Mutex);
-	GlobalConstants.Add(Name, Value);
+	GlobalConstants.Insert(Name, Value);
 }
 
 SScriptStatistics CScriptManager::GetStatistics() const

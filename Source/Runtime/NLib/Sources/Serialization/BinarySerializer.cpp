@@ -344,7 +344,7 @@ SSerializationResult CBinarySerializationArchive::ValidateTypeInfo(const CString
 SSerializationResult CBinarySerializationArchive::BeginObject(const CString& TypeName)
 {
 	ObjectNestingLevel++;
-	ObjectTypeStack.Add(TypeName);
+	ObjectTypeStack.PushBack(TypeName);
 
 	// 可选地写入类型信息
 	if (Context.HasFlag(ESerializationFlags::IncludeTypeInfo))
@@ -368,7 +368,7 @@ SSerializationResult CBinarySerializationArchive::EndObject(const CString& TypeN
 	}
 
 	CString ExpectedType = ObjectTypeStack.Last();
-	ObjectTypeStack.RemoveLast();
+	ObjectTypeStack.PopBack();
 	ObjectNestingLevel--;
 
 	if (ExpectedType != TypeName)
@@ -412,7 +412,7 @@ SSerializationResult CBinarySerializationArchive::WriteHeader()
 		return SSerializationResult(false, "Failed to write binary header");
 	}
 
-	NLOG_SERIALIZATION(Debug, "Binary serialization header written");
+	NLOG_SERIALIZATION(Info, "Binary serialization header written");
 	return SSerializationResult(true, WriteResult.BytesProcessed);
 }
 
@@ -426,7 +426,7 @@ SSerializationResult CBinarySerializationArchive::ReadHeader()
 
 	if (!Header.IsValid())
 	{
-		return SSerializationResult(false, CString("Invalid binary header magic: ") + CString::FromHex(Header.Magic));
+		return SSerializationResult(false, CString("Invalid binary header magic: ") + CString::FromInt(static_cast<int32_t>(Header.Magic)));
 	}
 
 	if (Header.Version > 1)
@@ -437,7 +437,7 @@ SSerializationResult CBinarySerializationArchive::ReadHeader()
 	// 更新上下文标志
 	Context.Flags = static_cast<ESerializationFlags>(Header.Flags);
 
-	NLOG_SERIALIZATION(Debug, "Binary serialization header read: version {}, flags {}", Header.Version, Header.Flags);
+	NLOG_SERIALIZATION(Info, "Binary serialization header read: version {}, flags {}", Header.Version, Header.Flags);
 	return SSerializationResult(true, ReadResult.BytesProcessed);
 }
 
